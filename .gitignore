@@ -1,0 +1,4 @@
+restore.sh
+restore_backup.sh
+conky_backup/
+.DS_Store
