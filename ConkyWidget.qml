@@ -32,6 +32,15 @@ DesktopPluginComponent {
     readonly property color accent: accentColor
     readonly property color accent2: accent2Color
 
+    // Clock / Date per-part colors
+    readonly property color clockHourColor: getData("clockHourColor", "#f0f0f0")
+    readonly property color clockMinuteColor: getData("clockMinuteColor", "#f0f0f0")
+    readonly property color clockSecondColor: getData("clockSecondColor", "#f0f0f0")
+    readonly property color clockColonColor: getData("clockColonColor", "#f0f0f0")
+    readonly property color dateWeekdayColor: getData("dateWeekdayColor", "#f0f0f0")
+    readonly property color dateDayColor: getData("dateDayColor", "#f0f0f0")
+    readonly property color dateMonthColor: getData("dateMonthColor", "#f0f0f0")
+
     readonly property int leftX: 14
     readonly property int rightX: 172
     readonly property int yBase: 0

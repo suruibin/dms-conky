@@ -8,6 +8,12 @@ PluginSettings {
     id: root
     pluginId: "conky"
 
+    function saveAndPersist(key, value) {
+        root.saveValue(key, value)
+        SettingsData.setPluginSetting("conky", key, value)
+        SettingsData.savePluginSettings()
+    }
+
     Column {
         width: parent.width
         spacing: 0
@@ -24,25 +30,205 @@ PluginSettings {
             width: parent.width
             text: "Show Clock"
             checked: root.loadValue("showClock", true)
-            onToggled: c => root.saveValue("showClock", c)
+            onToggled: c => root.saveAndPersist("showClock", c)
         }
         DankToggle {
             width: parent.width
             text: "Show Weather"
             checked: root.loadValue("showWeather", true)
-            onToggled: c => root.saveValue("showWeather", c)
+            onToggled: c => root.saveAndPersist("showWeather", c)
         }
         DankToggle {
             width: parent.width
             text: "Show Network"
             checked: root.loadValue("showNetwork", true)
-            onToggled: c => root.saveValue("showNetwork", c)
+            onToggled: c => root.saveAndPersist("showNetwork", c)
         }
         DankToggle {
             width: parent.width
             text: "Show Music Player"
             checked: root.loadValue("showMusic", true)
-            onToggled: c => root.saveValue("showMusic", c)
+            onToggled: c => root.saveAndPersist("showMusic", c)
+        }
+
+        Item { width: 1; height: Theme.spacingM }
+
+        // ---- Clock / Date Colors ----
+        StyledText {
+            text: "Clock Colors"
+            font.pixelSize: Theme.fontSizeMedium
+            font.weight: Font.Bold
+            color: Theme.surfaceText
+        }
+        Item { width: 1; height: Theme.spacingS }
+
+        // Hour
+        Row {
+            spacing: 4
+            StyledText {
+                text: "Hour"
+                width: 56; anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: 11; color: Theme.surfaceVariantText
+            }
+            Repeater {
+                model: ["#f0f0f0", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899"]
+                Rectangle {
+                    required property var modelData
+                    property string c: modelData
+                    width: 24; height: 24; radius: 12; color: c
+                    border.width: root.loadValue("clockHourColor", "#f0f0f0") === c ? 2 : 0
+                    border.color: Theme.surfaceText
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.saveAndPersist("clockHourColor", c)
+                    }
+                }
+            }
+        }
+        // Minute
+        Row {
+            spacing: 4
+            StyledText {
+                text: "Minute"
+                width: 56; anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: 11; color: Theme.surfaceVariantText
+            }
+            Repeater {
+                model: ["#f0f0f0", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899"]
+                Rectangle {
+                    required property var modelData
+                    property string c: modelData
+                    width: 24; height: 24; radius: 12; color: c
+                    border.width: root.loadValue("clockMinuteColor", "#f0f0f0") === c ? 2 : 0
+                    border.color: Theme.surfaceText
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.saveAndPersist("clockMinuteColor", c)
+                    }
+                }
+            }
+        }
+        // Second
+        Row {
+            spacing: 4
+            StyledText {
+                text: "Second"
+                width: 56; anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: 11; color: Theme.surfaceVariantText
+            }
+            Repeater {
+                model: ["#f0f0f0", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899"]
+                Rectangle {
+                    required property var modelData
+                    property string c: modelData
+                    width: 24; height: 24; radius: 12; color: c
+                    border.width: root.loadValue("clockSecondColor", "#f0f0f0") === c ? 2 : 0
+                    border.color: Theme.surfaceText
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.saveAndPersist("clockSecondColor", c)
+                    }
+                }
+            }
+        }
+        // Colon
+        Row {
+            spacing: 4
+            StyledText {
+                text: "Colon"
+                width: 56; anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: 11; color: Theme.surfaceVariantText
+            }
+            Repeater {
+                model: ["#f0f0f0", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899"]
+                Rectangle {
+                    required property var modelData
+                    property string c: modelData
+                    width: 24; height: 24; radius: 12; color: c
+                    border.width: root.loadValue("clockColonColor", "#f0f0f0") === c ? 2 : 0
+                    border.color: Theme.surfaceText
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.saveAndPersist("clockColonColor", c)
+                    }
+                }
+            }
+        }
+        // Weekday
+        Row {
+            spacing: 4
+            StyledText {
+                text: "Weekday"
+                width: 56; anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: 11; color: Theme.surfaceVariantText
+            }
+            Repeater {
+                model: ["#f0f0f0", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899"]
+                Rectangle {
+                    required property var modelData
+                    property string c: modelData
+                    width: 24; height: 24; radius: 12; color: c
+                    border.width: root.loadValue("dateWeekdayColor", "#f0f0f0") === c ? 2 : 0
+                    border.color: Theme.surfaceText
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.saveAndPersist("dateWeekdayColor", c)
+                    }
+                }
+            }
+        }
+        // Day
+        Row {
+            spacing: 4
+            StyledText {
+                text: "Day"
+                width: 56; anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: 11; color: Theme.surfaceVariantText
+            }
+            Repeater {
+                model: ["#f0f0f0", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899"]
+                Rectangle {
+                    required property var modelData
+                    property string c: modelData
+                    width: 24; height: 24; radius: 12; color: c
+                    border.width: root.loadValue("dateDayColor", "#f0f0f0") === c ? 2 : 0
+                    border.color: Theme.surfaceText
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.saveAndPersist("dateDayColor", c)
+                    }
+                }
+            }
+        }
+        // Month
+        Row {
+            spacing: 4
+            StyledText {
+                text: "Month"
+                width: 56; anchors.verticalCenter: parent.verticalCenter
+                font.pixelSize: 11; color: Theme.surfaceVariantText
+            }
+            Repeater {
+                model: ["#f0f0f0", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899"]
+                Rectangle {
+                    required property var modelData
+                    property string c: modelData
+                    width: 24; height: 24; radius: 12; color: c
+                    border.width: root.loadValue("dateMonthColor", "#f0f0f0") === c ? 2 : 0
+                    border.color: Theme.surfaceText
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.saveAndPersist("dateMonthColor", c)
+                    }
+                }
+            }
         }
 
         Item { width: 1; height: Theme.spacingM }
@@ -70,7 +256,7 @@ PluginSettings {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.saveValue("accentColor", c)
+                        onClicked: root.saveAndPersist("accentColor", c)
                     }
                 }
             }
@@ -101,7 +287,7 @@ PluginSettings {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.saveValue("accent2Color", c)
+                        onClicked: root.saveAndPersist("accent2Color", c)
                     }
                 }
             }
@@ -118,7 +304,7 @@ PluginSettings {
             width: parent.width
             from: 0.0; to: 1.0; stepSize: 0.01
             value: root.loadValue("bgOpacity", 0.0)
-            onValueChanged: root.saveValue("bgOpacity", value)
+            onValueChanged: root.saveAndPersist("bgOpacity", value)
         }
 
         Item { width: 1; height: Theme.spacingM }
@@ -132,13 +318,13 @@ PluginSettings {
             width: parent.width
             from: 280; to: 600; stepSize: 10
             value: root.loadValue("widgetWidth", 330)
-            onValueChanged: root.saveValue("widgetWidth", value)
+            onValueChanged: root.saveAndPersist("widgetWidth", value)
         }
         Slider {
             width: parent.width
             from: 500; to: 1200; stepSize: 10
             value: root.loadValue("widgetHeight", 620)
-            onValueChanged: root.saveValue("widgetHeight", value)
+            onValueChanged: root.saveAndPersist("widgetHeight", value)
         }
 
         Item { width: 1; height: Theme.spacingM }
@@ -161,7 +347,7 @@ PluginSettings {
             width: parent.width
             from: 0; to: 100; stepSize: 1
             value: root.loadValue("backgroundOpacity", 80)
-            onValueChanged: root.saveValue("backgroundOpacity", value)
+            onValueChanged: root.saveAndPersist("backgroundOpacity", value)
         }
 
         Item { width: 1; height: Theme.spacingS }
@@ -175,7 +361,7 @@ PluginSettings {
             width: parent.width
             from: 48; to: 128; stepSize: 4
             value: root.loadValue("appSize", 88)
-            onValueChanged: root.saveValue("appSize", value)
+            onValueChanged: root.saveAndPersist("appSize", value)
         }
 
         Item { width: 1; height: Theme.spacingS }
@@ -206,7 +392,7 @@ PluginSettings {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.saveValue("viewMode", modelData.value)
+                        onClicked: root.saveAndPersist("viewMode", modelData.value)
                     }
                 }
             }
@@ -218,7 +404,7 @@ PluginSettings {
             width: parent.width
             text: "Show Launcher Header"
             checked: root.loadValue("showHeader", true)
-            onToggled: c => root.saveValue("showHeader", c)
+            onToggled: c => root.saveAndPersist("showHeader", c)
         }
     }
 }

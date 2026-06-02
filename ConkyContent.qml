@@ -47,29 +47,55 @@ Item {
                 // ============================================
                 // Clock
                 // ============================================
-                Text {
+                Row {
                     visible: host.showClock
-                    x: host.leftX-12; y: host.yBase + 0
-                    text: {
-                        var d = sysClock.date
-                        if (!d) return "--:--:--"
-                        var h = d.getHours(), m = d.getMinutes(), s = d.getSeconds()
-                        return String(h).padStart(2,'0') + ":" + String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0')
+                    x: host.leftX - 12; y: host.yBase + 0
+
+                    Text {
+                        text: { var d = sysClock.date; return d ? String(d.getHours()).padStart(2,'0') : "--" }
+                        font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        color: host.clockHourColor
                     }
-                    font.family: abelFont.name
-                    font.weight: Font.Bold
-                    font.pixelSize: 40
-                    color: host.fg
+                    Text {
+                        text: ":"; font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        color: host.clockColonColor
+                    }
+                    Text {
+                        text: { var d = sysClock.date; return d ? String(d.getMinutes()).padStart(2,'0') : "--" }
+                        font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        color: host.clockMinuteColor
+                    }
+                    Text {
+                        text: ":"; font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        color: host.clockColonColor
+                    }
+                    Text {
+                        text: { var d = sysClock.date; return d ? String(d.getSeconds()).padStart(2,'0') : "--" }
+                        font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        color: host.clockSecondColor
+                    }
                 }
 
-                Text {
+                Row {
                     visible: host.showClock
                     x: host.leftX + 160; y: host.yBase + 35
-                    text: sysClock.date?.toLocaleDateString(Qt.locale(), "dddd d MMMM") ?? ""
-                    font.weight: Font.Bold
-                    font.family: abelFont.name
-                    font.pixelSize: 15
-                    color: host.fg
+                    spacing: 4
+
+                    Text {
+                        text: sysClock.date?.toLocaleDateString(Qt.locale(), "dddd") ?? ""
+                        font.weight: Font.Bold; font.family: abelFont.name; font.pixelSize: 15
+                        color: host.dateWeekdayColor
+                    }
+                    Text {
+                        text: sysClock.date?.toLocaleDateString(Qt.locale(), "d") ?? ""
+                        font.weight: Font.Bold; font.family: abelFont.name; font.pixelSize: 15
+                        color: host.dateDayColor
+                    }
+                    Text {
+                        text: sysClock.date?.toLocaleDateString(Qt.locale(), "MMMM") ?? ""
+                        font.weight: Font.Bold; font.family: abelFont.name; font.pixelSize: 15
+                        color: host.dateMonthColor
+                    }
                 }
 
                 // ============================================
