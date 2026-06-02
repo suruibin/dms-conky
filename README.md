@@ -2,6 +2,10 @@
 
 DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，鼠标悬停切换视图。
 
+# 界面参考 conky
+
+https://www.gnome-look.org/p/1869486/
+
 ## 截图
 
 ### 系统监控
