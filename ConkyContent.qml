@@ -6,6 +6,7 @@ import qs.Services
 Item {
     id: content
     property Item host
+    readonly property var activePlayer: MprisController.activePlayer
 
     FontLoader { id: abelFont; source: "./fonts/Abel-Regular.ttf" }
     FontLoader { id: bebasFont; source: "./fonts/BebasNeue-Regular.ttf" }
@@ -53,25 +54,25 @@ Item {
 
                     Text {
                         text: { var d = sysClock.date; return d ? String(d.getHours()).padStart(2,'0') : "--" }
-                        font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        font.family: abelFont.name; font.bold: true; font.pixelSize: 40
                         color: host.clockHourColor
                     }
                     Text {
-                        text: ":"; font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        text: ":"; font.family: abelFont.name; font.bold: true; font.pixelSize: 40
                         color: host.clockColonColor
                     }
                     Text {
                         text: { var d = sysClock.date; return d ? String(d.getMinutes()).padStart(2,'0') : "--" }
-                        font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        font.family: abelFont.name; font.bold: true; font.pixelSize: 40
                         color: host.clockMinuteColor
                     }
                     Text {
-                        text: ":"; font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        text: ":"; font.family: abelFont.name; font.bold: true; font.pixelSize: 40
                         color: host.clockColonColor
                     }
                     Text {
                         text: { var d = sysClock.date; return d ? String(d.getSeconds()).padStart(2,'0') : "--" }
-                        font.family: abelFont.name; font.weight: Font.Bold; font.pixelSize: 40
+                        font.family: abelFont.name; font.bold: true; font.pixelSize: 40
                         color: host.clockSecondColor
                     }
                 }
@@ -83,17 +84,17 @@ Item {
 
                     Text {
                         text: sysClock.date?.toLocaleDateString(Qt.locale(), "dddd") ?? ""
-                        font.weight: Font.Bold; font.family: abelFont.name; font.pixelSize: 15
+                        font.bold: true; font.family: abelFont.name; font.pixelSize: 15
                         color: host.dateWeekdayColor
                     }
                     Text {
                         text: sysClock.date?.toLocaleDateString(Qt.locale(), "d") ?? ""
-                        font.weight: Font.Bold; font.family: abelFont.name; font.pixelSize: 15
+                        font.bold: true; font.family: abelFont.name; font.pixelSize: 15
                         color: host.dateDayColor
                     }
                     Text {
                         text: sysClock.date?.toLocaleDateString(Qt.locale(), "MMMM") ?? ""
-                        font.weight: Font.Bold; font.family: abelFont.name; font.pixelSize: 15
+                        font.bold: true; font.family: abelFont.name; font.pixelSize: 15
                         color: host.dateMonthColor
                     }
                 }
@@ -121,7 +122,7 @@ Item {
                     x: host.leftX; y: host.yBase + 95
                     text: WeatherService.weather.available ? WeatherService.weather.city : "Offline"
                     font.family: abelFont.name
-                    font.weight: Font.Bold
+                    font.bold: true
                     font.pixelSize: 18
                     color: host.accent2
                     width: 155
@@ -174,7 +175,7 @@ Item {
                     x: host.rightX + 25; y: host.yBase + 70
                     text: DMSNetworkService.currentWifiSSID || "Network"
                     font.family: abelFont.name
-                    font.weight: Font.Bold
+                    font.bold: true
                     font.pixelSize: 15
                     color: host.fg
                 }
@@ -271,7 +272,7 @@ Item {
                     x: host.leftX; y: host.yBase + 365
                     text: "Storage"
                     font.family: abelFont.name
-                    font.weight: Font.Bold
+                    font.bold: true
                     font.pixelSize: 18
                     color: host.fg
                 }
@@ -347,7 +348,7 @@ Item {
                     visible: host.showMusic
                     x: host.rightX; y: host.yBase + 390
                     text: {
-                        var p = MprisController.activePlayer
+                        var p = content.activePlayer
                         if (!p) return "No music played"
                         if (p.isPlaying) return "Playing :"
                         return "Paused :"
@@ -360,12 +361,12 @@ Item {
                     visible: host.showMusic
                     x: host.rightX; y: host.yBase + 410
                     text: {
-                        var p = MprisController.activePlayer
+                        var p = content.activePlayer
                         if (!p || !p.metadata) return ""
                         return p.metadata["xesam:artist"] ? p.metadata["xesam:artist"].join(", ") : ""
                     }
                     font.family: abelFont.name
-                    font.weight: Font.Bold
+                    font.bold: true
                     font.pixelSize: 15
                     color: host.accent2
                     width: 110
@@ -375,7 +376,7 @@ Item {
                     visible: host.showMusic
                     x: host.rightX; y: host.yBase + 430
                     text: {
-                        var p = MprisController.activePlayer
+                        var p = content.activePlayer
                         if (!p || !p.metadata) return ""
                         return p.metadata["xesam:title"] || ""
                     }

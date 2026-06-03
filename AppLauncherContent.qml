@@ -4,11 +4,31 @@ import Quickshell
 import qs.Common
 import qs.Widgets
 import qs.Modules.Plugins
-import "./dms-common"
 
 Item {
     id: content
     property Item host
+
+    // Reusable header tool button
+    component ToolButton: MouseArea {
+        id: btn
+        width: 24; height: 24; hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        anchors.verticalCenter: parent.verticalCenter
+        property string iconName: ""
+
+        Rectangle {
+            anchors.fill: parent
+            radius: Math.round(Theme.cornerRadius / 2)
+            color: btn.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : Theme.withAlpha(Theme.surfaceText, 0.03)
+            border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1
+            DankIcon {
+                anchors.centerIn: parent
+                name: btn.iconName; size: 14; color: Theme.surfaceText
+                opacity: btn.containsMouse ? 1.0 : 0.7
+            }
+        }
+    }
 
     focus: true
     Keys.onPressed: function(event) {
@@ -221,72 +241,27 @@ Item {
                         }
                     }
 
-                    // Add Button
-                    MouseArea {
-                        id: addBtn
-                        width: 24; height: 24; hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        anchors.verticalCenter: parent.verticalCenter
+                    ToolButton {
+                        iconName: "add"
                         onClicked: {
                             clearSearch()
                             addAppDialog.openDialog("add")
                         }
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: Math.round(Theme.cornerRadius / 2)
-                            color: addBtn.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : Theme.withAlpha(Theme.surfaceText, 0.03)
-                            border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1
-                            DankIcon {
-                                anchors.centerIn: parent
-                                name: "add"; size: 14; color: Theme.surfaceText
-                                opacity: addBtn.containsMouse ? 1.0 : 0.7
-                            }
-                        }
                     }
 
-                    // Edit Button
-                    MouseArea {
-                        id: editBtn
-                        width: 24; height: 24; hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        anchors.verticalCenter: parent.verticalCenter
+                    ToolButton {
+                        iconName: "edit"
                         onClicked: {
                             clearSearch()
                             addAppDialog.openDialog("manage")
                         }
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: Math.round(Theme.cornerRadius / 2)
-                            color: editBtn.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : Theme.withAlpha(Theme.surfaceText, 0.03)
-                            border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1
-                            DankIcon {
-                                anchors.centerIn: parent
-                                name: "edit"; size: 14; color: Theme.surfaceText
-                                opacity: editBtn.containsMouse ? 1.0 : 0.7
-                            }
-                        }
                     }
 
-                    // Settings Button
-                    MouseArea {
-                        id: settingsBtn
-                        width: 24; height: 24; hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        anchors.verticalCenter: parent.verticalCenter
+                    ToolButton {
+                        iconName: "settings"
                         onClicked: {
                             clearSearch()
                             appSettingsDialog.open()
-                        }
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: Math.round(Theme.cornerRadius / 2)
-                            color: settingsBtn.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : Theme.withAlpha(Theme.surfaceText, 0.03)
-                            border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1
-                            DankIcon {
-                                anchors.centerIn: parent
-                                name: "settings"; size: 14; color: Theme.surfaceText
-                                opacity: settingsBtn.containsMouse ? 1.0 : 0.7
-                            }
                         }
                     }
                 }
@@ -549,6 +524,18 @@ Item {
             property var systemAppsList: []
             property string systemAppsSearch: ""
             property string activeTab: "add"
+            property var filteredSystemApps: []
+
+            onSystemAppsSearchChanged: {
+                var s = systemAppsSearch.toLowerCase().trim()
+                if (s === "") {
+                    filteredSystemApps = systemAppsList
+                } else {
+                    filteredSystemApps = systemAppsList.filter(function(app) {
+                        return app.name.toLowerCase().indexOf(s) !== -1 || (app.exec && app.exec.toLowerCase().indexOf(s) !== -1)
+                    })
+                }
+            }
 
             MouseArea { anchors.fill: parent; hoverEnabled: true; onClicked: {} }
 
@@ -567,6 +554,7 @@ Item {
                     }
                     apps.sort(function(a, b) { return (a.name || "").localeCompare(b.name || "") })
                     systemAppsList = apps
+                    filteredSystemApps = apps
                 }
             }
             function close() { opened = false }
@@ -660,12 +648,7 @@ Item {
                         width: parent.width
                         height: dialogCard.height - Theme.spacingM * 2 - 24 - 32 - 32 - Theme.spacingS * 3
                         clip: true; spacing: 2; boundsBehavior: Flickable.StopAtBounds
-                        model: {
-                            var s = addAppDialog.systemAppsSearch.toLowerCase().trim()
-                            return addAppDialog.systemAppsList.filter(function(app) {
-                                return s === "" || app.name.toLowerCase().indexOf(s) !== -1 || (app.exec && app.exec.toLowerCase().indexOf(s) !== -1)
-                            })
-                        }
+                        model: addAppDialog.filteredSystemApps
                         delegate: Rectangle {
                             width: parent.width; height: 38
                             radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
@@ -895,6 +878,35 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                     onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "viewMode", modelData.value) }
+                                }
+                            }
+                        }
+                    }
+
+                    Item { width: 1; height: Theme.spacingS }
+
+                    StyledText {
+                        text: I18n.tr("Show Header")
+                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
+                    }
+                    Row {
+                        spacing: 6
+                        Repeater {
+                            model: [
+                                { label: I18n.tr("On"), value: true },
+                                { label: I18n.tr("Off"), value: false }
+                            ]
+                            Rectangle {
+                                required property var modelData
+                                width: 50; height: 28; radius: 6
+                                color: host.appShowHeader === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                                StyledText {
+                                    anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
+                                    color: host.appShowHeader === modelData.value ? Theme.onPrimary : Theme.surfaceText
+                                }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", modelData.value) }
                                 }
                             }
                         }

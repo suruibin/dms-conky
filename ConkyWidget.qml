@@ -5,7 +5,6 @@ import qs.Common
 import qs.Services
 import qs.Widgets
 import qs.Modules.Plugins
-import "./dms-common"
 
 DesktopPluginComponent {
     id: root
@@ -45,6 +44,8 @@ DesktopPluginComponent {
     readonly property int rightX: 172
     readonly property int yBase: 0
 
+    property var activeModules: ["cpu", "memory", "network", "disk", "diskmounts", "system"]
+
     // Mouse hover detection — switches between Conky and AppLauncher views
     property bool mouseHovered: false
     property real hoverMouseX: 0
@@ -72,18 +73,12 @@ DesktopPluginComponent {
     property bool hasActivePlayer: MprisController.activePlayer !== null && MprisController.activePlayer !== undefined
     property int musicTick: 0
     readonly property string musicElapsed: {
-        var _t = musicTick
         var p = MprisController.activePlayer
         if (!p || !p.isPlaying || p.position < 0) return ""
         var s = Math.floor(p.position)
         return Math.floor(s/60) + ":" + String(s%60).padStart(2,'0')
     }
-    Timer {
-        interval: 1000; running: !root.mouseHovered && root.showMusic && root.hasActivePlayer; repeat: true
-        onTriggered: root.musicTick++
-    }
 
-    // Disk cache — single traversal, refreshed every 60s
     property var diskCache: ({ sysPct: 0, sysInfo: "-- / --", homePct: 0, homeInfo: "-- / --" })
     readonly property real sysDiskPct: diskCache.sysPct
     readonly property string sysDiskInfo: diskCache.sysInfo
@@ -101,10 +96,20 @@ DesktopPluginComponent {
         root.diskCache = c
     }
 
-    Timer { interval: 60000; running: true; repeat: true; onTriggered: root.refreshDiskCache() }
-    Timer { interval: 1500; running: true; repeat: false; onTriggered: root.refreshDiskCache() }
+    Timer {
+        id: updateTimer
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            if (showMusic && hasActivePlayer && !mouseHovered) {
+                musicTick++
+            }
+        }
+    }
 
-    property var activeModules: ["cpu", "memory", "network", "disk", "diskmounts", "system"]
+    Timer { id: diskTimer; interval: 60000; running: true; repeat: true; onTriggered: root.refreshDiskCache() }
+    Timer { interval: 1500; running: true; repeat: false; onTriggered: root.refreshDiskCache() }
 
     Component.onCompleted: {
         DgopService.addRef(activeModules)
@@ -115,11 +120,12 @@ DesktopPluginComponent {
         WeatherService.removeRef()
     }
 
+    // Format bytes to human-readable
     function fmtBytes(b) {
-        if (b < 1024) return Math.round(b) + "B"
-        if (b < 1048576) return Math.round(b/1024) + "KiB"
-        if (b < 1073741824) return Math.round(b/1048576) + "MiB"
-        return Math.round(b/1073741824) + "GiB"
+        if (b < 1024)       return Math.round(b) + " B"
+        if (b < 1048576)    return Math.round(b / 1024) + " KB"
+        if (b < 1073741824) return Math.round(b / 1048576) + " MB"
+        return Math.round(b / 1073741824) + " GB"
     }
 
     // Strip Freedesktop Exec field codes (%u, %U, %f, %F) that
@@ -134,10 +140,9 @@ DesktopPluginComponent {
         if (code === 2) return "⛅"
         if (code === 3) return "☁"
         if (code === 45 || code === 48) return "🌫"
-        if (code >= 51 && code <= 57) return "🌧"
-        if (code >= 61 && code <= 67) return "🌧"
+        // drizzle (51-57), rain (61-67), showers (80-86) → all rain
+        if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67) || (code >= 80 && code <= 86)) return "🌧"
         if (code >= 71 && code <= 77) return "🌨"
-        if (code >= 80 && code <= 86) return "🌧"
         if (code >= 95 && code <= 99) return "⛈"
         return "☁"
     }

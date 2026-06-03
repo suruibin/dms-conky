@@ -7,17 +7,20 @@ Canvas {
     property real maxVal: 1
     property color gradientStart: "#5105DB"
     property color gradientEnd: "#FF1493"
-
+    
     onPaint: {
         var ctx = getContext("2d")
         var w = width, h = height, d = data
         ctx.clearRect(0, 0, w, h)
-        if (d.length < 2) return
+        
+        if (!d || d.length < 2 || maxVal <= 0) return
+        
         var stepX = w / (d.length - 1)
         ctx.beginPath()
         ctx.moveTo(0, h)
         for (var i = 0; i < d.length; i++) {
-            ctx.lineTo(i * stepX, h - (d[i] / maxVal) * h)
+            var val = isFinite(d[i]) ? d[i] : 0
+            ctx.lineTo(i * stepX, h - (val / maxVal) * h)
         }
         ctx.lineTo(w, h)
         ctx.closePath()
