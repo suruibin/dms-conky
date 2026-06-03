@@ -249,11 +249,11 @@ Item {
                     font.family: bebasFont.name; font.pixelSize: 14; color: host.fg
                 }
 
-                RingGauge { id: batteryRing; x: 158; y: host.yBase + 234; pct: BatteryService.batteryAvailable ? BatteryService.batteryLevel / 100 : 0; gaugeColor: "#C20EAC" }
+                RingGauge { id: batteryRing; x: 158; y: host.yBase + 234; pct: BatteryService.batteryAvailable ? BatteryService.batteryLevel / 100 : 1.0; gaugeColor: BatteryService.batteryAvailable ? "#C20EAC" : "#22C55E" }
                 Text {
                     x: 155; y: host.yBase + 290; width: 58
                     horizontalAlignment: Text.AlignHCenter
-                    text: BatteryService.batteryAvailable ? BatteryService.batteryLevel.toFixed(0) + "%" : "--%"
+                    text: BatteryService.batteryAvailable ? BatteryService.batteryLevel.toFixed(0) + "%" : "AC"
                     font.family: bebasFont.name; font.pixelSize: 14; color: host.fg
                 }
 
