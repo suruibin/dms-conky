@@ -19,6 +19,7 @@ https://github.com/hthienloc/dms-app-launcher
 ## 整体显示
 ![应用启动器](截图3.png)
 ![应用启动器](截图4.png)
+![应用启动器](截图5.png)
 
 ## 功能
 
