@@ -6,15 +6,11 @@ DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，
 
 ## 截图
 
-## 系统监控
-https://www.gnome-look.org/p/1869486/
+## 系统监控  ## 应用启动器
+参考: https://www.gnome-look.org/p/1869486/    参考：https://github.com/hthienloc/dms-app-launcher
 
-![系统监控](截图1.png)
+![系统监控](截图1.png)   ![应用启动器](截图2.png)
 
-## 应用启动器
-https://github.com/hthienloc/dms-app-launcher
-
-![应用启动器](截图2.png)
 
 ## 整体显示
 ![应用启动器](截图3.png)
