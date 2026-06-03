@@ -164,7 +164,7 @@ Item {
                 Text {
                     visible: host.showNetwork
                     x: host.rightX; y: host.yBase + 70
-                    text: ""
+                    text: ""
                     font.family: materialFont.name
                     font.pixelSize: 15
                     color: host.accent
