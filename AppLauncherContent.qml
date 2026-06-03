@@ -850,7 +850,7 @@ Item {
                     Slider {
                         width: parent.width; from: 48; to: 128; stepSize: 4
                         value: host.appSize
-                        onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "appSize", value) }
+                        onValueChanged: host.setData("appSize", value)
                     }
 
                     Item { width: 1; height: Theme.spacingS }

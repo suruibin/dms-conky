@@ -31,6 +31,13 @@ DesktopPluginComponent {
     readonly property color accent: accentColor
     readonly property color accent2: accent2Color
 
+    // Ring gauge colors
+    readonly property color cpuGaugeColor: getData("cpuGaugeColor", "#5105DB")
+    readonly property color memGaugeColor: getData("memGaugeColor", "#8B0AC3")
+    readonly property color batteryGaugeColor: getData("batteryGaugeColor", "#C20EAC")
+    readonly property color batteryAcGaugeColor: getData("batteryAcGaugeColor", "#22C55E")
+    readonly property color tempGaugeColor: getData("tempGaugeColor", "#FF1493")
+
     // Clock / Date per-part colors
     readonly property color clockHourColor: getData("clockHourColor", "#f0f0f0")
     readonly property color clockMinuteColor: getData("clockMinuteColor", "#f0f0f0")
@@ -63,7 +70,7 @@ DesktopPluginComponent {
     // --- App Launcher properties ---
     property string appSearchQuery: ""
     property bool appEditMode: false
-    readonly property real appSize: pluginData.appSize ?? 88
+    readonly property real appSize: getData("appSize", 88)
     readonly property string appViewMode: pluginData.viewMode ?? "grid"
     readonly property bool appShowHeader: pluginData.showHeader ?? true
     readonly property real appLauncherBgOpacity: (pluginData.backgroundOpacity ?? 80) / 100

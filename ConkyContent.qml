@@ -233,7 +233,7 @@ Item {
                 // ============================================
                 // Ring Gauges: CPU, MEM, Battery, Temp
                 // ============================================
-                RingGauge { id: cpuRing; x: 19; y: host.yBase + 234; pct: DgopService.cpuUsage / 100; gaugeColor: host.accent }
+                RingGauge { id: cpuRing; x: 19; y: host.yBase + 234; pct: DgopService.cpuUsage / 100; gaugeColor: host.cpuGaugeColor }
                 Text {
                     x: 16; y: host.yBase + 290; width: 58
                     horizontalAlignment: Text.AlignHCenter
@@ -241,7 +241,7 @@ Item {
                     font.family: bebasFont.name; font.pixelSize: 14; color: host.fg
                 }
 
-                RingGauge { id: memRing; x: 88; y: host.yBase + 234; pct: DgopService.memoryUsage / 100; gaugeColor: "#8B0AC3" }
+                RingGauge { id: memRing; x: 88; y: host.yBase + 234; pct: DgopService.memoryUsage / 100; gaugeColor: host.memGaugeColor }
                 Text {
                     x: 88; y: host.yBase + 290; width: 58
                     horizontalAlignment: Text.AlignHCenter
@@ -249,7 +249,7 @@ Item {
                     font.family: bebasFont.name; font.pixelSize: 14; color: host.fg
                 }
 
-                RingGauge { id: batteryRing; x: 158; y: host.yBase + 234; pct: BatteryService.batteryAvailable ? BatteryService.batteryLevel / 100 : 1.0; gaugeColor: BatteryService.batteryAvailable ? "#C20EAC" : "#22C55E" }
+                RingGauge { id: batteryRing; x: 158; y: host.yBase + 234; pct: BatteryService.batteryAvailable ? BatteryService.batteryLevel / 100 : 1.0; gaugeColor: BatteryService.batteryAvailable ? host.batteryGaugeColor : host.batteryAcGaugeColor }
                 Text {
                     x: 155; y: host.yBase + 290; width: 58
                     horizontalAlignment: Text.AlignHCenter
@@ -257,7 +257,7 @@ Item {
                     font.family: bebasFont.name; font.pixelSize: 14; color: host.fg
                 }
 
-                RingGauge { id: tempRing; x: 228; y: host.yBase + 234; pct: DgopService.cpuTemperature > 0 ? Math.min(100, DgopService.cpuTemperature) / 100 : 0; gaugeColor: "#FF1493" }
+                RingGauge { id: tempRing; x: 228; y: host.yBase + 234; pct: DgopService.cpuTemperature > 0 ? Math.min(100, DgopService.cpuTemperature) / 100 : 0; gaugeColor: host.tempGaugeColor }
                 Text {
                     x: 228; y: host.yBase + 290; width: 58
                     horizontalAlignment: Text.AlignHCenter
