@@ -19,7 +19,7 @@ PluginSettings {
         spacing: 0
 
         StyledText {
-            text: "Display Sections"
+            text: I18n.tr("Module")
             font.pixelSize: Theme.fontSizeMedium
             font.bold: true
             color: Theme.surfaceText
@@ -28,25 +28,25 @@ PluginSettings {
 
         DankToggle {
             width: parent.width
-            text: "Show Clock"
+            text: I18n.tr("Clock")
             checked: root.loadValue("showClock", true)
             onToggled: c => root.saveAndPersist("showClock", c)
         }
         DankToggle {
             width: parent.width
-            text: "Show Weather"
+            text: I18n.tr("Weather")
             checked: root.loadValue("showWeather", true)
             onToggled: c => root.saveAndPersist("showWeather", c)
         }
         DankToggle {
             width: parent.width
-            text: "Show Network"
+            text: I18n.tr("Network")
             checked: root.loadValue("showNetwork", true)
             onToggled: c => root.saveAndPersist("showNetwork", c)
         }
         DankToggle {
             width: parent.width
-            text: "Show Music Player"
+            text: I18n.tr("Music")
             checked: root.loadValue("showMusic", true)
             onToggled: c => root.saveAndPersist("showMusic", c)
         }
@@ -54,7 +54,7 @@ PluginSettings {
         Item { width: 1; height: Theme.spacingM }
 
         StyledText {
-            text: "Primary Color"
+            text: I18n.tr("Primary Color")
             font.pixelSize: Theme.fontSizeMedium
             font.bold: true
             color: Theme.surfaceText
@@ -85,7 +85,7 @@ PluginSettings {
         Item { width: 1; height: Theme.spacingS }
 
         StyledText {
-            text: "Secondary Color"
+            text: I18n.tr("Secondary Color")
             font.pixelSize: Theme.fontSizeMedium
             font.bold: true
             color: Theme.surfaceText
@@ -96,7 +96,7 @@ PluginSettings {
             width: parent.width
             spacing: 6
             Repeater {
-                model: ["#FF1493", "#F43F5E", "#E11D48", "#DC2626", "#EF4444", "#F97316", "#F59E0B", "#EAB308", "#22C55E", "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9", "#3B82F6", "#6366F1", "#8B5CF6", "#A855F7", "#D946EF", "#EC4899", "#DB2777", "#94A3B8", "#64748B", "#334155", "#ffffff"]
+                model: ["#5105DB", "#7C3AED", "#8B5CF6", "#A855F7", "#6366F1", "#2563EB", "#3B82F6", "#0891B2", "#06B6D4", "#14B8A6", "#059669", "#10B981", "#22C55E", "#EAB308", "#F59E0B", "#D97706", "#F97316", "#DC2626", "#EF4444", "#DB2777", "#EC4899", "#D946EF", "#ffffff", "#94A3B8", "#64748B", "#334155"]
                 Rectangle {
                     required property var modelData
                     property string c: modelData
@@ -121,7 +121,7 @@ PluginSettings {
 
         // ---- Clock / Date Colors ----
         StyledText {
-            text: "Clock Colors"
+            text: I18n.tr("Clock Colors")
             font.pixelSize: Theme.fontSizeMedium
             font.bold: true
             color: Theme.surfaceText
@@ -141,7 +141,7 @@ PluginSettings {
                 font.pixelSize: 11; color: Theme.surfaceVariantText
             }
             Repeater {
-                model: ["#f0f0f0", "#EF4444", "#F97316", "#EAB308", "#22C55E", "#14B8A6", "#06B6D4", "#3B82F6", "#6366F1", "#8B5CF6", "#EC4899", "#94A3B8"]
+                model: ["#f0f0f0", "#F43F5E", "#EF4444", "#DC2626", "#F97316", "#EA580C", "#EAB308", "#84CC16", "#22C55E", "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9", "#3B82F6", "#6366F1", "#8B5CF6", "#A855F7", "#D946EF", "#EC4899", "#94A3B8"]
                 Rectangle {
                     required property var modelData
                     property string c: modelData
@@ -157,13 +157,13 @@ PluginSettings {
             }
         }
 
-        ColorRow { label: "Hour";    settingKey: "clockHourColor" }
-        ColorRow { label: "Minute";  settingKey: "clockMinuteColor" }
-        ColorRow { label: "Second";  settingKey: "clockSecondColor" }
-        ColorRow { label: "Colon";   settingKey: "clockColonColor" }
-        ColorRow { label: "Weekday"; settingKey: "dateWeekdayColor" }
-        ColorRow { label: "Day";     settingKey: "dateDayColor" }
-        ColorRow { label: "Month";   settingKey: "dateMonthColor" }
+        ColorRow { label: I18n.tr("Hour");    settingKey: "clockHourColor" }
+        ColorRow { label: I18n.tr("Minute");  settingKey: "clockMinuteColor" }
+        ColorRow { label: I18n.tr("Second");  settingKey: "clockSecondColor" }
+        ColorRow { label: I18n.tr("Colon");   settingKey: "clockColonColor" }
+        ColorRow { label: I18n.tr("Weekday"); settingKey: "dateWeekdayColor" }
+        ColorRow { label: I18n.tr("Day");     settingKey: "dateDayColor" }
+        ColorRow { label: I18n.tr("Month");   settingKey: "dateMonthColor" }
 
         Rectangle {
             width: parent.width; height: 1
@@ -172,18 +172,18 @@ PluginSettings {
         Item { width: 1; height: Theme.spacingM }
 
         StyledText {
-            text: "Ring Gauge Colors"
+            text: I18n.tr("Ring Gauge Colors")
             font.pixelSize: Theme.fontSizeMedium
             font.bold: true
             color: Theme.surfaceText
         }
         Item { width: 1; height: Theme.spacingS }
 
-        ColorRow { label: "CPU";     settingKey: "cpuGaugeColor";     defaultColor: "#5105DB" }
-        ColorRow { label: "Memory";  settingKey: "memGaugeColor";     defaultColor: "#8B0AC3" }
-        ColorRow { label: "Battery"; settingKey: "batteryGaugeColor"; defaultColor: "#C20EAC" }
-        ColorRow { label: "AC";      settingKey: "batteryAcGaugeColor"; defaultColor: "#22C55E" }
-        ColorRow { label: "Temp";    settingKey: "tempGaugeColor";    defaultColor: "#FF1493" }
+        ColorRow { label: I18n.tr("CPU");     settingKey: "cpuGaugeColor";     defaultColor: "#5105DB" }
+        ColorRow { label: I18n.tr("Memory");  settingKey: "memGaugeColor";     defaultColor: "#8B0AC3" }
+        ColorRow { label: I18n.tr("Battery"); settingKey: "batteryGaugeColor"; defaultColor: "#C20EAC" }
+        ColorRow { label: I18n.tr("AC");      settingKey: "batteryAcGaugeColor"; defaultColor: "#22C55E" }
+        ColorRow { label: I18n.tr("Temp");    settingKey: "tempGaugeColor";    defaultColor: "#FF1493" }
 
         Rectangle {
             width: parent.width; height: 1
@@ -192,7 +192,7 @@ PluginSettings {
         Item { width: 1; height: Theme.spacingM }
 
         StyledText {
-            text: "Background: " + Math.round(root.loadValue("bgOpacity", 0.0) * 100) + "%"
+            text: I18n.tr("Transparency") + ": " + Math.round(root.loadValue("bgOpacity", 0.0) * 100) + "%"
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.surfaceVariantText
         }
@@ -206,7 +206,7 @@ PluginSettings {
         Item { width: 1; height: Theme.spacingM }
 
         StyledText {
-            text: "Widget Size: " + root.loadValue("widgetWidth", 330) + " × " + root.loadValue("widgetHeight", 620)
+            text: I18n.tr("Widget Size") + ": " + root.loadValue("widgetWidth", 330) + " × " + root.loadValue("widgetHeight", 620)
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.surfaceVariantText
         }
@@ -226,7 +226,7 @@ PluginSettings {
         Item { width: 1; height: Theme.spacingS }
 
         StyledText {
-            text: "App Icon Size: " + root.loadValue("appSize", 88) + "px"
+            text: I18n.tr("Icon Size") + ": " + root.loadValue("appSize", 88) + "px"
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.surfaceVariantText
         }
@@ -245,7 +245,7 @@ PluginSettings {
 
         // ── About / GitHub ────────────────────────────────────────────────────
         StyledText {
-            text: "About"
+            text: I18n.tr("About")
             font.pixelSize: Theme.fontSizeMedium
             font.bold: true
             color: Theme.surfaceText
@@ -276,7 +276,7 @@ PluginSettings {
                     }
                     StyledText {
                         width: parent.width
-                        text: "Found a bug or have a feature request? Join us on GitHub."
+                        text: I18n.tr("Found a bug or have a feature request? Join us on GitHub.")
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.surfaceVariantText
                         wrapMode: Text.Wrap
@@ -286,7 +286,7 @@ PluginSettings {
                 DankButton {
                     id: githubBtn
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "GitHub"
+                    text: I18n.tr("GitHub")
                     iconName: "code"
                     backgroundColor: Theme.withAlpha(Theme.primary, 0.1)
                     textColor: Theme.primary

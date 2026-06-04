@@ -574,7 +574,7 @@ Item {
                     Item {
                         width: parent.width; height: 24
                         StyledText {
-                            text: I18n.tr("Manage Applications")
+                            text: I18n.tr("Applications")
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
                             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
                         }
@@ -600,7 +600,7 @@ Item {
                                     anchors.fill: parent; radius: 14
                                     color: addAppDialog.activeTab === "add" ? Theme.primary : "transparent"
                                     StyledText {
-                                        anchors.centerIn: parent; text: I18n.tr("Add Apps")
+                                        anchors.centerIn: parent; text: I18n.tr("Add")
                                         font.bold: addAppDialog.activeTab === "add"; font.pixelSize: Theme.fontSizeSmall
                                         color: addAppDialog.activeTab === "add" ? Theme.onPrimary : Theme.surfaceText
                                         opacity: addAppDialog.activeTab === "add" ? 1.0 : (tabAddBtn.containsMouse ? 0.9 : 0.6)
@@ -614,7 +614,7 @@ Item {
                                     anchors.fill: parent; radius: 14
                                     color: addAppDialog.activeTab === "manage" ? Theme.primary : "transparent"
                                     StyledText {
-                                        anchors.centerIn: parent; text: I18n.tr("Manage")
+                                        anchors.centerIn: parent; text: I18n.tr("Layout")
                                         font.bold: addAppDialog.activeTab === "manage"; font.pixelSize: Theme.fontSizeSmall
                                         color: addAppDialog.activeTab === "manage" ? Theme.onPrimary : Theme.surfaceText
                                         opacity: addAppDialog.activeTab === "manage" ? 1.0 : (tabManageBtn.containsMouse ? 0.9 : 0.6)
@@ -819,7 +819,7 @@ Item {
                     Item {
                         width: parent.width; height: 24
                         StyledText {
-                            text: I18n.tr("Launcher Settings")
+                            text: I18n.tr("Settings")
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
                             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
                         }
@@ -832,7 +832,7 @@ Item {
                     }
 
                     StyledText {
-                        text: I18n.tr("Background") + ": " + Math.round(host.appLauncherBgOpacity * 100) + "%"
+                        text: I18n.tr("Transparency") + ": " + Math.round(host.appLauncherBgOpacity * 100) + "%"
                         font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
                     }
                     Slider {

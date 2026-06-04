@@ -48,3 +48,7 @@ cp -r conky ~/.config/DankMaterialShell/plugins/
 ## 快捷键
 
 - `ESC`：在应用启动器中退出弹窗/返回监控视图
+
+## 中文翻译 
+
+sudo cp zh_CN.json /usr/share/quickshell/dms/translations/poexports/zh_CN.json
