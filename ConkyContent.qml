@@ -430,29 +430,52 @@ Item {
 
                 // Music info (when playing)
                 Item {
+                    id: musicInfoBox
                     visible: host.showMusic && parent.musicUIVisible
                     x: host.rightX - 20; y: host.yBase + 365
                     width: 145; height: 22
 
+                    property int _tick: -1
+
+                    Timer {
+                        interval: 2000
+                        running: content.activePlayer && content.activePlayer.isPlaying
+                        repeat: true
+                        onTriggered: {
+                            musicInfoBox._tick = (musicInfoBox._tick + 1) % 7
+                            var colors = ["#FF1493","#F97316","#EAB308","#22C55E","#0EA5E9","#8B5CF6","#D946EF"]
+                            var c = colors[musicInfoBox._tick]
+                            // Icon and current char share same color
+                            musicIcon.color = c
+                            // Reset all chars to white, then light up only the active one
+                            _pc0.color = host.fg; _pc1.color = host.fg; _pc2.color = host.fg; _pc3.color = host.fg
+                            _pc4.color = host.fg; _pc5.color = host.fg; _pc6.color = host.fg
+                            var chars = [_pc0, _pc1, _pc2, _pc3, _pc4, _pc5, _pc6]
+                            chars[musicInfoBox._tick].color = c
+                        }
+                    }
+
                     Row {
                         anchors.centerIn: parent
-                        spacing: 6
+                        spacing: 0
 
                         Text {
+                            id: musicIcon
                             text: ""
                             font.family: materialFont.name
                             font.pixelSize: 18
                             color: host.accent2
                             anchors.verticalCenter: parent.verticalCenter
                         }
-                        Text {
-                            text: "Playing"
-                            font.family: abelFont.name
-                            font.bold: true
-                            font.pixelSize: 18
-                            color: host.fg
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                        Item { width: 6; height: 1 }
+
+                        Text { id: _pc0; text: "P"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg; anchors.verticalCenter: parent.verticalCenter }
+                        Text { id: _pc1; text: "l"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg; anchors.verticalCenter: parent.verticalCenter }
+                        Text { id: _pc2; text: "a"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg; anchors.verticalCenter: parent.verticalCenter }
+                        Text { id: _pc3; text: "y"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg; anchors.verticalCenter: parent.verticalCenter }
+                        Text { id: _pc4; text: "i"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg; anchors.verticalCenter: parent.verticalCenter }
+                        Text { id: _pc5; text: "n"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg; anchors.verticalCenter: parent.verticalCenter }
+                        Text { id: _pc6; text: "g"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg; anchors.verticalCenter: parent.verticalCenter }
                     }
                 }
                 Text {
@@ -524,7 +547,7 @@ Item {
                                 anchors.centerIn: parent
                                 name: "skip_previous"
                                 size: 20
-                                color: parent.containsMouse ? host.accent2 : host.fg
+                                color: host.fg
                             }
                         }
 
@@ -540,7 +563,7 @@ Item {
                                 anchors.centerIn: parent
                                 name: "pause"
                                 size: 22
-                                color: parent.containsMouse ? host.accent2 : host.fg
+                                color: host.fg
                             }
                         }
 
@@ -556,7 +579,7 @@ Item {
                                 anchors.centerIn: parent
                                 name: "skip_next"
                                 size: 20
-                                color: parent.containsMouse ? host.accent2 : host.fg
+                                color: host.fg
                             }
                         }
                     }

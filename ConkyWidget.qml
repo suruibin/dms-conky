@@ -88,8 +88,11 @@ DesktopPluginComponent {
     property var addedApps: pluginData.addedApps !== undefined ? pluginData.addedApps : []
 
     readonly property bool hasActivePlayer: MprisController.activePlayer !== null && MprisController.activePlayer !== undefined
+    property int musicTick: 0
+
     readonly property string musicElapsed: {
         var p = MprisController.activePlayer
+        musicTick // force re-evaluation every second
         if (!p || !p.isPlaying || p.position < 0) return ""
         var s = Math.floor(p.position)
         return Math.floor(s/60) + ":" + String(s%60).padStart(2,'0')
@@ -134,6 +137,9 @@ DesktopPluginComponent {
         repeat: true
         onTriggered: {
             var playing = hasActivePlayer && MprisController.activePlayer && MprisController.activePlayer.isPlaying
+            if (showMusic && playing && !mouseHovered) {
+                musicTick++
+            }
             // Regenerate CPU/GPU colors when transitioning from playing → paused/stopped
             if (_wasPlaying && !playing) {
                 root.cpuInfoColor = randomVibrantColor()
