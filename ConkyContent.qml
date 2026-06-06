@@ -510,6 +510,75 @@ Item {
                             }
                         }
                     }
+
+                // ============================================
+                // Full-area ambient particles
+                // ============================================
+                Canvas {
+                    id: bottomParticles
+                    anchors.fill: parent
+                    opacity: 0.5
+                    z: -1
+
+                    property var particles: []
+                    property int tick: 0
+
+                    function spawn() {
+                        if (particles.length >= 100) return
+                        particles.push({
+                            x: Math.random() * width,
+                            y: Math.random() * height,
+                            vx: (Math.random() - 0.5) * 12,
+                            vy: -(8 + Math.random() * 16),
+                            size: 1 + Math.random() * 2.5,
+                            life: 1.0,
+                            decay: 0.3 + Math.random() * 0.5,
+                            hue: Math.random(),
+                            sat: 0.5 + Math.random() * 0.3,
+                            lit: 0.5 + Math.random() * 0.25
+                        })
+                    }
+
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+                        for (var i = 0; i < particles.length; i++) {
+                            var p = particles[i]
+                            if (p.life <= 0) continue
+                            ctx.globalAlpha = Math.min(0.5, p.life * 0.4)
+                            ctx.fillStyle = Qt.hsla(p.hue, p.sat, p.lit, 1.0)
+                            ctx.beginPath()
+                            ctx.arc(p.x, p.y, p.size * (0.3 + p.life * 0.7), 0, Math.PI * 2)
+                            ctx.fill()
+                        }
+                    }
+
+                    Timer {
+                        interval: 40; running: content.visible; repeat: true
+                        onTriggered: {
+                            bottomParticles.tick++
+                            // Spawn new particles periodically
+                            if (bottomParticles.tick % 3 === 0) bottomParticles.spawn()
+                            if (bottomParticles.tick % 5 === 0) bottomParticles.spawn()
+
+                            // Update existing particles
+                            var dt = 0.04
+                            var alive = []
+                            for (var i = 0; i < bottomParticles.particles.length; i++) {
+                                var p = bottomParticles.particles[i]
+                                p.x += p.vx * dt
+                                p.y += p.vy * dt
+                                p.vy += 1.5 * dt
+                                p.life -= p.decay * dt
+                                if (p.life > 0 && p.y > -10 && p.y < bottomParticles.height + 10) {
+                                    alive.push(p)
+                                }
+                            }
+                            bottomParticles.particles = alive
+                            bottomParticles.requestPaint()
+                        }
+                    }
+                }
             }
         }
     }

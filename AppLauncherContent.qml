@@ -66,15 +66,29 @@ Item {
         onTriggered: updateFilteredModel()
     }
 
+    property bool _keepVisible: false
+
     property bool _hw: host.mouseHovered
     on_HwChanged: {
         if (!host.mouseHovered) {
+            var hasDialog = addAppDialog.opened || appSettingsDialog.opened
             clearSearch()
             addAppDialog.close()
             appSettingsDialog.close()
+            if (hasDialog) {
+                _keepVisible = true
+                keepVisibleTimer.start()
+            }
         } else {
+            _keepVisible = false
             content.forceActiveFocus()
         }
+    }
+
+    Timer {
+        id: keepVisibleTimer
+        interval: 2200; repeat: false
+        onTriggered: _keepVisible = false
     }
 
     property var _aw: host.addedApps
@@ -524,7 +538,7 @@ onTextChanged: host.appSearchQuery = text
                 }
             }
 
-            MouseArea { anchors.fill: parent; hoverEnabled: true; onClicked: {} }
+            MouseArea { anchors.fill: parent; onClicked: {} }
 
             function openDialog(tab) {
                 activeTab = tab !== undefined ? tab : "add"
@@ -545,18 +559,18 @@ onTextChanged: host.appSearchQuery = text
                 }
             }
             function close() {
-                if (dissolveTimer.running) return
+                opened = false
                 var pos = dialogCard.mapToItem(launcherContainer, 0, 0)
                 dissolveParticles.burst(pos.x + dialogCard.width / 2, pos.y + dialogCard.height / 2, dialogCard.width, dialogCard.height)
-                opened = false
             }
 
             Rectangle {
                 id: dialogCard
+                z: 10
                 width: Math.min(320, parent.width - 20); height: Math.min(400, parent.height - 20)
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: -20
-                color: Theme.surfaceContainer; radius: Theme.cornerRadius; focus: true
+                color: Theme.surfaceContainer; radius: Theme.cornerRadius
                 border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1; clip: true
                 scale: addAppDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
@@ -571,11 +585,21 @@ onTextChanged: host.appSearchQuery = text
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
                             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
                         }
-                        MouseArea {
-                            width: 24; height: 24; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: addAppDialog.close()
-                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            DankIcon { anchors.centerIn: parent; name: "close"; size: 16; color: Theme.surfaceText; opacity: parent.containsMouse ? 1.0 : 0.6 }
+                        Item {
+                            width: 28; height: 28
+                            anchors.right: parent.right; anchors.rightMargin: -2; anchors.verticalCenter: parent.verticalCenter
+
+                            DankIcon {
+                                anchors.centerIn: parent
+                                name: "close"; size: 16; color: Theme.surfaceText
+                                opacity: closeBtn.containsMouse ? 1.0 : 0.6
+                            }
+                            MouseArea {
+                                id: closeBtn
+                                anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: addAppDialog.close()
+                            }
                         }
                     }
 
@@ -794,16 +818,16 @@ onTextChanged: addAppDialog.systemAppsSearch = text
 
             function open() { opened = true }
             function close() {
-                if (dissolveTimer.running) return
+                opened = false
                 var pos = settingsCard.mapToItem(launcherContainer, 0, 0)
                 dissolveParticles.burst(pos.x + settingsCard.width / 2, pos.y + settingsCard.height / 2, settingsCard.width, settingsCard.height)
-                opened = false
             }
 
-            MouseArea { anchors.fill: parent; hoverEnabled: true; onClicked: {} }
+            MouseArea { anchors.fill: parent; onClicked: {} }
 
             Rectangle {
                 id: settingsCard
+                z: 10
                 width: Math.min(300, parent.width - 20)
                 height: Math.min(290, parent.height - 20)
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -824,11 +848,21 @@ onTextChanged: addAppDialog.systemAppsSearch = text
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
                             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
                         }
-                        MouseArea {
-                            width: 24; height: 24; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: appSettingsDialog.close()
-                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            DankIcon { anchors.centerIn: parent; name: "close"; size: 16; color: Theme.surfaceText; opacity: parent.containsMouse ? 1.0 : 0.6 }
+                        Item {
+                            width: 28; height: 28
+                            anchors.right: parent.right; anchors.rightMargin: -2; anchors.verticalCenter: parent.verticalCenter
+
+                            DankIcon {
+                                anchors.centerIn: parent
+                                name: "close"; size: 16; color: Theme.surfaceText
+                                opacity: closeSettingsBtn.containsMouse ? 1.0 : 0.6
+                            }
+                            MouseArea {
+                                id: closeSettingsBtn
+                                anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: appSettingsDialog.close()
+                            }
                         }
                     }
 
@@ -919,8 +953,8 @@ onTextChanged: addAppDialog.systemAppsSearch = text
         // Shared particle dissolve (above all dialogs)
         Canvas {
             id: dissolveParticles
-            anchors.fill: parent; z: 200
-            visible: dissolveTimer.running
+            anchors.fill: parent; z: 5
+            visible: true
             property var particles: []
             property real cx: 0; property real cy: 0
             property real pw: 0; property real ph: 0

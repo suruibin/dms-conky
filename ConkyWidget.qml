@@ -268,7 +268,8 @@ DesktopPluginComponent {
     // APP LAUNCHER VIEW (visible when mouse hovers)
     // ============================================
     AppLauncherContent {
-        visible: root.mouseHovered
+        id: launcherContent
+        visible: root.mouseHovered || launcherContent._keepVisible
         anchors.fill: parent
         host: root
     }
