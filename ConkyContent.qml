@@ -344,7 +344,9 @@ Item {
                 // Hardware info (when no music playing)
                 Text {
                     visible: host.showMusic && !parent.isPlaying
-                    x: host.rightX; y: host.yBase + 365
+                    x: host.rightX - 20; y: host.yBase + 365
+                    width: 145
+                    horizontalAlignment: Text.AlignHCenter
                     text: "HardWare"
                     font.family: abelFont.name
                     font.bold: true
@@ -389,25 +391,30 @@ Item {
                 }
 
                 // Music info (when playing)
-                Row {
+                Item {
                     visible: host.showMusic && parent.isPlaying
-                    x: host.rightX; y: host.yBase + 365
-                    spacing: 6
+                    x: host.rightX - 20; y: host.yBase + 365
+                    width: 145; height: 22
 
-                    Text {
-                        text: ""
-                        font.family: materialFont.name
-                        font.pixelSize: 18
-                        color: host.accent2
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Text {
-                        text: "Playing"
-                        font.family: abelFont.name
-                        font.bold: true
-                        font.pixelSize: 18
-                        color: host.fg
-                        anchors.verticalCenter: parent.verticalCenter
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 6
+
+                        Text {
+                            text: ""
+                            font.family: materialFont.name
+                            font.pixelSize: 18
+                            color: host.accent2
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: "Playing"
+                            font.family: abelFont.name
+                            font.bold: true
+                            font.pixelSize: 18
+                            color: host.fg
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
                 }
                 Text {
