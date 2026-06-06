@@ -214,7 +214,7 @@ Item {
                             visible: searchContainer.expanded
                             opacity: searchContainer.expanded ? 1.0 : 0.0
                             Behavior on opacity { NumberAnimation { duration: 150 } }
-onTextChanged: host.appSearchQuery = text
+                            onTextChanged: host.appSearchQuery = text
                             Text {
                                 text: I18n.tr("Search...")
                                 font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; opacity: 0.35
@@ -388,13 +388,13 @@ onTextChanged: host.appSearchQuery = text
 
                     property int _dragIdx: -1
 
-                    Drag.active: listDragHandle.drag.active
+                    Drag.active: dragHandle.drag.active
                     Drag.source: listWrapper
                     Drag.hotSpot.x: width / 2
                     Drag.hotSpot.y: height / 2
 
                     states: State {
-                        when: listDragHandle.drag.active
+                        when: dragHandle.drag.active
                         ParentChange { target: listWrapper; parent: appsList.contentItem }
                     }
 
@@ -654,7 +654,7 @@ onTextChanged: host.appSearchQuery = text
                             anchors.right: parent.right; anchors.rightMargin: Theme.spacingS
                             anchors.verticalCenter: parent.verticalCenter
                             font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; selectByMouse: true
-onTextChanged: addAppDialog.systemAppsSearch = text
+                            onTextChanged: addAppDialog.systemAppsSearch = text
                             Text { text: I18n.tr("Search system apps..."); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; opacity: 0.35; visible: systemSearchField.text === "" && !systemSearchField.activeFocus; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }

@@ -523,13 +523,25 @@ Item {
                         }
                     }
 
+                // Double-click on music playing area → pause
+                MouseArea {
+                    visible: host.showMusic && parent.isPlaying
+                    x: host.rightX - 20; y: host.yBase + 365
+                    width: 165; height: 115
+                    acceptedButtons: Qt.LeftButton
+                    onDoubleClicked: {
+                        var p = content.activePlayer
+                        if (p) p.togglePlaying()
+                    }
+                }
+
                 // ============================================
                 // Full-area ambient particles
                 // ============================================
                 Canvas {
                     id: bottomParticles
                     anchors.fill: parent
-                    opacity: 0.5
+                    opacity: 0.75
                     z: -1
 
                     property var particles: []
@@ -557,7 +569,7 @@ Item {
                         for (var i = 0; i < particles.length; i++) {
                             var p = particles[i]
                             if (p.life <= 0) continue
-                            ctx.globalAlpha = Math.min(0.5, p.life * 0.4)
+                            ctx.globalAlpha = Math.min(0.7, p.life * 0.5)
                             ctx.fillStyle = Qt.hsla(p.hue, p.sat, p.lit, 1.0)
                             ctx.beginPath()
                             ctx.arc(p.x, p.y, p.size * (0.3 + p.life * 0.7), 0, Math.PI * 2)

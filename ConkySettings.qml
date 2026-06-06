@@ -53,65 +53,47 @@ PluginSettings {
 
         Item { width: 1; height: Theme.spacingM }
 
-        StyledText {
-            text: I18n.tr("Primary Color")
-            font.pixelSize: Theme.fontSizeMedium
-            font.bold: true
-            color: Theme.surfaceText
-        }
-        Item { width: 1; height: Theme.spacingS }
-
-        Flow {
+        component ColorPicker: Column {
             width: parent.width
-            spacing: 6
-            Repeater {
-                model: ["#5105DB", "#7C3AED", "#8B5CF6", "#A855F7", "#6366F1", "#2563EB", "#3B82F6", "#0891B2", "#06B6D4", "#14B8A6", "#059669", "#10B981", "#22C55E", "#EAB308", "#F59E0B", "#D97706", "#F97316", "#DC2626", "#EF4444", "#DB2777", "#EC4899", "#D946EF", "#ffffff", "#94A3B8", "#64748B", "#334155"]
-                Rectangle {
-                    required property var modelData
-                    property string c: modelData
-                    width: 26; height: 26; radius: 13
-                    color: c
-                    border.width: root.loadValue("accentColor", "#5105DB") === c ? 3 : 0
-                    border.color: Theme.surfaceText
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.saveAndPersist("accentColor", c)
+            property string title: ""
+            property string settingKey: ""
+            property string defaultColor: "#5105DB"
+
+            StyledText {
+                text: title
+                font.pixelSize: Theme.fontSizeMedium
+                font.bold: true
+                color: Theme.surfaceText
+            }
+            Item { width: 1; height: Theme.spacingS }
+
+            Flow {
+                width: parent.width
+                spacing: 6
+                Repeater {
+                    model: ["#5105DB", "#7C3AED", "#8B5CF6", "#A855F7", "#6366F1", "#2563EB", "#3B82F6", "#0891B2", "#06B6D4", "#14B8A6", "#059669", "#10B981", "#22C55E", "#EAB308", "#F59E0B", "#D97706", "#F97316", "#DC2626", "#EF4444", "#DB2777", "#EC4899", "#D946EF", "#ffffff", "#94A3B8", "#64748B", "#334155"]
+                    Rectangle {
+                        required property var modelData
+                        property string c: modelData
+                        width: 26; height: 26; radius: 13
+                        color: c
+                        border.width: root.loadValue(settingKey, defaultColor) === c ? 3 : 0
+                        border.color: Theme.surfaceText
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.saveAndPersist(settingKey, parent.c)
+                        }
                     }
                 }
             }
         }
 
+        ColorPicker { title: I18n.tr("Primary Color"); settingKey: "accentColor"; defaultColor: "#5105DB" }
+
         Item { width: 1; height: Theme.spacingS }
 
-        StyledText {
-            text: I18n.tr("Secondary Color")
-            font.pixelSize: Theme.fontSizeMedium
-            font.bold: true
-            color: Theme.surfaceText
-        }
-        Item { width: 1; height: Theme.spacingS }
-
-        Flow {
-            width: parent.width
-            spacing: 6
-            Repeater {
-                model: ["#5105DB", "#7C3AED", "#8B5CF6", "#A855F7", "#6366F1", "#2563EB", "#3B82F6", "#0891B2", "#06B6D4", "#14B8A6", "#059669", "#10B981", "#22C55E", "#EAB308", "#F59E0B", "#D97706", "#F97316", "#DC2626", "#EF4444", "#DB2777", "#EC4899", "#D946EF", "#ffffff", "#94A3B8", "#64748B", "#334155"]
-                Rectangle {
-                    required property var modelData
-                    property string c: modelData
-                    width: 26; height: 26; radius: 13
-                    color: c
-                    border.width: root.loadValue("accent2Color", "#FF1493") === c ? 3 : 0
-                    border.color: Theme.surfaceText
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.saveAndPersist("accent2Color", c)
-                    }
-                }
-            }
-        }
+        ColorPicker { title: I18n.tr("Secondary Color"); settingKey: "accent2Color"; defaultColor: "#FF1493" }
 
         Rectangle {
             width: parent.width; height: 1

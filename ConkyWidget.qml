@@ -87,7 +87,6 @@ DesktopPluginComponent {
     property var addedApps: pluginData.addedApps !== undefined ? pluginData.addedApps : []
 
     readonly property bool hasActivePlayer: MprisController.activePlayer !== null && MprisController.activePlayer !== undefined
-    property int musicTick: 0
     readonly property string musicElapsed: {
         var p = MprisController.activePlayer
         if (!p || !p.isPlaying || p.position < 0) return ""
@@ -134,9 +133,6 @@ DesktopPluginComponent {
         repeat: true
         onTriggered: {
             var playing = hasActivePlayer && MprisController.activePlayer && MprisController.activePlayer.isPlaying
-            if (showMusic && playing && !mouseHovered) {
-                musicTick++
-            }
             // Regenerate CPU/GPU colors when transitioning from playing → paused/stopped
             if (_wasPlaying && !playing) {
                 root.cpuInfoColor = randomVibrantColor()
@@ -164,9 +160,10 @@ DesktopPluginComponent {
                 command: ["sh", "-c", "/usr/bin/grep -m1 'model name' /proc/cpuinfo | sed 's/.*: //; s/(R)//g; s/(TM)//g; s/ CPU//g; s/[0-9]*th Gen //; s/Core //; s/  */ /g'"]
                 running: true
                 stdout: StdioCollector {
-                    onStreamFinished: root.cpuModel = text.trim()
+                    onStreamFinished: { root.cpuModel = text.trim(); root._cpuProc.destroy() }
                 }
             }`, root)
+        root._cpuProc = cpuProc
 
         // Detect GPU model
         let gpuProc = Qt.createQmlObject(`
@@ -191,9 +188,11 @@ DesktopPluginComponent {
                                 break
                             }
                         }
+                        root._gpuProc.destroy()
                     }
                 }
             }`, root)
+        root._gpuProc = gpuProc
     }
     Component.onDestruction: {
         DgopService.removeRef(activeModules)
