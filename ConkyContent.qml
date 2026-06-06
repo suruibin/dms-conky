@@ -271,6 +271,8 @@ Item {
                 // ============================================
                 Text {
                     x: host.leftX; y: host.yBase + 365
+                    width: 111
+                    horizontalAlignment: Text.AlignHCenter
                     text: "Storage"
                     font.family: abelFont.name
                     font.bold: true
