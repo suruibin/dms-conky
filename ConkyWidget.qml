@@ -161,7 +161,7 @@ DesktopPluginComponent {
         root.gpuInfoColor = randomVibrantColor()
 
         // Detect CPU model
-        let cpuProc = Qt.createQmlObject(`
+        root._cpuProc = Qt.createQmlObject(`
             import Quickshell.Io
             Process {
                 command: ["sh", "-c", "/usr/bin/grep -m1 'model name' /proc/cpuinfo | sed 's/.*: //; s/(R)//g; s/(TM)//g; s/ CPU//g; s/[0-9]*th Gen //; s/Core //; s/  */ /g'"]
@@ -170,36 +170,8 @@ DesktopPluginComponent {
                     onStreamFinished: { root.cpuModel = text.trim(); root._cpuProc.destroy() }
                 }
             }`, root)
-        root._cpuProc = cpuProc
 
-        // Detect GPU model
-        let gpuProc = Qt.createQmlObject(`
-            import Quickshell.Io
-            Process {
-                command: ["/usr/bin/lspci"]
-                running: true
-                stdout: StdioCollector {
-                    onStreamFinished: {
-                        var lines = text.split("\\n")
-                        for (var i = 0; i < lines.length; i++) {
-                            var line = lines[i]
-                            if (line.indexOf("VGA") >= 0 || line.indexOf("3D") >= 0 || line.indexOf("Display") >= 0) {
-                                var vendor = ""
-                                if (line.indexOf("NVIDIA") >= 0) vendor = "NVIDIA "
-                                else if (line.indexOf("AMD") >= 0) vendor = "AMD "
-                                else if (line.indexOf("Intel") >= 0) vendor = "Intel "
-                                var match = line.match(/\\[(.*?)\\]/)
-                                if (match) {
-                                    root.gpuModel = vendor + match[1].replace("GeForce ", "").replace("Radeon ", "")
-                                }
-                                break
-                            }
-                        }
-                        root._gpuProc.destroy()
-                    }
-                }
-            }`, root)
-        root._gpuProc = gpuProc
+        // GPU detection handled by gpuDetect Process below
     }
     Component.onDestruction: {
         DgopService.removeRef(activeModules)
@@ -292,6 +264,29 @@ DesktopPluginComponent {
             root._rawMouseX = mouse.x
             root._rawMouseY = mouse.y
             root.mouseHovered = containsMouse && !isInExclusionZone(mouse.x, mouse.y)
+        }
+    }
+
+    // GPU detection — declarative Process (more reliable than Qt.createQmlObject)
+    Process {
+        id: gpuProc
+        command: ["sh", "-c", "lspci 2>/dev/null | grep -i vga | head -1"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var t = text.trim()
+                if (t) {
+                    var m = t.match(/\[([^\]]+)\]/)
+                    if (m) {
+                        var v = ""
+                        if (t.indexOf("NVIDIA") >= 0) v = "NVIDIA "
+                        else if (t.indexOf("AMD") >= 0) v = "AMD "
+                        else if (t.indexOf("Intel") >= 0) v = "Intel "
+                        root.gpuModel = v + m[1].replace("GeForce ", "").replace("Radeon ", "")
+                    }
+                }
+                gpuProc.destroy()
+            }
         }
     }
 }

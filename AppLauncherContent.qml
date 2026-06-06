@@ -136,7 +136,7 @@ Item {
     // ============================================
     Rectangle {
         id: launcherContainer
-        visible: host.mouseHovered
+        visible: host.mouseHovered || content._keepVisible
         anchors.fill: parent
         color: Theme.withAlpha(Theme.surfaceContainer, host.appLauncherBgOpacity)
         radius: Theme.cornerRadius
@@ -452,13 +452,67 @@ Item {
                 cellHeight: Math.round(30 * (host.appSize / 88.0)); model: filteredModel
                 add: Transition { NumberAnimation { properties: "opacity,scale"; from: 0; to: 1.0; duration: 200 } }
                 remove: Transition { NumberAnimation { properties: "opacity,scale"; to: 0; duration: 150 } }
-                delegate: AppRowDelegate {
-                    width: appsCompact.cellWidth
-                    height: appsCompact.cellHeight
-                    widget: host
-                    iconFactor: 16
-                    fontSize: Theme.fontSizeSmall - 1
-                    hoveredIdx: compactHoverIdx
+                displaced: Transition {
+                    NumberAnimation { properties: "x,y"; duration: 200; easing.type: Easing.OutQuad }
+                }
+                delegate: Item {
+                    id: compactDelegateItem
+                    width: appsCompact.cellWidth; height: appsCompact.cellHeight
+
+                    property int _dragIdx: -1
+
+                    Drag.active: compactDragHandle.drag.active
+                    Drag.source: compactDelegateItem
+                    Drag.hotSpot.x: width / 2
+                    Drag.hotSpot.y: height / 2
+
+                    states: State {
+                        when: compactDragHandle.drag.active
+                        ParentChange { target: compactDelegateItem; parent: appsCompact.contentItem }
+                    }
+
+                    AppRowDelegate {
+                        anchors.fill: parent
+                        widget: host
+                        iconFactor: 16
+                        fontSize: Theme.fontSizeSmall - 1
+                        hoveredIdx: compactHoverIdx
+                    }
+
+                    // Drag grip on left edge
+                    Item {
+                        z: 10
+                        width: 22; height: parent.height
+                        anchors { left: parent.left; leftMargin: 0; verticalCenter: parent.verticalCenter }
+                        visible: host.appSearchQuery === ""
+
+                        DankIcon {
+                            anchors.centerIn: parent
+                            name: "drag_indicator"
+                            size: 14; color: Theme.surfaceText
+                            opacity: compactDragHandle.containsMouse || compactDragHandle.drag.active ? 0.6 : 0.1
+                        }
+
+                        MouseArea {
+                            id: compactDragHandle
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            preventStealing: true
+                            drag.target: compactDelegateItem
+                            drag.axis: Drag.XAndYAxis
+                            cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                            onPressed: _dragIdx = index
+                            onReleased: {
+                                if (drag.active) {
+                                    var cols = Math.max(2, Math.floor(appsCompact.width / appsCompact.cellWidth))
+                                    var toCol = Math.round(compactDelegateItem.x / appsCompact.cellWidth)
+                                    var toRow = Math.round(compactDelegateItem.y / appsCompact.cellHeight)
+                                    var toIdx = Math.max(0, Math.min(toRow * cols + toCol, filteredModel.count - 1))
+                                    if (toIdx !== _dragIdx) host.moveAppToIndex(_dragIdx, toIdx)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

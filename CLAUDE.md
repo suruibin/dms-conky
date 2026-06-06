@@ -75,13 +75,23 @@ WeatherService.removeRef()
 
 `AppLauncherContent.qml` 中搜索输入变化触发 150ms 防抖后再更新 `filteredModel`。
 
+## 已实现的特性
+
+| 特性 | 实现位置 |
+|------|----------|
+| 跑马灯 "Playing" 逐字换色 + 图标同步 | `ConkyContent.qml:438-456`，`_tick` + 7 个 `_pcN` Text id，2s 间隔 |
+| 音乐 UI 退出延迟（切歌不闪） | `ConkyContent.qml:342-368`，`isPlaying`/`musicUIVisible`/`userPaused` 三态 |
+| 双击音乐区暂停 / 双击 Hardware 恢复 | `ConkyContent.qml:521-530` (pause)，`419-428` (resume) |
+| 环形仪表背景色可自定义 | `RingGauge.qml:8` bgColor 属性，`ConkySettings.qml` Bg 行 |
+| 粒子透明度可调 | `ConkyContent.qml:593` `opacity: 0.75`，`:621` `globalAlpha: Math.min(0.7, ...)` |
+| 设置面板颜色选择器去重 | `ConkySettings.qml:56-89` `ColorPicker` 组件 |
+| Process 对象显式销毁 | `ConkyWidget.qml:170,198` `root._cpuProc.destroy()` / `_gpuProc.destroy()` |
+
 ## 已知问题
 
-- **List 视图拖拽不工作**：`listWrapper` 上的 Drag 无反应，需排查 `ParentChange` 和事件竞争
-- **Compact 视图拖拽未开始**：等 List 成功后同样模式实现
-- `dms-common/` 下的 `PluginAbout.qml`、`SectionTitle.qml`、`SettingsCard.qml` 定义了但当前未被任何文件引用
-- `feather.ttf` 字体文件存在但未被使用
-- `restore.sh` / `restore_backup.sh` 指向空备份，未实际使用
+- 多处英文硬编码未走 I18n：`"Storage"`, `"HardWare"`, `"Playing"`, `"Root :"`, `"Home :"`, `"CPU:"`, `"GPU:"`, `"Down :"`, `"Up :"`, `"Wind :"`, `"Humidity :"`, `"Offline"`, `"Network"`, `"Detecting..."`
+- `Math.max.apply(null, rx)` 写法过时，可改用 `Math.max(...rx)` (ES6 spread)
+- `musicTick` 仅在非 hover 状态递增，切到 Launcher 视图时暂停计时
 
 ## 管理页拖拽参考
 

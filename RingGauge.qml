@@ -6,6 +6,7 @@ Item {
     property real pct: 0
     property color gaugeColor: "#5105DB"
     property color bgColor: "#26ffffff"
+    property real _lastPct: -1
 
     Canvas {
         id: canvas
@@ -30,7 +31,11 @@ Item {
         }
     }
 
-    onPctChanged: canvas.requestPaint()
+    onPctChanged: {
+        if (Math.abs(pct - _lastPct) < 0.005) return
+        _lastPct = pct
+        canvas.requestPaint()
+    }
     onGaugeColorChanged: canvas.requestPaint()
     onBgColorChanged: canvas.requestPaint()
 }

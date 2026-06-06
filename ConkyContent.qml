@@ -216,7 +216,7 @@ Item {
                 }
 
                 Timer {
-                    interval: 1000; running: host.showNetwork && content.visible; repeat: true
+                    interval: 2000; running: host.showNetwork && content.visible; repeat: true
                     onTriggered: {
                         var rx = DgopService.networkHistory.rx
                         if (rx && rx.length > 0) {
@@ -345,9 +345,10 @@ Item {
 
                 onIsPlayingChanged: {
                     if (isPlaying) {
-                        // Playback started/resumed — show music UI immediately
+                        // Playback started/resumed — show music UI immediately, restart chase
                         musicUIVisible = true
                         userPaused = false
+                        musicInfoBox._tick = -1
                         hideMusicUITimer.stop()
                     } else if (userPaused) {
                         // User explicitly paused — hide immediately
@@ -627,24 +628,23 @@ Item {
                     }
 
                     Timer {
-                        interval: 40; running: content.visible; repeat: true
+                        interval: 66; running: content.visible; repeat: true
                         onTriggered: {
                             bottomParticles.tick++
-                            // Spawn new particles periodically
                             if (bottomParticles.tick % 3 === 0) bottomParticles.spawn()
                             if (bottomParticles.tick % 5 === 0) bottomParticles.spawn()
 
-                            // Update existing particles
-                            var dt = 0.04
+                            var dt = 0.066
                             var alive = []
-                            for (var i = 0; i < bottomParticles.particles.length; i++) {
-                                var p = bottomParticles.particles[i]
-                                p.x += p.vx * dt
-                                p.y += p.vy * dt
-                                p.vy += 1.5 * dt
-                                p.life -= p.decay * dt
-                                if (p.life > 0 && p.y > -10 && p.y < bottomParticles.height + 10) {
-                                    alive.push(p)
+                            var p = bottomParticles.particles
+                            for (var i = 0; i < p.length; i++) {
+                                var pt = p[i]
+                                pt.x += pt.vx * dt
+                                pt.y += pt.vy * dt
+                                pt.vy += 1.5 * dt
+                                pt.life -= pt.decay * dt
+                                if (pt.life > 0 && pt.y > -10 && pt.y < bottomParticles.height + 10) {
+                                    alive.push(pt)
                                 }
                             }
                             bottomParticles.particles = alive
