@@ -30,20 +30,6 @@ Item {
         }
     }
 
-    focus: true
-    Keys.onPressed: function(event) {
-        if (event.key === Qt.Key_Escape) {
-            if (appSettingsDialog.opened) {
-                appSettingsDialog.close()
-            } else if (addAppDialog.opened) {
-                addAppDialog.close()
-            } else {
-                host.mouseHovered = false
-            }
-            event.accepted = true
-        }
-    }
-
     ListModel { id: filteredModel }
 
     function clearSearch() {
@@ -135,6 +121,7 @@ Item {
     // APP LAUNCHER VIEW (visible when mouse hovers)
     // ============================================
     Rectangle {
+        id: launcherContainer
         visible: host.mouseHovered
         anchors.fill: parent
         color: Theme.withAlpha(Theme.surfaceContainer, host.appLauncherBgOpacity)
@@ -213,7 +200,7 @@ Item {
                             visible: searchContainer.expanded
                             opacity: searchContainer.expanded ? 1.0 : 0.0
                             Behavior on opacity { NumberAnimation { duration: 150 } }
-                            onTextChanged: host.appSearchQuery = text
+onTextChanged: host.appSearchQuery = text
                             Text {
                                 text: I18n.tr("Search...")
                                 font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; opacity: 0.35
@@ -515,8 +502,8 @@ Item {
         Rectangle {
             id: addAppDialog
             anchors.fill: parent
-            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.6)
-            radius: Theme.cornerRadius; z: 100; focus: true
+            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.35)
+            radius: Theme.cornerRadius; z: 100
             visible: opened || opacity > 0
             opacity: opened ? 1.0 : 0.0
             Behavior on opacity { NumberAnimation { duration: 150 } }
@@ -557,12 +544,18 @@ Item {
                     filteredSystemApps = apps
                 }
             }
-            function close() { opened = false }
+            function close() {
+                if (dissolveTimer.running) return
+                var pos = dialogCard.mapToItem(launcherContainer, 0, 0)
+                dissolveParticles.burst(pos.x + dialogCard.width / 2, pos.y + dialogCard.height / 2, dialogCard.width, dialogCard.height)
+                opened = false
+            }
 
             Rectangle {
                 id: dialogCard
                 width: Math.min(320, parent.width - 20); height: Math.min(400, parent.height - 20)
                 anchors.centerIn: parent
+                anchors.verticalCenterOffset: -20
                 color: Theme.surfaceContainer; radius: Theme.cornerRadius; focus: true
                 border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1; clip: true
                 scale: addAppDialog.opened ? 1.0 : 0.95
@@ -636,8 +629,8 @@ Item {
                             anchors.left: sysSearchIcon.right; anchors.leftMargin: Theme.spacingXS
                             anchors.right: parent.right; anchors.rightMargin: Theme.spacingS
                             anchors.verticalCenter: parent.verticalCenter
-                            font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; selectByMouse: true; focus: true
-                            onTextChanged: addAppDialog.systemAppsSearch = text
+                            font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; selectByMouse: true
+onTextChanged: addAppDialog.systemAppsSearch = text
                             Text { text: I18n.tr("Search system apps..."); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; opacity: 0.35; visible: systemSearchField.text === "" && !systemSearchField.activeFocus; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
@@ -792,7 +785,7 @@ Item {
         Rectangle {
             id: appSettingsDialog
             anchors.fill: parent
-            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.6)
+            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.35)
             radius: Theme.cornerRadius; z: 100
             visible: opened || opacity > 0
             opacity: opened ? 1.0 : 0.0
@@ -800,14 +793,22 @@ Item {
             property bool opened: false
 
             function open() { opened = true }
-            function close() { opened = false }
+            function close() {
+                if (dissolveTimer.running) return
+                var pos = settingsCard.mapToItem(launcherContainer, 0, 0)
+                dissolveParticles.burst(pos.x + settingsCard.width / 2, pos.y + settingsCard.height / 2, settingsCard.width, settingsCard.height)
+                opened = false
+            }
 
             MouseArea { anchors.fill: parent; hoverEnabled: true; onClicked: {} }
 
             Rectangle {
+                id: settingsCard
                 width: Math.min(300, parent.width - 20)
                 height: Math.min(290, parent.height - 20)
-                anchors.centerIn: parent
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 40
                 color: Theme.surfaceContainer; radius: Theme.cornerRadius
                 border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1; clip: true
                 scale: appSettingsDialog.opened ? 1.0 : 0.95
@@ -913,6 +914,94 @@ Item {
                     }
                 }
             }
+        }
+
+        // Shared particle dissolve (above all dialogs)
+        Canvas {
+            id: dissolveParticles
+            anchors.fill: parent; z: 200
+            visible: dissolveTimer.running
+            property var particles: []
+            property real cx: 0; property real cy: 0
+            property real pw: 0; property real ph: 0
+
+            function burst(x, y, w, h) {
+                cx = x; cy = y; pw = w; ph = h
+                particles = []
+                var count = Math.max(25, Math.floor(w * h / 1500))
+                for (var i = 0; i < count; i++) {
+                    var angle = Math.random() * Math.PI * 2
+                    var speed = 10 + Math.random() * 50
+                    var hue = Math.random()
+                    particles.push({
+                        x: cx + (Math.random() - 0.5) * pw * 0.9,
+                        y: cy + (Math.random() - 0.5) * ph * 0.9,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 15,
+                        size: 1.5 + Math.random() * 4,
+                        life: 1.0,
+                        decay: 0.4 + Math.random() * 0.8,
+                        hue: hue
+                    })
+                }
+                dissolveTimer.start()
+            }
+
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.clearRect(0, 0, width, height)
+                for (var i = 0; i < particles.length; i++) {
+                    var p = particles[i]
+                    if (p.life <= 0) continue
+                    ctx.globalAlpha = Math.min(1, p.life) * 0.7
+                    var sat = 0.3 + p.life * 0.5
+                    var lit = 0.5 + p.life * 0.4
+                    ctx.fillStyle = Qt.hsla(p.hue, sat, lit, 1.0)
+                    ctx.beginPath()
+                    ctx.arc(p.x, p.y, p.size * (0.2 + p.life * 0.8), 0, Math.PI * 2)
+                    ctx.fill()
+                }
+            }
+        }
+
+        Timer {
+            id: dissolveTimer
+            interval: 16; repeat: true
+            property real elapsed: 0
+            onTriggered: {
+                var dt = 0.016
+                elapsed += dt
+                var alive = 0
+                for (var i = 0; i < dissolveParticles.particles.length; i++) {
+                    var p = dissolveParticles.particles[i]
+                    if (p.life <= 0) continue
+                    p.x += p.vx * dt
+                    p.y += p.vy * dt
+                    p.vy += 3 * dt
+                    p.life -= p.decay * dt
+                    if (p.life > 0) alive++
+                }
+                dissolveParticles.requestPaint()
+                if (alive === 0 || elapsed > 1.8) {
+                    stop()
+                    elapsed = 0
+                    dissolveParticles.particles = []
+                }
+            }
+        }
+    }
+
+    focus: true
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Escape) {
+            if (appSettingsDialog.opened) {
+                appSettingsDialog.close()
+            } else if (addAppDialog.opened) {
+                addAppDialog.close()
+            } else {
+                host.mouseHovered = false
+            }
+            event.accepted = true
         }
     }
 }
