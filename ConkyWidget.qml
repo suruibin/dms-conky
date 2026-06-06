@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell
+import Quickshell.Io
 import qs.Common
 import qs.Services
 import qs.Widgets
@@ -51,7 +52,7 @@ DesktopPluginComponent {
     readonly property int rightX: 172
     readonly property int yBase: 0
 
-    property var activeModules: ["cpu", "memory", "network", "disk", "diskmounts", "system"]
+    readonly property var activeModules: ["cpu", "memory", "network", "disk", "diskmounts", "system"]
 
     // Mouse hover detection — switches between Conky and AppLauncher views
     property bool mouseHovered: false
@@ -77,13 +78,26 @@ DesktopPluginComponent {
     readonly property real appIconSize: Math.max(28, Math.round(appSize * 0.58))
     property var addedApps: pluginData.addedApps !== undefined ? pluginData.addedApps : []
 
-    property bool hasActivePlayer: MprisController.activePlayer !== null && MprisController.activePlayer !== undefined
+    readonly property bool hasActivePlayer: MprisController.activePlayer !== null && MprisController.activePlayer !== undefined
     property int musicTick: 0
     readonly property string musicElapsed: {
         var p = MprisController.activePlayer
         if (!p || !p.isPlaying || p.position < 0) return ""
         var s = Math.floor(p.position)
         return Math.floor(s/60) + ":" + String(s%60).padStart(2,'0')
+    }
+
+    property string cpuModel: ""
+    property string gpuModel: ""
+    property color cpuInfoColor: "#f0f0f0"
+    property color gpuInfoColor: "#f0f0f0"
+
+    function randomVibrantColor() {
+        // HSL: random hue, high saturation, high lightness (visible on dark bg, never black)
+        var h = Math.random()
+        var s = 0.7 + Math.random() * 0.3   // 0.7–1.0
+        var l = 0.60 + Math.random() * 0.2  // 0.60–0.80
+        return Qt.hsla(h, s, l, 1.0)
     }
 
     property var diskCache: ({ sysPct: 0, sysInfo: "-- / --", homePct: 0, homeInfo: "-- / --" })
@@ -103,15 +117,24 @@ DesktopPluginComponent {
         root.diskCache = c
     }
 
+    property bool _wasPlaying: false
+
     Timer {
         id: updateTimer
         interval: 1000
         running: true
         repeat: true
         onTriggered: {
-            if (showMusic && hasActivePlayer && !mouseHovered) {
+            var playing = hasActivePlayer && MprisController.activePlayer && MprisController.activePlayer.isPlaying
+            if (showMusic && playing && !mouseHovered) {
                 musicTick++
             }
+            // Regenerate CPU/GPU colors when transitioning from playing → paused/stopped
+            if (_wasPlaying && !playing) {
+                root.cpuInfoColor = randomVibrantColor()
+                root.gpuInfoColor = randomVibrantColor()
+            }
+            _wasPlaying = playing
         }
     }
 
@@ -121,6 +144,48 @@ DesktopPluginComponent {
     Component.onCompleted: {
         DgopService.addRef(activeModules)
         WeatherService.addRef()
+
+        // Random colors for CPU / GPU info
+        root.cpuInfoColor = randomVibrantColor()
+        root.gpuInfoColor = randomVibrantColor()
+
+        // Detect CPU model
+        let cpuProc = Qt.createQmlObject(`
+            import Quickshell.Io
+            Process {
+                command: ["sh", "-c", "/usr/bin/grep -m1 'model name' /proc/cpuinfo | sed 's/.*: //; s/(R)//g; s/(TM)//g; s/ CPU//g; s/[0-9]*th Gen //; s/Core //; s/  */ /g'"]
+                running: true
+                stdout: StdioCollector {
+                    onStreamFinished: root.cpuModel = text.trim()
+                }
+            }`, root)
+
+        // Detect GPU model
+        let gpuProc = Qt.createQmlObject(`
+            import Quickshell.Io
+            Process {
+                command: ["/usr/bin/lspci"]
+                running: true
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        var lines = text.split("\\n")
+                        for (var i = 0; i < lines.length; i++) {
+                            var line = lines[i]
+                            if (line.indexOf("VGA") >= 0 || line.indexOf("3D") >= 0 || line.indexOf("Display") >= 0) {
+                                var vendor = ""
+                                if (line.indexOf("NVIDIA") >= 0) vendor = "NVIDIA "
+                                else if (line.indexOf("AMD") >= 0) vendor = "AMD "
+                                else if (line.indexOf("Intel") >= 0) vendor = "Intel "
+                                var match = line.match(/\\[(.*?)\\]/)
+                                if (match) {
+                                    root.gpuModel = vendor + match[1].replace("GeForce ", "").replace("Radeon ", "")
+                                }
+                                break
+                            }
+                        }
+                    }
+                }
+            }`, root)
     }
     Component.onDestruction: {
         DgopService.removeRef(activeModules)

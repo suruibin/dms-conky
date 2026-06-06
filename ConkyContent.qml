@@ -215,7 +215,7 @@ Item {
                 }
 
                 Timer {
-                    interval: 1000; running: host.showNetwork; repeat: true
+                    interval: 1000; running: host.showNetwork && content.visible; repeat: true
                     onTriggered: {
                         var rx = DgopService.networkHistory.rx
                         if (rx && rx.length > 0) {
@@ -279,7 +279,7 @@ Item {
 
                 Text {
                     x: host.leftX; y: host.yBase + 390
-                    text: "System :"
+                    text: "Root :"
                     font.family: abelFont.name
                     font.pixelSize: 15
                     color: host.fg
@@ -334,10 +334,60 @@ Item {
                 }
 
                 // ============================================
-                // Music Player / MPD (right side)
+                // Music Player / System Info (right side)
                 // ============================================
+                readonly property bool isPlaying: content.activePlayer && content.activePlayer.isPlaying
+
+                // Hardware info (when no music playing)
                 Text {
-                    visible: host.showMusic
+                    visible: host.showMusic && !parent.isPlaying
+                    x: host.rightX; y: host.yBase + 365
+                    text: "HardWare"
+                    font.family: abelFont.name
+                    font.bold: true
+                    font.pixelSize: 18
+                    color: host.fg
+                }
+                Text {
+                    visible: host.showMusic && !parent.isPlaying
+                    x: host.rightX; y: host.yBase + 392
+                    text: "CPU:"
+                    font.family: abelFont.name
+                    font.pixelSize: 15
+                    color: host.fg
+                }
+                Text {
+                    visible: host.showMusic && !parent.isPlaying
+                    x: host.rightX + 4; y: host.yBase + 413
+                    text: host.cpuModel || "Detecting..."
+                    font.family: abelFont.name
+                    font.pixelSize: 12
+                    color: host.cpuInfoColor
+                    width: 145
+                    elide: Text.ElideRight
+                }
+                Text {
+                    visible: host.showMusic && !parent.isPlaying
+                    x: host.rightX; y: host.yBase + 435
+                    text: "GPU:"
+                    font.family: abelFont.name
+                    font.pixelSize: 15
+                    color: host.fg
+                }
+                Text {
+                    visible: host.showMusic && !parent.isPlaying
+                    x: host.rightX + 4; y: host.yBase + 456
+                    text: host.gpuModel || "Detecting..."
+                    font.family: abelFont.name
+                    font.pixelSize: 12
+                    color: host.gpuInfoColor
+                    width: 145
+                    elide: Text.ElideRight
+                }
+
+                // Music info (when playing)
+                Text {
+                    visible: host.showMusic && parent.isPlaying
                     x: host.rightX; y: host.yBase + 360
                     text: ""
                     font.family: materialFont.name
@@ -345,20 +395,15 @@ Item {
                     color: host.accent2
                 }
                 Text {
-                    visible: host.showMusic
+                    visible: host.showMusic && parent.isPlaying
                     x: host.rightX; y: host.yBase + 390
-                    text: {
-                        var p = content.activePlayer
-                        if (!p) return "No music played"
-                        if (p.isPlaying) return "Playing :"
-                        return "Paused :"
-                    }
+                    text: "Playing :"
                     font.family: abelFont.name
                     font.pixelSize: 15
                     color: host.fg
                 }
                 Text {
-                    visible: host.showMusic
+                    visible: host.showMusic && parent.isPlaying
                     x: host.rightX; y: host.yBase + 410
                     text: {
                         var p = content.activePlayer
@@ -373,7 +418,7 @@ Item {
                     elide: Text.ElideRight
                 }
                 Text {
-                    visible: host.showMusic
+                    visible: host.showMusic && parent.isPlaying
                     x: host.rightX; y: host.yBase + 430
                     text: {
                         var p = content.activePlayer
@@ -388,7 +433,7 @@ Item {
                     elide: Text.ElideRight
                 }
                 Text {
-                    visible: host.showMusic
+                    visible: host.showMusic && parent.isPlaying
                     x: host.rightX; y: host.yBase + 455
                     text: host.musicElapsed
                     font.family: abelFont.name
