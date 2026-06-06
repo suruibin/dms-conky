@@ -166,6 +166,7 @@ PluginSettings {
         ColorRow { label: I18n.tr("Battery"); settingKey: "batteryGaugeColor"; defaultColor: "#C20EAC" }
         ColorRow { label: I18n.tr("AC");      settingKey: "batteryAcGaugeColor"; defaultColor: "#22C55E" }
         ColorRow { label: I18n.tr("Temp");    settingKey: "tempGaugeColor";    defaultColor: "#FF1493" }
+        ColorRow { label: I18n.tr("Bg");      settingKey: "ringBgColor";       defaultColor: "#26ffffff" }
 
         Rectangle {
             width: parent.width; height: 1

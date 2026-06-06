@@ -33,6 +33,7 @@ DesktopPluginComponent {
     readonly property color accent2: accent2Color
 
     // Ring gauge colors
+    readonly property color ringBgColor: getData("ringBgColor", "#26ffffff")
     readonly property color cpuGaugeColor: getData("cpuGaugeColor", "#5105DB")
     readonly property color memGaugeColor: getData("memGaugeColor", "#8B0AC3")
     readonly property color batteryGaugeColor: getData("batteryGaugeColor", "#C20EAC")

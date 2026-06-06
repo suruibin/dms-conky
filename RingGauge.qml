@@ -5,6 +5,7 @@ Item {
     width: 50; height: 50
     property real pct: 0
     property color gaugeColor: "#5105DB"
+    property color bgColor: "#26ffffff"
 
     Canvas {
         id: canvas
@@ -15,7 +16,7 @@ Item {
             
             ctx.beginPath()
             ctx.arc(cx, cy, r, 0, Math.PI * 2)
-            ctx.strokeStyle = "rgba(255,255,255,0.15)"
+            ctx.strokeStyle = ring.bgColor
             ctx.lineWidth = tw
             ctx.stroke()
             
@@ -31,4 +32,5 @@ Item {
 
     onPctChanged: canvas.requestPaint()
     onGaugeColorChanged: canvas.requestPaint()
+    onBgColorChanged: canvas.requestPaint()
 }
