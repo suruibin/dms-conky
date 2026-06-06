@@ -390,6 +390,18 @@ Item {
                     elide: Text.ElideRight
                 }
 
+                // Double-click on HardWare area → resume playback
+                MouseArea {
+                    visible: host.showMusic && !parent.isPlaying
+                    x: host.rightX - 20; y: host.yBase + 365
+                    width: 165; height: 115
+                    acceptedButtons: Qt.LeftButton
+                    onDoubleClicked: {
+                        var p = content.activePlayer
+                        if (p) p.togglePlaying()
+                    }
+                }
+
                 // Music info (when playing)
                 Item {
                     visible: host.showMusic && parent.isPlaying
