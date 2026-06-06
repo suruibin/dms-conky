@@ -340,10 +340,36 @@ Item {
                 // Music Player / System Info (right side)
                 // ============================================
                 readonly property bool isPlaying: content.activePlayer && content.activePlayer.isPlaying
+                property bool musicUIVisible: isPlaying
+                property bool userPaused: false
+
+                onIsPlayingChanged: {
+                    if (isPlaying) {
+                        // Playback started/resumed — show music UI immediately
+                        musicUIVisible = true
+                        userPaused = false
+                        hideMusicUITimer.stop()
+                    } else if (userPaused) {
+                        // User explicitly paused — hide immediately
+                        musicUIVisible = false
+                        userPaused = false
+                        hideMusicUITimer.stop()
+                    } else {
+                        // Track transition — debounce before hiding
+                        hideMusicUITimer.start()
+                    }
+                }
+
+                Timer {
+                    id: hideMusicUITimer
+                    interval: 1500
+                    repeat: false
+                    onTriggered: musicUIVisible = false
+                }
 
                 // Hardware info (when no music playing)
                 Text {
-                    visible: host.showMusic && !parent.isPlaying
+                    visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX - 20; y: host.yBase + 365
                     width: 145
                     horizontalAlignment: Text.AlignHCenter
@@ -354,7 +380,7 @@ Item {
                     color: host.fg
                 }
                 Text {
-                    visible: host.showMusic && !parent.isPlaying
+                    visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 392
                     text: "CPU:"
                     font.family: abelFont.name
@@ -362,7 +388,7 @@ Item {
                     color: host.fg
                 }
                 Text {
-                    visible: host.showMusic && !parent.isPlaying
+                    visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX + 4; y: host.yBase + 413
                     text: host.cpuModel || "Detecting..."
                     font.family: abelFont.name
@@ -372,7 +398,7 @@ Item {
                     elide: Text.ElideRight
                 }
                 Text {
-                    visible: host.showMusic && !parent.isPlaying
+                    visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 435
                     text: "GPU:"
                     font.family: abelFont.name
@@ -380,7 +406,7 @@ Item {
                     color: host.fg
                 }
                 Text {
-                    visible: host.showMusic && !parent.isPlaying
+                    visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX + 4; y: host.yBase + 456
                     text: host.gpuModel || "Detecting..."
                     font.family: abelFont.name
@@ -392,7 +418,7 @@ Item {
 
                 // Double-click on HardWare area → resume playback
                 MouseArea {
-                    visible: host.showMusic && !parent.isPlaying
+                    visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX - 20; y: host.yBase + 365
                     width: 165; height: 115
                     acceptedButtons: Qt.LeftButton
@@ -404,7 +430,7 @@ Item {
 
                 // Music info (when playing)
                 Item {
-                    visible: host.showMusic && parent.isPlaying
+                    visible: host.showMusic && parent.musicUIVisible
                     x: host.rightX - 20; y: host.yBase + 365
                     width: 145; height: 22
 
@@ -430,7 +456,7 @@ Item {
                     }
                 }
                 Text {
-                    visible: host.showMusic && parent.isPlaying
+                    visible: host.showMusic && parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 392
                     text: {
                         var p = content.activePlayer
@@ -445,7 +471,7 @@ Item {
                     elide: Text.ElideRight
                 }
                 Text {
-                    visible: host.showMusic && parent.isPlaying
+                    visible: host.showMusic && parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 413
                     text: {
                         var p = content.activePlayer
@@ -460,7 +486,7 @@ Item {
                     elide: Text.ElideRight
                 }
                 Text {
-                    visible: host.showMusic && parent.isPlaying
+                    visible: host.showMusic && parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 435
                     text: host.musicElapsed
                     font.family: abelFont.name
@@ -468,9 +494,21 @@ Item {
                     color: host.fg
                 }
 
+                // Double-click on music playing area → pause
+                MouseArea {
+                    visible: host.showMusic && parent.musicUIVisible
+                    x: host.rightX - 20; y: host.yBase + 365
+                    width: 165; height: 115
+                    acceptedButtons: Qt.LeftButton
+                    onDoubleClicked: {
+                        var p = content.activePlayer
+                        if (p) { contentItem.userPaused = true; p.togglePlaying() }
+                    }
+                }
+
                 // Music control buttons (previous / play-pause / next)
                 Row {
-                    visible: host.showMusic && parent.isPlaying
+                    visible: host.showMusic && parent.musicUIVisible
                     x: host.rightX + 10; y: host.yBase + 456
                     spacing: 8
 
@@ -496,7 +534,7 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 var p = content.activePlayer
-                                if (p) p.togglePlaying()
+                                if (p) { contentItem.userPaused = true; p.togglePlaying() }
                             }
                             DankIcon {
                                 anchors.centerIn: parent
@@ -522,18 +560,6 @@ Item {
                             }
                         }
                     }
-
-                // Double-click on music playing area → pause
-                MouseArea {
-                    visible: host.showMusic && parent.isPlaying
-                    x: host.rightX - 20; y: host.yBase + 365
-                    width: 165; height: 115
-                    acceptedButtons: Qt.LeftButton
-                    onDoubleClicked: {
-                        var p = content.activePlayer
-                        if (p) p.togglePlaying()
-                    }
-                }
 
                 // ============================================
                 // Full-area ambient particles
