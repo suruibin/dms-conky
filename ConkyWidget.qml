@@ -61,6 +61,14 @@ DesktopPluginComponent {
     property real _rawMouseX: 0
     property real _rawMouseY: 0
 
+    // Exclusion zone: entire bottom strip from Storage/HardWare row to widget bottom
+    readonly property rect bottomZone: Qt.rect(0, yBase + 363, root.width, root.height - (yBase + 363))
+
+    function isInExclusionZone(x, y) {
+        return x >= bottomZone.x && x <= bottomZone.x + bottomZone.width &&
+               y >= bottomZone.y && y <= bottomZone.y + bottomZone.height
+    }
+
     // Throttle hover position updates to 80ms (~12Hz instead of per-pixel)
     Timer {
         id: hoverThrottle
@@ -270,10 +278,13 @@ DesktopPluginComponent {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.NoButton
-        onContainsMouseChanged: root.mouseHovered = containsMouse
+        onContainsMouseChanged: {
+            if (!containsMouse) root.mouseHovered = false
+        }
         onPositionChanged: function(mouse) {
             root._rawMouseX = mouse.x
             root._rawMouseY = mouse.y
+            root.mouseHovered = containsMouse && !isInExclusionZone(mouse.x, mouse.y)
         }
     }
 }

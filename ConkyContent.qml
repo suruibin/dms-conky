@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Common
 import qs.Services
+import qs.Widgets
 
 Item {
     id: content
@@ -386,25 +387,30 @@ Item {
                 }
 
                 // Music info (when playing)
-                Text {
+                Row {
                     visible: host.showMusic && parent.isPlaying
-                    x: host.rightX; y: host.yBase + 360
-                    text: ""
-                    font.family: materialFont.name
-                    font.pixelSize: 20
-                    color: host.accent2
+                    x: host.rightX; y: host.yBase + 365
+                    spacing: 6
+
+                    Text {
+                        text: ""
+                        font.family: materialFont.name
+                        font.pixelSize: 18
+                        color: host.accent2
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: "Playing"
+                        font.family: abelFont.name
+                        font.bold: true
+                        font.pixelSize: 18
+                        color: host.fg
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
                 Text {
                     visible: host.showMusic && parent.isPlaying
-                    x: host.rightX; y: host.yBase + 390
-                    text: "Playing :"
-                    font.family: abelFont.name
-                    font.pixelSize: 15
-                    color: host.fg
-                }
-                Text {
-                    visible: host.showMusic && parent.isPlaying
-                    x: host.rightX; y: host.yBase + 410
+                    x: host.rightX; y: host.yBase + 392
                     text: {
                         var p = content.activePlayer
                         if (!p || !p.metadata) return ""
@@ -419,7 +425,7 @@ Item {
                 }
                 Text {
                     visible: host.showMusic && parent.isPlaying
-                    x: host.rightX; y: host.yBase + 430
+                    x: host.rightX; y: host.yBase + 413
                     text: {
                         var p = content.activePlayer
                         if (!p || !p.metadata) return ""
@@ -427,19 +433,74 @@ Item {
                     }
                     font.family: abelFont.name
                     font.italic: true
-                    font.pixelSize: 15
+                    font.pixelSize: 12
                     color: host.fg
                     width: 110
                     elide: Text.ElideRight
                 }
                 Text {
                     visible: host.showMusic && parent.isPlaying
-                    x: host.rightX; y: host.yBase + 455
+                    x: host.rightX; y: host.yBase + 435
                     text: host.musicElapsed
                     font.family: abelFont.name
-                    font.pixelSize: 15
+                    font.pixelSize: 12
                     color: host.fg
                 }
+
+                // Music control buttons (previous / play-pause / next)
+                Row {
+                    visible: host.showMusic && parent.isPlaying
+                    x: host.rightX + 10; y: host.yBase + 456
+                    spacing: 8
+
+                        MouseArea {
+                            width: 24; height: 24
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var p = content.activePlayer
+                                if (p) p.previous()
+                            }
+                            DankIcon {
+                                anchors.centerIn: parent
+                                name: "skip_previous"
+                                size: 20
+                                color: parent.containsMouse ? host.accent2 : host.fg
+                            }
+                        }
+
+                        MouseArea {
+                            width: 24; height: 24
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var p = content.activePlayer
+                                if (p) p.togglePlaying()
+                            }
+                            DankIcon {
+                                anchors.centerIn: parent
+                                name: "pause"
+                                size: 22
+                                color: parent.containsMouse ? host.accent2 : host.fg
+                            }
+                        }
+
+                        MouseArea {
+                            width: 24; height: 24
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var p = content.activePlayer
+                                if (p) p.next()
+                            }
+                            DankIcon {
+                                anchors.centerIn: parent
+                                name: "skip_next"
+                                size: 20
+                                color: parent.containsMouse ? host.accent2 : host.fg
+                            }
+                        }
+                    }
             }
         }
     }
