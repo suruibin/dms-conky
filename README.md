@@ -2,11 +2,11 @@
 
 DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，鼠标悬停切换视图。
 
-# dms上实现conky功能
+# DMS上实现conky功能
 
 ## 截图
 
-## 系统监控  ## 应用启动器
+## 系统监控                                                        应用启动器
 参考: https://www.gnome-look.org/p/1869486/    参考：https://github.com/hthienloc/dms-app-launcher
 
 ![系统监控](截图1.png)   ![应用启动器](截图2.png)
@@ -21,12 +21,11 @@ DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，
 
 - **系统监控**：时钟、天气、CPU/内存/电池/温度环形仪表、网络速率图、磁盘使用、音乐播放器
 - **硬件信息**：暂停音乐时自动显示 CPU/GPU 型号（随机彩色文字），每次切换颜色刷新
-- **音乐控制**：播放时显示上一曲/暂停/下一曲三个控制按钮，调用 MPRIS 接口
-- **应用启动器**：Grid/List/Compact 三视图，搜索过滤，拖拽排序，添加/管理应用
+- **音乐控制**：播放时显示上一曲/暂停/下一曲三个控制按钮
+- **应用启动器**：网格/列表/紧凑 三种视图模式，搜索过滤，拖拽排序，添加/管理应用
 - **鼠标悬停切换**：鼠标移入自动切换到启动器，移出回到监控视图
 - **悬停排除区**：Storage 和 HardWare 底部区域不触发应用启动器切换，防止误触
-- **粒子消散动画**：弹窗关闭时卡片爆散为彩色粒子烟雾，缓慢飘散消失（鸿蒙风格）
-- **标题对称居中**：Storage/HardWare/Playing 标题在各自列中居中显示
+- **粒子消散动画**：弹窗关闭时卡片爆散为彩色粒子烟雾，缓慢飘散消失
 
 ## 安装
 
@@ -34,15 +33,15 @@ DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，
 cp -r conky ~/.config/DankMaterialShell/plugins/
 ```
 
-然后在 DMS 中：Settings → Plugins → Scan → Enable "Conky" → Desktop Widgets → Add → Conky
+然后在 DMS 中的设置  → 工作区与部件 → 桌面部件 → 添加部件 → 选择Conky
 
 ## 设置
 
-右键 Widget → Settings，可配置：
+Conky可配置项目：
 - 显示模块开关（时钟/天气/网络/音乐）
 - 主色/辅色
+- 时钟颜色/环形仪表颜色
 - 背景不透明度
-- Widget 尺寸
 - 应用启动器：图标大小、视图模式、背景不透明度
 
 ## 依赖
