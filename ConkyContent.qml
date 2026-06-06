@@ -7,6 +7,16 @@ import qs.Widgets
 Item {
     id: content
     property Item host
+    focus: true
+
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Escape) {
+            contentItem.musicUIVisible = false
+            contentItem.hideMusicUITimer.stop()
+            contentItem.userPaused = false
+            event.accepted = true
+        }
+    }
     readonly property var activePlayer: MprisController.activePlayer
 
     FontLoader { id: abelFont; source: "./fonts/Abel-Regular.ttf" }
@@ -368,6 +378,51 @@ Item {
                     onTriggered: musicUIVisible = false
                 }
 
+                // Dead player watchdog — combines null check, stuck position, lost isPlaying
+                property real _lastPos: -1
+                property real _lastElapsed: -1
+                property int _stuckTicks: 0
+
+                Timer {
+                    interval: 2000
+                    running: musicUIVisible
+                    repeat: true
+                    onTriggered: {
+                        var p = MprisController.activePlayer
+                        // Method 1: player object gone
+                        if (!p) {
+                            musicUIVisible = false
+                            hideMusicUITimer.stop()
+                            return
+                        }
+                        // Method 2: player says it's not playing (lost isPlaying signal)
+                        if (p.isPlaying === false) {
+                            _stuckTicks++
+                            if (_stuckTicks >= 2) {
+                                musicUIVisible = false
+                                hideMusicUITimer.stop()
+                            }
+                            return
+                        }
+                        // Method 3: position frozen (player crashed but reports isPlaying=true)
+                        var pos = p.position
+                        if (pos >= 0) {
+                            var elapsed = host.musicElapsed
+                            if (pos === _lastPos && elapsed === _lastElapsed) {
+                                _stuckTicks++
+                                if (_stuckTicks >= 2) {
+                                    musicUIVisible = false
+                                    hideMusicUITimer.stop()
+                                }
+                            } else {
+                                _stuckTicks = 0
+                                _lastPos = pos
+                                _lastElapsed = elapsed
+                            }
+                        }
+                    }
+                }
+
                 // Hardware info (when no music playing)
                 Text {
                     visible: host.showMusic && !parent.musicUIVisible
@@ -527,6 +582,25 @@ Item {
                     onDoubleClicked: {
                         var p = content.activePlayer
                         if (p) { contentItem.userPaused = true; p.togglePlaying() }
+                    }
+                }
+
+                // Force-close button (dead player recovery)
+                MouseArea {
+                    visible: host.showMusic && parent.musicUIVisible
+                    x: host.rightX + 120; y: host.yBase + 365
+                    width: 20; height: 20
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        contentItem.musicUIVisible = false
+                        contentItem.hideMusicUITimer.stop()
+                        contentItem.userPaused = false
+                    }
+                    DankIcon {
+                        anchors.centerIn: parent
+                        name: "close"
+                        size: 14
+                        color: parent.containsMouse ? host.fg : host.dim
                     }
                 }
 
