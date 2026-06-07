@@ -28,8 +28,8 @@ Item {
             height: parent.parent.height
             anchors.centerIn: parent
             radius: Math.round(Theme.cornerRadius / 2)
-            color: (index === root.hoveredIdx) ? "#30ffffff" : "transparent"
-            border.color: (index === root.hoveredIdx) ? "#14ffffff" : "transparent"
+            color: (index === root.hoveredIdx) ? Theme.withAlpha(root.widget.hoverHighlightColor, 0.12) : "transparent"
+            border.color: (index === root.hoveredIdx) ? Theme.withAlpha(root.widget.hoverHighlightColor, 0.3) : "transparent"
             border.width: (index === root.hoveredIdx) ? 1 : 0
 
             SequentialAnimation {

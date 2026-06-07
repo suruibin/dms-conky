@@ -148,6 +148,18 @@ Item {
         }
     }
 
+    property color hoverColor: host.accent
+    property int _hi: hoveredIndex
+    on_HiChanged: {
+        if (hoveredIndex >= 0) {
+            var h = Math.random()
+            var s = 0.7 + Math.random() * 0.3
+            var l = 0.55 + Math.random() * 0.25
+            hoverColor = Qt.hsla(h, s, l, 1.0)
+            host.hoverHighlightColor = hoverColor
+        }
+    }
+
     // ============================================
     // APP LAUNCHER VIEW (visible when mouse hovers)
     // ============================================
@@ -312,15 +324,6 @@ Item {
                             addAppDialog.openDialog("add")
                         }
                     }
-
-                    ToolButton {
-                        visible: host.appShowHeader
-                        iconName: "edit"
-                        onClicked: {
-                            clearSearch()
-                            addAppDialog.openDialog("manage")
-                        }
-                    }
                 }
 
             }
@@ -380,12 +383,23 @@ Item {
                             }
                         }
 
-                        // Frosted glass card on hover
+                        // Glow ring on hover
+                        Rectangle {
+                            width: Math.round(host.appIconSize * 1.85); height: width
+                            anchors.centerIn: parent
+                            radius: Math.round(Theme.cornerRadius)
+                            color: appCard.containsMouse ? Theme.withAlpha(host.accent, 0.08) : "transparent"
+                            scale: appCard.containsMouse ? 1.08 : 1.0
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
+                        }
+
+                        // Highlight card on hover
                         Rectangle {
                             anchors.fill: parent
                             radius: Math.round(Theme.cornerRadius / 2)
-                            color: "#30ffffff"
-                            border.color: "#18ffffff"
+                            color: Theme.withAlpha(content.hoverColor, 0.18)
+                            border.color: Theme.withAlpha(content.hoverColor, 0.4)
                             border.width: 1
                             opacity: (index === hoveredIndex) ? 1.0 : 0.0
                             Behavior on opacity { NumberAnimation { duration: 150 } }
@@ -420,7 +434,7 @@ Item {
                                 iconSize: host.appIconSize
                                 iconSource: appIcon
                                 anchors.centerIn: parent
-                                scale: appCard.containsMouse ? 1.08 : 1.0
+                                scale: appCard.containsMouse ? 1.15 : 1.0
                                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
                             }
                         }
@@ -687,7 +701,7 @@ Item {
                     Item {
                         width: parent.width; height: 24
                         StyledText {
-                            text: I18n.tr("Applications")
+                            text: I18n.tr("Manage")
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
                             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
                         }

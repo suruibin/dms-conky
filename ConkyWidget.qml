@@ -107,6 +107,7 @@ DesktopPluginComponent {
     property string gpuModel: ""
     property color cpuInfoColor: "#f0f0f0"
     property color gpuInfoColor: "#f0f0f0"
+    property color hoverHighlightColor: "#7C3AED"
 
     function randomVibrantColor() {
         // HSL: random hue, high saturation, high lightness (visible on dark bg, never black)
@@ -164,9 +165,10 @@ DesktopPluginComponent {
         DgopService.addRef(activeModules)
         WeatherService.addRef()
 
-        // Random colors for CPU / GPU info
+        // Random colors for CPU / GPU info + hover highlight
         root.cpuInfoColor = randomVibrantColor()
         root.gpuInfoColor = randomVibrantColor()
+        root.hoverHighlightColor = randomVibrantColor()
 
         // Detect CPU model
         root._cpuProc = Qt.createQmlObject(`
