@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell
 import qs.Common
+import qs.Services
 import qs.Widgets
 import qs.Modules.Plugins
 
@@ -1120,6 +1121,23 @@ Item {
                                     onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", modelData.value) }
                                 }
                             }
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width; height: 1
+                        color: Theme.withAlpha(Theme.surfaceVariantText, 0.15)
+                    }
+
+                    DankButton {
+                        width: parent.width
+                        text: I18n.tr("Desktop Widgets")
+                        iconName: "widgets"
+                        backgroundColor: Theme.withAlpha(Theme.primary, 0.1)
+                        textColor: Theme.primary
+                        onClicked: {
+                            PopoutService.openSettingsWithTab("desktop_widgets")
+                            appSettingsDialog.close()
                         }
                     }
                 }
