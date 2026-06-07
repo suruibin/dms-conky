@@ -129,6 +129,7 @@ DesktopPluginComponent {
     }
 
     property bool _wasPlaying: false
+    property int musicResetTick: 0
 
     Timer {
         id: updateTimer
@@ -144,6 +145,7 @@ DesktopPluginComponent {
             if (_wasPlaying && !playing) {
                 root.cpuInfoColor = randomVibrantColor()
                 root.gpuInfoColor = randomVibrantColor()
+                musicResetTick++
             }
             _wasPlaying = playing
         }
