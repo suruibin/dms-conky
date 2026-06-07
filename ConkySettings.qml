@@ -26,29 +26,43 @@ PluginSettings {
         }
         Item { width: 1; height: Theme.spacingS }
 
-        DankToggle {
+        StyledRect {
             width: parent.width
-            text: I18n.tr("Clock")
-            checked: root.loadValue("showClock", true)
-            onToggled: c => root.saveAndPersist("showClock", c)
-        }
-        DankToggle {
-            width: parent.width
-            text: I18n.tr("Weather")
-            checked: root.loadValue("showWeather", true)
-            onToggled: c => root.saveAndPersist("showWeather", c)
-        }
-        DankToggle {
-            width: parent.width
-            text: I18n.tr("Network")
-            checked: root.loadValue("showNetwork", true)
-            onToggled: c => root.saveAndPersist("showNetwork", c)
-        }
-        DankToggle {
-            width: parent.width
-            text: I18n.tr("Music")
-            checked: root.loadValue("showMusic", true)
-            onToggled: c => root.saveAndPersist("showMusic", c)
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: moduleCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: moduleCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: Theme.spacingS
+
+                DankToggle {
+                    width: parent.width
+                    text: I18n.tr("Clock")
+                    checked: root.loadValue("showClock", true)
+                    onToggled: c => root.saveAndPersist("showClock", c)
+                }
+                DankToggle {
+                    width: parent.width
+                    text: I18n.tr("Weather")
+                    checked: root.loadValue("showWeather", true)
+                    onToggled: c => root.saveAndPersist("showWeather", c)
+                }
+                DankToggle {
+                    width: parent.width
+                    text: I18n.tr("Network")
+                    checked: root.loadValue("showNetwork", true)
+                    onToggled: c => root.saveAndPersist("showNetwork", c)
+                }
+                DankToggle {
+                    width: parent.width
+                    text: I18n.tr("Music")
+                    checked: root.loadValue("showMusic", true)
+                    onToggled: c => root.saveAndPersist("showMusic", c)
+                }
+            }
         }
 
         Item { width: 1; height: Theme.spacingS }
@@ -61,24 +75,33 @@ PluginSettings {
         }
         Item { width: 1; height: Theme.spacingS }
 
-        Row {
-            spacing: 6
-            Repeater {
-                model: [
-                    { label: I18n.tr("Conky"), value: "conky" },
-                    { label: I18n.tr("Apps"), value: "apps" }
-                ]
-                Rectangle {
-                    required property var modelData
-                    width: 70; height: 28; radius: 6
-                    color: root.loadValue("defaultView", "conky") === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                    StyledText {
-                        anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
-                        color: root.loadValue("defaultView", "conky") === modelData.value ? Theme.onPrimary : Theme.surfaceText
-                    }
-                    MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                        onClicked: root.saveAndPersist("defaultView", modelData.value)
+        StyledRect {
+            width: parent.width
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: defaultViewRow.implicitHeight + Theme.spacingL * 2
+
+            Row {
+                id: defaultViewRow
+                spacing: 6
+                anchors.centerIn: parent
+                Repeater {
+                    model: [
+                        { label: I18n.tr("Conky"), value: "conky" },
+                        { label: I18n.tr("Apps"), value: "apps" }
+                    ]
+                    Rectangle {
+                        required property var modelData
+                        width: 70; height: 28; radius: 6
+                        color: root.loadValue("defaultView", "conky") === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                        StyledText {
+                            anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
+                            color: root.loadValue("defaultView", "conky") === modelData.value ? Theme.onPrimary : Theme.surfaceText
+                        }
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            onClicked: root.saveAndPersist("defaultView", modelData.value)
+                        }
                     }
                 }
             }
@@ -91,26 +114,27 @@ PluginSettings {
             property string title: ""
             property string settingKey: ""
             property string defaultColor: "#5105DB"
+            property bool compact: false
 
             StyledText {
                 text: title
-                font.pixelSize: Theme.fontSizeMedium
-                font.bold: true
-                color: Theme.surfaceText
+                font.pixelSize: compact ? Theme.fontSizeSmall : Theme.fontSizeMedium
+                font.bold: !compact
+                color: compact ? Theme.surfaceVariantText : Theme.surfaceText
             }
-            Item { width: 1; height: Theme.spacingS }
+            Item { width: 1; height: compact ? 2 : Theme.spacingS }
 
             Flow {
                 width: parent.width
-                spacing: 6
+                spacing: compact ? 4 : 6
                 Repeater {
                     model: ["#5105DB", "#7C3AED", "#8B5CF6", "#A855F7", "#6366F1", "#2563EB", "#3B82F6", "#0891B2", "#06B6D4", "#14B8A6", "#059669", "#10B981", "#22C55E", "#EAB308", "#F59E0B", "#D97706", "#F97316", "#DC2626", "#EF4444", "#DB2777", "#EC4899", "#D946EF", "#ffffff", "#94A3B8", "#64748B", "#334155"]
                     Rectangle {
                         required property var modelData
                         property string c: modelData
-                        width: 26; height: 26; radius: 13
+                        width: compact ? 22 : 26; height: compact ? 22 : 26; radius: compact ? 11 : 13
                         color: c
-                        border.width: root.loadValue(settingKey, defaultColor) === c ? 3 : 0
+                        border.width: root.loadValue(settingKey, defaultColor) === c ? (compact ? 2 : 3) : 0
                         border.color: Theme.surfaceText
                         MouseArea {
                             anchors.fill: parent
@@ -122,37 +146,44 @@ PluginSettings {
             }
         }
 
-        ColorPicker { title: I18n.tr("Primary Color"); settingKey: "accentColor"; defaultColor: "#5105DB" }
-
-        Item { width: 1; height: Theme.spacingS }
-
-        ColorPicker { title: I18n.tr("Secondary Color"); settingKey: "accent2Color"; defaultColor: "#FF1493" }
-
-        Rectangle {
-            width: parent.width; height: 1
-            color: Theme.withAlpha(Theme.surfaceVariantText, 0.15)
-        }
-        Item { width: 1; height: Theme.spacingM }
-
-        // ---- Clock / Date Colors ----
+        // ---- Colors ----
         StyledText {
-            text: I18n.tr("Clock Colors")
+            text: I18n.tr("Colors")
             font.pixelSize: Theme.fontSizeMedium
             font.bold: true
             color: Theme.surfaceText
         }
         Item { width: 1; height: Theme.spacingS }
 
-        // Generic color-row component: label + 12-color picker
-        component ColorRow: Row {
-            spacing: 3
+        StyledRect {
+            width: parent.width
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: colorCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: colorCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: Theme.spacingM
+
+                ColorPicker { compact: true; title: I18n.tr("Primary Color"); settingKey: "accentColor"; defaultColor: "#5105DB" }
+                ColorPicker { compact: true; title: I18n.tr("Secondary Color"); settingKey: "accent2Color"; defaultColor: "#FF1493" }
+            }
+        }
+
+        Item { width: 1; height: Theme.spacingM }
+
+        // Generic color-row component: label + color picker (auto-wrap)
+        component ColorRow: Flow {
+            spacing: 2
             property string label: ""
             property string settingKey: ""
             property string defaultColor: "#f0f0f0"
 
             StyledText {
                 text: label
-                width: 56; anchors.verticalCenter: parent.verticalCenter
+                width: 48
                 font.pixelSize: 11; color: Theme.surfaceVariantText
             }
             Repeater {
@@ -160,7 +191,7 @@ PluginSettings {
                 Rectangle {
                     required property var modelData
                     property string c: modelData
-                    width: 20; height: 20; radius: 10; color: c
+                    width: 18; height: 18; radius: 9; color: c
                     border.width: root.loadValue(settingKey, defaultColor) === c ? 2 : 0
                     border.color: Theme.surfaceText
                     MouseArea {
@@ -172,20 +203,40 @@ PluginSettings {
             }
         }
 
-        ColorRow { label: I18n.tr("Hour");    settingKey: "clockHourColor" }
-        ColorRow { label: I18n.tr("Minute");  settingKey: "clockMinuteColor" }
-        ColorRow { label: I18n.tr("Second");  settingKey: "clockSecondColor" }
-        ColorRow { label: I18n.tr("Colon");   settingKey: "clockColonColor" }
-        ColorRow { label: I18n.tr("Weekday"); settingKey: "dateWeekdayColor" }
-        ColorRow { label: I18n.tr("Day");     settingKey: "dateDayColor" }
-        ColorRow { label: I18n.tr("Month");   settingKey: "dateMonthColor" }
-
-        Rectangle {
-            width: parent.width; height: 1
-            color: Theme.withAlpha(Theme.surfaceVariantText, 0.15)
+        // ---- Clock / Date Colors ----
+        StyledText {
+            text: I18n.tr("Clock Colors")
+            font.pixelSize: Theme.fontSizeMedium
+            font.bold: true
+            color: Theme.surfaceText
         }
+        Item { width: 1; height: Theme.spacingS }
+
+        StyledRect {
+            width: parent.width
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: clockCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: clockCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: 2
+
+                ColorRow { label: I18n.tr("Hour");    settingKey: "clockHourColor" }
+                ColorRow { label: I18n.tr("Minute");  settingKey: "clockMinuteColor" }
+                ColorRow { label: I18n.tr("Second");  settingKey: "clockSecondColor" }
+                ColorRow { label: I18n.tr("Colon");   settingKey: "clockColonColor" }
+                ColorRow { label: I18n.tr("Weekday"); settingKey: "dateWeekdayColor" }
+                ColorRow { label: I18n.tr("Day");     settingKey: "dateDayColor" }
+                ColorRow { label: I18n.tr("Month");   settingKey: "dateMonthColor" }
+            }
+        }
+
         Item { width: 1; height: Theme.spacingM }
 
+        // ---- Ring Gauge Colors ----
         StyledText {
             text: I18n.tr("Ring Gauge Colors")
             font.pixelSize: Theme.fontSizeMedium
@@ -194,69 +245,187 @@ PluginSettings {
         }
         Item { width: 1; height: Theme.spacingS }
 
-        ColorRow { label: I18n.tr("CPU");     settingKey: "cpuGaugeColor";     defaultColor: "#5105DB" }
-        ColorRow { label: I18n.tr("Memory");  settingKey: "memGaugeColor";     defaultColor: "#8B0AC3" }
-        ColorRow { label: I18n.tr("Battery"); settingKey: "batteryGaugeColor"; defaultColor: "#C20EAC" }
-        ColorRow { label: I18n.tr("AC");      settingKey: "batteryAcGaugeColor"; defaultColor: "#22C55E" }
-        ColorRow { label: I18n.tr("Temp");    settingKey: "tempGaugeColor";    defaultColor: "#FF1493" }
-        ColorRow { label: I18n.tr("Bg");      settingKey: "ringBgColor";       defaultColor: "#26ffffff" }
-
-        Rectangle {
-            width: parent.width; height: 1
-            color: Theme.withAlpha(Theme.surfaceVariantText, 0.15)
-        }
-        Item { width: 1; height: Theme.spacingM }
-
-        StyledText {
-            text: I18n.tr("Transparency") + ": " + Math.round(root.loadValue("bgOpacity", 0.0) * 100) + "%"
-            font.pixelSize: Theme.fontSizeSmall
-            color: Theme.surfaceVariantText
-        }
-        Slider {
+        StyledRect {
             width: parent.width
-            from: 0.0; to: 1.0; stepSize: 0.01
-            value: root.loadValue("bgOpacity", 0.0)
-            onValueChanged: root.saveAndPersist("bgOpacity", value)
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: ringCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: ringCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: 2
+
+                ColorRow { label: I18n.tr("CPU");     settingKey: "cpuGaugeColor";     defaultColor: "#5105DB" }
+                ColorRow { label: I18n.tr("Memory");  settingKey: "memGaugeColor";     defaultColor: "#8B0AC3" }
+                ColorRow { label: I18n.tr("Battery"); settingKey: "batteryGaugeColor"; defaultColor: "#C20EAC" }
+                ColorRow { label: I18n.tr("AC");      settingKey: "batteryAcGaugeColor"; defaultColor: "#22C55E" }
+                ColorRow { label: I18n.tr("Temp");    settingKey: "tempGaugeColor";    defaultColor: "#FF1493" }
+                ColorRow { label: I18n.tr("Bg");      settingKey: "ringBgColor";       defaultColor: "#26ffffff" }
+            }
         }
 
         Item { width: 1; height: Theme.spacingM }
 
+        // ---- Display ----
         StyledText {
-            text: I18n.tr("Widget Size") + ": " + root.loadValue("widgetWidth", 330) + " × " + root.loadValue("widgetHeight", 620)
-            font.pixelSize: Theme.fontSizeSmall
-            color: Theme.surfaceVariantText
+            text: I18n.tr("Display")
+            font.pixelSize: Theme.fontSizeMedium
+            font.bold: true
+            color: Theme.surfaceText
         }
-        Slider {
-            width: parent.width
-            from: 280; to: 600; stepSize: 10
-            value: root.loadValue("widgetWidth", 330)
-            onValueChanged: root.saveAndPersist("widgetWidth", value)
-        }
-        Slider {
-            width: parent.width
-            from: 500; to: 1200; stepSize: 10
-            value: root.loadValue("widgetHeight", 620)
-            onValueChanged: root.saveAndPersist("widgetHeight", value)
-        }
-
         Item { width: 1; height: Theme.spacingS }
 
-        StyledText {
-            text: I18n.tr("Icon Size") + ": " + root.loadValue("appSize", 88) + "px"
-            font.pixelSize: Theme.fontSizeSmall
-            color: Theme.surfaceVariantText
-        }
-        Slider {
+        StyledRect {
             width: parent.width
-            from: 48; to: 128; stepSize: 4
-            value: root.loadValue("appSize", 88)
-            onValueChanged: root.saveAndPersist("appSize", value)
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: displayCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: displayCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: Theme.spacingS
+
+                StyledText {
+                    text: I18n.tr("Transparency") + ": " + Math.round(root.loadValue("bgOpacity", 0.0) * 100) + "%"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                }
+                Slider {
+                    width: parent.width
+                    from: 0.0; to: 1.0; stepSize: 0.01
+                    value: root.loadValue("bgOpacity", 0.0)
+                    onValueChanged: root.saveAndPersist("bgOpacity", value)
+                }
+
+                StyledText {
+                    text: I18n.tr("Widget Size") + ": " + root.loadValue("widgetWidth", 330) + " × " + root.loadValue("widgetHeight", 620)
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                }
+                Slider {
+                    width: parent.width
+                    from: 280; to: 600; stepSize: 10
+                    value: root.loadValue("widgetWidth", 330)
+                    onValueChanged: root.saveAndPersist("widgetWidth", value)
+                }
+                Slider {
+                    width: parent.width
+                    from: 500; to: 1200; stepSize: 10
+                    value: root.loadValue("widgetHeight", 620)
+                    onValueChanged: root.saveAndPersist("widgetHeight", value)
+                }
+
+                StyledText {
+                    text: I18n.tr("Icon Size") + ": " + root.loadValue("appSize", 88) + "px"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                }
+                Slider {
+                    width: parent.width
+                    from: 48; to: 128; stepSize: 4
+                    value: root.loadValue("appSize", 88)
+                    onValueChanged: root.saveAndPersist("appSize", value)
+                }
+            }
         }
 
-        Rectangle {
-            width: parent.width; height: 1
-            color: Theme.withAlpha(Theme.surfaceVariantText, 0.15)
+        Item { width: 1; height: Theme.spacingM }
+
+        // ---- Particles ----
+        StyledText {
+            text: I18n.tr("Particles")
+            font.pixelSize: Theme.fontSizeMedium
+            font.bold: true
+            color: Theme.surfaceText
         }
+        Item { width: 1; height: Theme.spacingS }
+
+        StyledRect {
+            width: parent.width
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: particleCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: particleCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: Theme.spacingS
+
+                StyledText {
+                    text: I18n.tr("Style")
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                }
+
+                Row {
+                    spacing: 6
+                    Repeater {
+                        model: [
+                            { label: "●", value: "circles" },
+                            { label: "■", value: "squares" },
+                            { label: "▲", value: "triangles" },
+                            { label: "✦", value: "stars" },
+                            { label: "━", value: "lines" }
+                        ]
+                        Rectangle {
+                            required property var modelData
+                            width: 36; height: 28; radius: 6
+                            color: root.loadValue("particleStyle", "stars") === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                            StyledText {
+                                anchors.centerIn: parent; text: modelData.label; font.pixelSize: 14
+                                color: root.loadValue("particleStyle", "stars") === modelData.value ? Theme.onPrimary : Theme.surfaceText
+                            }
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                onClicked: root.saveAndPersist("particleStyle", modelData.value)
+                            }
+                        }
+                    }
+                }
+
+                StyledText {
+                    text: I18n.tr("Opacity") + ": " + Math.round(root.loadValue("particleOpacity", 1.0) * 100) + "%"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                }
+                Slider {
+                    width: parent.width
+                    from: 0.0; to: 1.0; stepSize: 0.01
+                    value: root.loadValue("particleOpacity", 1.0)
+                    onValueChanged: root.saveAndPersist("particleOpacity", value)
+                }
+
+                StyledText {
+                    text: I18n.tr("Count") + ": " + root.loadValue("particleCount", 150)
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                }
+                Slider {
+                    width: parent.width
+                    from: 10; to: 300; stepSize: 10
+                    value: root.loadValue("particleCount", 150)
+                    onValueChanged: root.saveAndPersist("particleCount", value)
+                }
+
+                StyledText {
+                    text: I18n.tr("Size") + ": " + root.loadValue("particleSize", 4.0).toFixed(1)
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                }
+                Slider {
+                    width: parent.width
+                    from: 0.5; to: 8.0; stepSize: 0.5
+                    value: root.loadValue("particleSize", 4.0)
+                    onValueChanged: root.saveAndPersist("particleSize", value)
+                }
+            }
+        }
+
         Item { width: 1; height: Theme.spacingM }
 
         // ── About / GitHub ────────────────────────────────────────────────────

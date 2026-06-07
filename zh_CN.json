@@ -964,6 +964,9 @@
   "Color Picker": {
     "Color Picker": "取色器"
   },
+  "Colors": {
+    "Colors": "颜色"
+  },
   "Color Temperature": {
     "Color Temperature": "色温"
   },
@@ -1183,6 +1186,9 @@
   "Corners & Background": {
     "Corners & Background": "角落与背景"
   },
+  "Count": {
+    "Count": "数量"
+  },
   "Cover Open": {
     "Cover Open": "打印机盖已打开"
   },
@@ -1378,6 +1384,9 @@
   "Default selected action": {
     "Default selected action": "默认选项"
   },
+  "Default View": {
+    "Default View": "默认预览"
+  },
   "Defaults": {
     "Defaults": "复位"
   },
@@ -1458,6 +1467,9 @@
   },
   "Digital": {
     "Digital": "电子"
+  },
+  "Display": {
+    "Display": "显示"
   },
   "Disable Autoconnect": {
     "Disable Autoconnect": "禁用自动连接"
@@ -3673,6 +3685,9 @@
   "Pairing...": {
     "Pairing...": "配对中..."
   },
+  "Particles": {
+    "Particles": "粒子"
+  },
   "Partly Cloudy": {
     "Partly Cloudy": ""
   },
@@ -4823,6 +4838,9 @@
   },
   "Storage & Disks": {
     "Storage & Disks": "存储与磁盘"
+  },
+  "Style": {
+    "Style": "样式"
   },
   "Sunrise": {
     "Sunrise": "日出"

@@ -40,20 +40,38 @@ Item {
     }
 
     function updateFilteredModel() {
-        filteredModel.clear()
         var search = host.appSearchQuery.toLowerCase().trim()
-        for (var i = 0; i < host.addedApps.length; i++) {
-            var app = host.addedApps[i]
-            var matches = search === "" ||
-                app.name.toLowerCase().indexOf(search) !== -1 ||
-                (app.exec && app.exec.toLowerCase().indexOf(search) !== -1)
-            if (matches) {
-                filteredModel.append({
-                    appName: app.name,
-                    appIcon: app.icon,
-                    appExec: app.exec,
-                    appCategories: app.categories
-                })
+        if (search === "") {
+            // Fast path: incremental sync with addedApps (no search filter)
+            var target = host.addedApps
+            while (filteredModel.count > target.length) {
+                filteredModel.remove(filteredModel.count - 1)
+            }
+            for (var i = 0; i < target.length; i++) {
+                var app = target[i]
+                if (i < filteredModel.count) {
+                    var cur = filteredModel.get(i)
+                    if (cur.appName !== app.name || cur.appIcon !== app.icon || cur.appExec !== app.exec) {
+                        filteredModel.set(i, { appName: app.name, appIcon: app.icon, appExec: app.exec, appCategories: app.categories })
+                    }
+                } else {
+                    filteredModel.append({ appName: app.name, appIcon: app.icon, appExec: app.exec, appCategories: app.categories })
+                }
+            }
+        } else {
+            // Slow path: full rebuild for search filtering
+            filteredModel.clear()
+            for (var i = 0; i < host.addedApps.length; i++) {
+                var app = host.addedApps[i]
+                if (app.name.toLowerCase().indexOf(search) !== -1 ||
+                    (app.exec && app.exec.toLowerCase().indexOf(search) !== -1)) {
+                    filteredModel.append({
+                        appName: app.name,
+                        appIcon: app.icon,
+                        appExec: app.exec,
+                        appCategories: app.categories
+                    })
+                }
             }
         }
     }
@@ -81,7 +99,10 @@ Item {
     }
 
     property var _aw: host.addedApps
-    on_AwChanged: updateFilteredModel()
+    on_AwChanged: {
+        updateFilteredModel()
+        addAppDialog.rebuildAddedSet()
+    }
 
     // Calculate which app is hovered (JS-based, works with Qt 5 global hover)
     function gridHoveredIndex() {
@@ -116,9 +137,15 @@ Item {
         return (idx >= 0 && idx < filteredModel.count) ? idx : -1
     }
 
-    readonly property int gridHoverIdx: host.appViewMode === "grid" ? gridHoveredIndex() : -1
-    readonly property int listHoverIdx: host.appViewMode === "list" ? listHoveredIndex() : -1
-    readonly property int compactHoverIdx: host.appViewMode === "compact" ? compactHoveredIndex() : -1
+    readonly property int hoveredIndex: {
+        if (!host.mouseHovered) return -1
+        switch (host.appViewMode) {
+            case "grid": return gridHoveredIndex()
+            case "list": return listHoveredIndex()
+            case "compact": return compactHoveredIndex()
+            default: return -1
+        }
+    }
 
     // ============================================
     // APP LAUNCHER VIEW (visible when mouse hovers)
@@ -160,7 +187,11 @@ Item {
                     width: 24; height: 24
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    property bool hovered: false
+                    readonly property bool hovered: !host.appShowHeader && (function() {
+                        var hx = host.hoverMouseX; var hy = host.hoverMouseY
+                        var pos = settingsBtn.mapToItem(host, 0, 0)
+                        return hx >= pos.x && hx <= pos.x + 24 && hy >= pos.y && hy <= pos.y + 24
+                    })()
 
                     Rectangle {
                         id: settingsBg
@@ -186,16 +217,6 @@ Item {
                             clearSearch()
                             appSettingsDialog.open()
                         }
-                    }
-                }
-
-                // Hover detection via global mouse coords (global MouseArea blocks containsMouse)
-                Timer {
-                    interval: 100; running: !host.appShowHeader; repeat: true
-                    onTriggered: {
-                        var pos = settingsBtn.mapToItem(host, 0, 0)
-                        settingsBtn.hovered = host.hoverMouseX >= pos.x && host.hoverMouseX <= pos.x + 24 &&
-                                              host.hoverMouseY >= pos.y && host.hoverMouseY <= pos.y + 24
                     }
                 }
 
@@ -361,7 +382,7 @@ Item {
                             color: "#30ffffff"
                             border.color: "#18ffffff"
                             border.width: 1
-                            opacity: (index === gridHoverIdx) ? 1.0 : 0.0
+                            opacity: (index === hoveredIndex) ? 1.0 : 0.0
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
@@ -434,7 +455,7 @@ Item {
                         widget: host
                         iconFactor: 20
                         fontSize: Theme.fontSizeSmall
-                        hoveredIdx: listHoverIdx
+                        hoveredIdx: hoveredIndex
                     }
 
                     // Drag grip on top of AppRowDelegate (z:10 ensures event priority)
@@ -507,7 +528,7 @@ Item {
                         widget: host
                         iconFactor: 16
                         fontSize: Theme.fontSizeSmall - 1
-                        hoveredIdx: compactHoverIdx
+                        hoveredIdx: hoveredIndex
                     }
 
                     // Drag grip on left edge
@@ -594,6 +615,18 @@ Item {
             property string activeTab: "add"
             property var filteredSystemApps: []
 
+            // Precomputed hash set for O(1) isAdded lookup (avoids O(N) some() per delegate)
+            property var addedAppNameSet: ({})
+
+            function rebuildAddedSet() {
+                var set = {}
+                var apps = host.addedApps
+                for (var i = 0; i < apps.length; i++) {
+                    set[apps[i].name] = true
+                }
+                addedAppNameSet = set  // new reference → triggers delegate rebindings
+            }
+
             onSystemAppsSearchChanged: {
                 var s = systemAppsSearch.toLowerCase().trim()
                 if (s === "") {
@@ -610,6 +643,7 @@ Item {
             function openDialog(tab) {
                 activeTab = tab !== undefined ? tab : "add"
                 systemAppsSearch = ""; systemSearchField.text = ""; opened = true
+                rebuildAddedSet()
                 if (activeTab === "add") systemSearchField.forceActiveFocus()
                 if (systemAppsList.length === 0) {
                     var allEntries = DesktopEntries.applications.values
@@ -742,7 +776,7 @@ Item {
                                 width: parent.width; height: 38
                                 radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
                                 color: listMouseArea.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.04) : "transparent"
-                                property bool isAdded: host.addedApps.some(function(a) { return a.name === modelData.name })
+                                property bool isAdded: addAppDialog.addedAppNameSet[modelData.name] === true
                                 Row {
                                     anchors.fill: parent; anchors.leftMargin: Theme.spacingS; anchors.rightMargin: Theme.spacingS
                                     spacing: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter

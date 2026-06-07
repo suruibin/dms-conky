@@ -26,6 +26,10 @@ DesktopPluginComponent {
     readonly property bool showWeather: getData("showWeather", true)
     readonly property bool showMusic: getData("showMusic", true)
     readonly property string defaultView: pluginData.defaultView ?? "conky"  // "conky" or "apps"
+    readonly property real particleOpacity: getData("particleOpacity", 1.0)
+    readonly property string particleStyle: getData("particleStyle", "stars")
+    readonly property int particleCount: getData("particleCount", 150)
+    readonly property real particleSize: getData("particleSize", 4.0)
 
     readonly property color bg: Theme.withAlpha("#0a0a0f", bgOpacity)
     readonly property color fg: "#f0f0f0"

@@ -600,39 +600,81 @@ Item {
                 Canvas {
                     id: bottomParticles
                     anchors.fill: parent
-                    opacity: 0.75
+                    opacity: host.particleOpacity
                     z: -1
 
                     property var particles: []
                     property int tick: 0
 
                     function spawn() {
-                        if (particles.length >= 100) return
+                        if (particles.length >= host.particleCount) return
                         particles.push({
                             x: Math.random() * width,
                             y: Math.random() * height,
                             vx: (Math.random() - 0.5) * 12,
                             vy: -(8 + Math.random() * 16),
-                            size: 1 + Math.random() * 2.5,
+                            size: 1 + Math.random() * host.particleSize,
                             life: 1.0,
                             decay: 0.3 + Math.random() * 0.5,
                             hue: Math.random(),
-                            sat: 0.5 + Math.random() * 0.3,
-                            lit: 0.5 + Math.random() * 0.25
+                            sat: 0.7 + Math.random() * 0.3,
+                            lit: 0.7 + Math.random() * 0.28
                         })
+                    }
+
+                    function drawShape(ctx, p) {
+                        var s = p.size * (0.3 + p.life * 0.7)
+                        var style = host.particleStyle || "circles"
+                        switch (style) {
+                            case "squares":
+                                ctx.fillRect(p.x - s/2, p.y - s/2, s, s)
+                                break
+                            case "triangles":
+                                ctx.beginPath()
+                                ctx.moveTo(p.x, p.y - s)
+                                ctx.lineTo(p.x - s * 0.866, p.y + s * 0.5)
+                                ctx.lineTo(p.x + s * 0.866, p.y + s * 0.5)
+                                ctx.closePath()
+                                ctx.fill()
+                                break
+                            case "stars":
+                                ctx.beginPath()
+                                var inner = s * 0.35
+                                for (var k = 0; k < 4; k++) {
+                                    var a = (Math.PI / 2) * k - Math.PI / 2
+                                    ctx.lineTo(p.x + Math.cos(a) * s, p.y + Math.sin(a) * s)
+                                    ctx.lineTo(p.x + Math.cos(a + Math.PI/4) * inner, p.y + Math.sin(a + Math.PI/4) * inner)
+                                }
+                                ctx.closePath()
+                                ctx.fill()
+                                break
+                            case "lines":
+                                ctx.beginPath()
+                                ctx.moveTo(p.x - s, p.y)
+                                ctx.lineTo(p.x + s, p.y)
+                                ctx.lineWidth = Math.max(1, s * 0.4)
+                                ctx.stroke()
+                                break
+                            default: // circles
+                                ctx.beginPath()
+                                ctx.arc(p.x, p.y, s, 0, Math.PI * 2)
+                                ctx.fill()
+                                break
+                        }
                     }
 
                     onPaint: {
                         var ctx = getContext("2d")
                         ctx.clearRect(0, 0, width, height)
+                        ctx.shadowBlur = 4
                         for (var i = 0; i < particles.length; i++) {
                             var p = particles[i]
                             if (p.life <= 0) continue
-                            ctx.globalAlpha = Math.min(0.7, p.life * 0.5)
+                            ctx.globalAlpha = (0.25 + p.life * 0.75) * host.particleOpacity
+                            ctx.shadowColor = Qt.hsla(p.hue, p.sat, p.lit, 1.0)
                             ctx.fillStyle = Qt.hsla(p.hue, p.sat, p.lit, 1.0)
-                            ctx.beginPath()
-                            ctx.arc(p.x, p.y, p.size * (0.3 + p.life * 0.7), 0, Math.PI * 2)
-                            ctx.fill()
+                            ctx.strokeStyle = Qt.hsla(p.hue, p.sat, p.lit, 1.0)
+                            bottomParticles.drawShape(ctx, p)
                         }
                     }
 
