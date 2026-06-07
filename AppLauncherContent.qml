@@ -623,7 +623,7 @@ Item {
         Rectangle {
             id: addAppDialog
             anchors.fill: parent
-            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.2)
+            color: "transparent"
             radius: Theme.cornerRadius; z: 100
             visible: opened || opacity > 0
             opacity: opened ? 1.0 : 0.0
@@ -689,9 +689,9 @@ Item {
                 z: 10
                 width: Math.min(320, parent.width - 20); height: Math.min(450, parent.height - 20)
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: 5
-                color: Theme.surfaceContainer; radius: Theme.cornerRadius
-                border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1; clip: true
+                anchors.verticalCenterOffset: -5
+                color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius
+                border.color: Theme.withAlpha(host.accent, 0.15); border.width: 1; clip: true
                 scale: addAppDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
@@ -976,7 +976,7 @@ Item {
         Rectangle {
             id: appSettingsDialog
             anchors.fill: parent
-            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.2)
+            color: "transparent"
             radius: Theme.cornerRadius; z: 100
             visible: opened || opacity > 0
             opacity: opened ? 1.0 : 0.0
@@ -998,9 +998,9 @@ Item {
                 width: Math.min(300, parent.width - 20)
                 height: Math.min(450, parent.height - 20)
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: 5
-                color: Theme.surfaceContainer; radius: Theme.cornerRadius
-                border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1; clip: true
+                anchors.verticalCenterOffset: -5
+                color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius
+                border.color: Theme.withAlpha(host.accent, 0.15); border.width: 1; clip: true
                 scale: appSettingsDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
