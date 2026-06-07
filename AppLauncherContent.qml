@@ -188,11 +188,15 @@ Item {
                     width: 24; height: 24
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    readonly property bool hovered: !host.appShowHeader && (function() {
-                        var hx = host.hoverMouseX; var hy = host.hoverMouseY
-                        var pos = settingsBtn.mapToItem(host, 0, 0)
-                        return hx >= pos.x && hx <= pos.x + 24 && hy >= pos.y && hy <= pos.y + 24
-                    })()
+                    property bool hovered: false
+
+                    Timer {
+                        interval: 100; running: !host.appShowHeader && launcherContainer.visible; repeat: true
+                        onTriggered: {
+                            var p = settingsBtn.mapFromItem(host, host.hoverMouseX, host.hoverMouseY)
+                            settingsBtn.hovered = p.x >= 0 && p.x <= 24 && p.y >= 0 && p.y <= 24
+                        }
+                    }
 
                     Rectangle {
                         id: settingsBg
