@@ -25,6 +25,7 @@ DesktopPluginComponent {
     readonly property bool showNetwork: getData("showNetwork", true)
     readonly property bool showWeather: getData("showWeather", true)
     readonly property bool showMusic: getData("showMusic", true)
+    readonly property string defaultView: pluginData.defaultView ?? "conky"  // "conky" or "apps"
 
     readonly property color bg: Theme.withAlpha("#0a0a0f", bgOpacity)
     readonly property color fg: "#f0f0f0"
@@ -138,7 +139,8 @@ DesktopPluginComponent {
         repeat: true
         onTriggered: {
             var playing = hasActivePlayer && MprisController.activePlayer && MprisController.activePlayer.isPlaying
-            if (showMusic && playing && !mouseHovered) {
+            var conkyVisible = (root.defaultView === "apps") ? root.mouseHovered : !root.mouseHovered
+            if (showMusic && playing && conkyVisible) {
                 musicTick++
             }
             // Regenerate CPU/GPU colors when transitioning from playing → paused/stopped
@@ -236,20 +238,20 @@ DesktopPluginComponent {
     }
 
     // ============================================
-    // CONKY VIEW (visible when mouse is outside)
+    // CONKY VIEW
     // ============================================
     ConkyContent {
-        visible: !root.mouseHovered
+        visible: !launcherContent._keepVisible && (root.defaultView === "apps" ? root.mouseHovered : !root.mouseHovered)
         anchors.fill: parent
         host: root
     }
 
     // ============================================
-    // APP LAUNCHER VIEW (visible when mouse hovers)
+    // APP LAUNCHER VIEW
     // ============================================
     AppLauncherContent {
         id: launcherContent
-        visible: root.mouseHovered || launcherContent._keepVisible
+        visible: (root.defaultView === "apps" ? !root.mouseHovered : root.mouseHovered) || launcherContent._keepVisible
         anchors.fill: parent
         host: root
     }
@@ -260,12 +262,24 @@ DesktopPluginComponent {
         hoverEnabled: true
         acceptedButtons: Qt.NoButton
         onContainsMouseChanged: {
-            if (!containsMouse) root.mouseHovered = false
+            if (!containsMouse && !launcherContent._keepVisible) root.mouseHovered = false
         }
         onPositionChanged: function(mouse) {
             root._rawMouseX = mouse.x
             root._rawMouseY = mouse.y
-            root.mouseHovered = containsMouse && !isInExclusionZone(mouse.x, mouse.y)
+            if (launcherContent._keepVisible) {
+                // Dialog is open — keep AppLauncher active
+                root.mouseHovered = (root.defaultView !== "apps")
+            } else if (root.defaultView === "apps") {
+                // Apps is default — Conky only shows in the exclusion zone (bottom area)
+                root.mouseHovered = containsMouse && isInExclusionZone(mouse.x, mouse.y)
+            } else if (root.mouseHovered) {
+                // Already in AppLauncher (conky default) — stay there even in exclusion zone
+                root.mouseHovered = containsMouse
+            } else {
+                // In Conky (conky default) — switch to AppLauncher outside exclusion zone
+                root.mouseHovered = containsMouse && !isInExclusionZone(mouse.x, mouse.y)
+            }
         }
     }
 

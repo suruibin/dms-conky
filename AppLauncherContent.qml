@@ -16,6 +16,7 @@ Item {
         cursorShape: Qt.PointingHandCursor
         anchors.verticalCenter: parent.verticalCenter
         property string iconName: ""
+        property alias hovered: btn.containsMouse
 
         Rectangle {
             anchors.fill: parent
@@ -66,29 +67,17 @@ Item {
         onTriggered: updateFilteredModel()
     }
 
-    property bool _keepVisible: false
+    readonly property bool _keepVisible: addAppDialog.opened || appSettingsDialog.opened
 
     property bool _hw: host.mouseHovered
     on_HwChanged: {
         if (!host.mouseHovered) {
-            var hasDialog = addAppDialog.opened || appSettingsDialog.opened
-            clearSearch()
-            addAppDialog.close()
-            appSettingsDialog.close()
-            if (hasDialog) {
-                _keepVisible = true
-                keepVisibleTimer.start()
+            if (!addAppDialog.opened && !appSettingsDialog.opened) {
+                clearSearch()
             }
         } else {
-            _keepVisible = false
             content.forceActiveFocus()
         }
-    }
-
-    Timer {
-        id: keepVisibleTimer
-        interval: 2200; repeat: false
-        onTriggered: _keepVisible = false
     }
 
     property var _aw: host.addedApps
@@ -136,7 +125,7 @@ Item {
     // ============================================
     Rectangle {
         id: launcherContainer
-        visible: host.mouseHovered || content._keepVisible
+        visible: (host.defaultView === "apps" ? !host.mouseHovered : host.mouseHovered) || content._keepVisible
         anchors.fill: parent
         color: Theme.withAlpha(Theme.surfaceContainer, host.appLauncherBgOpacity)
         radius: Theme.cornerRadius
@@ -147,13 +136,13 @@ Item {
         Column {
             anchors.fill: parent
             anchors.margins: Theme.spacingM
-            spacing: host.appShowHeader ? Theme.spacingS : 0
+            spacing: Theme.spacingS
 
             // Header
             Item {
+                id: headerBar
                 width: parent.width
-                height: host.appShowHeader ? 24 : 0
-                visible: host.appShowHeader
+                height: 24
 
                 StyledText {
                     text: I18n.tr("Applications")
@@ -162,17 +151,64 @@ Item {
                     color: Theme.surfaceText
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: !searchContainer.expanded
+                    visible: host.appShowHeader && !searchContainer.expanded
+                }
+
+                // Settings icon – always visible, detached from the toolbar Row
+                Item {
+                    id: settingsBtn
+                    width: 24; height: 24
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    property bool hovered: false
+
+                    Rectangle {
+                        id: settingsBg
+                        anchors.fill: parent
+                        radius: Math.round(Theme.cornerRadius / 2)
+                        color: settingsBtn.hovered ? Theme.withAlpha(Theme.surfaceText, 0.08) : Theme.withAlpha(Theme.surfaceText, 0.03)
+                        border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1
+                        opacity: host.appShowHeader ? 1.0 : (settingsBtn.hovered ? 0.8 : 0.0)
+                        Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                        DankIcon {
+                            anchors.centerIn: parent
+                            name: "settings"; size: 14; color: Theme.surfaceText
+                            opacity: settingsBtn.hovered ? 1.0 : 0.7
+                        }
+                    }
+
+                    MouseArea {
+                        id: settingsHitArea
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            clearSearch()
+                            appSettingsDialog.open()
+                        }
+                    }
+                }
+
+                // Hover detection via global mouse coords (global MouseArea blocks containsMouse)
+                Timer {
+                    interval: 100; running: !host.appShowHeader; repeat: true
+                    onTriggered: {
+                        var pos = settingsBtn.mapToItem(host, 0, 0)
+                        settingsBtn.hovered = host.hoverMouseX >= pos.x && host.hoverMouseX <= pos.x + 24 &&
+                                              host.hoverMouseY >= pos.y && host.hoverMouseY <= pos.y + 24
+                    }
                 }
 
                 Row {
-                    anchors.right: parent.right
+                    anchors.right: settingsBtn.left
+                    anchors.rightMargin: settingsBtn.visible ? Theme.spacingS : 0
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.spacingS
                     height: parent.height
 
                     Rectangle {
                         id: searchContainer
+                        visible: host.appShowHeader
                         property bool expanded: false
                         width: expanded ? Math.min(160, parent.parent.width - 110) : 24
                         height: 24
@@ -243,6 +279,7 @@ Item {
                     }
 
                     ToolButton {
+                        visible: host.appShowHeader
                         iconName: "add"
                         onClicked: {
                             clearSearch()
@@ -251,28 +288,22 @@ Item {
                     }
 
                     ToolButton {
+                        visible: host.appShowHeader
                         iconName: "edit"
                         onClicked: {
                             clearSearch()
                             addAppDialog.openDialog("manage")
                         }
                     }
-
-                    ToolButton {
-                        iconName: "settings"
-                        onClicked: {
-                            clearSearch()
-                            appSettingsDialog.open()
-                        }
-                    }
                 }
+
             }
 
             // Grid View
             GridView {
                 id: appsGrid
                 width: parent.width
-                height: parent.height - (host.appShowHeader ? (24 + Theme.spacingS * 2) : 0)
+                height: parent.height - 24 - Theme.spacingS * 2
                 clip: true; boundsBehavior: Flickable.StopAtBounds
                 visible: host.appViewMode === "grid"
                 cellWidth: Math.floor(width / Math.max(2, Math.floor(width / host.appSize)))
@@ -375,7 +406,7 @@ Item {
             ListView {
                 id: appsList
                 width: parent.width
-                height: parent.height - (host.appShowHeader ? (24 + Theme.spacingS * 2) : 0)
+                height: parent.height - 24 - Theme.spacingS * 2
                 clip: true; boundsBehavior: Flickable.StopAtBounds
                 visible: host.appViewMode === "list"
                 spacing: 2; model: filteredModel
@@ -445,7 +476,7 @@ Item {
             GridView {
                 id: appsCompact
                 width: parent.width
-                height: parent.height - (host.appShowHeader ? (24 + Theme.spacingS * 2) : 0)
+                height: parent.height - 24 - Theme.spacingS * 2
                 clip: true; boundsBehavior: Flickable.StopAtBounds
                 visible: host.appViewMode === "compact"
                 cellWidth: Math.floor(width / Math.max(2, Math.floor(width / 130)))
@@ -517,24 +548,6 @@ Item {
             }
         }
 
-        // Wheel speed overlay (hoverEnabled: false so delegates get hover)
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: false
-            acceptedButtons: Qt.NoButton
-            onWheel: function(wheel) {
-                wheel.accepted = true
-                var target = appsGrid.visible ? appsGrid :
-                             (appsList.visible ? appsList :
-                             (appsCompact.visible ? appsCompact : null))
-                if (target && target.contentHeight > target.height) {
-                    target.contentY = Math.max(0, Math.min(
-                        target.contentY - wheel.angleDelta.y * 4,
-                        target.contentHeight - target.height))
-                }
-            }
-        }
-
         // Empty placeholder
         StyledText {
             text: I18n.tr("Click + to add applications")
@@ -570,7 +583,7 @@ Item {
         Rectangle {
             id: addAppDialog
             anchors.fill: parent
-            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.35)
+            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.2)
             radius: Theme.cornerRadius; z: 100
             visible: opened || opacity > 0
             opacity: opened ? 1.0 : 0.0
@@ -621,9 +634,9 @@ Item {
             Rectangle {
                 id: dialogCard
                 z: 10
-                width: Math.min(320, parent.width - 20); height: Math.min(400, parent.height - 20)
+                width: Math.min(320, parent.width - 20); height: Math.min(450, parent.height - 20)
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: -20
+                anchors.verticalCenterOffset: 5
                 color: Theme.surfaceContainer; radius: Theme.cornerRadius
                 border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1; clip: true
                 scale: addAppDialog.opened ? 1.0 : 0.95
@@ -714,51 +727,78 @@ Item {
                     }
 
                     // System apps list
-                    ListView {
-                        visible: addAppDialog.activeTab === "add"
+                    // System apps list wrapper
+                    Item {
                         width: parent.width
                         height: dialogCard.height - Theme.spacingM * 2 - 24 - 32 - 32 - Theme.spacingS * 3
-                        clip: true; spacing: 2; boundsBehavior: Flickable.StopAtBounds
-                        model: addAppDialog.filteredSystemApps
-                        delegate: Rectangle {
-                            width: parent.width; height: 38
-                            radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
-                            color: listMouseArea.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.04) : "transparent"
-                            property bool isAdded: host.addedApps.some(function(a) { return a.name === modelData.name })
-                            Row {
-                                anchors.fill: parent; anchors.leftMargin: Theme.spacingS; anchors.rightMargin: Theme.spacingS
-                                spacing: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter
-                                AppIcon {
-                                    width: 24; height: 24; iconSize: 24
-                                    iconSource: modelData.icon
-                                    anchors.verticalCenter: parent.verticalCenter
+                        visible: addAppDialog.activeTab === "add"
+
+                        ListView {
+                            id: systemAppsListView
+                            anchors.fill: parent
+                            clip: true; spacing: 2; boundsBehavior: Flickable.StopAtBounds
+                            model: addAppDialog.filteredSystemApps
+                            delegate: Rectangle {
+                                width: parent.width; height: 38
+                                radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
+                                color: listMouseArea.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.04) : "transparent"
+                                property bool isAdded: host.addedApps.some(function(a) { return a.name === modelData.name })
+                                Row {
+                                    anchors.fill: parent; anchors.leftMargin: Theme.spacingS; anchors.rightMargin: Theme.spacingS
+                                    spacing: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter
+                                    AppIcon {
+                                        width: 24; height: 24; iconSize: 24
+                                        iconSource: modelData.icon
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                    StyledText { text: modelData.name; font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; elide: Text.ElideRight; width: parent.width - 24 - 32 - Theme.spacingS * 2; anchors.verticalCenter: parent.verticalCenter }
                                 }
-                                StyledText { text: modelData.name; font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; elide: Text.ElideRight; width: parent.width - 24 - 32 - Theme.spacingS * 2; anchors.verticalCenter: parent.verticalCenter }
-                            }
-                            Rectangle {
-                                width: 22; height: 22; radius: 11
-                                anchors.right: parent.right; anchors.rightMargin: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter
-                                color: parent.isAdded ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-                                border.color: parent.isAdded ? Theme.primary : Theme.withAlpha(Theme.outline, 0.3); border.width: 1
-                                DankIcon { anchors.centerIn: parent; name: parent.parent.isAdded ? "done" : "add"; size: 12; color: parent.parent.isAdded ? Theme.primary : Theme.surfaceText }
-                            }
-                            MouseArea {
-                                id: listMouseArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    if (parent.isAdded) { host.removeApp(modelData.name); toastRect.msg = "✖ " + modelData.name }
-                                    else { host.addApp(modelData); toastRect.msg = "✔ " + modelData.name }
-                                    toastTimer.restart()
+                                Rectangle {
+                                    width: 22; height: 22; radius: 11
+                                    anchors.right: parent.right; anchors.rightMargin: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter
+                                    color: parent.isAdded ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
+                                    border.color: parent.isAdded ? Theme.primary : Theme.withAlpha(Theme.outline, 0.3); border.width: 1
+                                    DankIcon { anchors.centerIn: parent; name: parent.parent.isAdded ? "done" : "add"; size: 12; color: parent.parent.isAdded ? Theme.primary : Theme.surfaceText }
+                                }
+                                MouseArea {
+                                    id: listMouseArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (parent.isAdded) { host.removeApp(modelData.name); toastRect.msg = "✖ " + modelData.name }
+                                        else { host.addApp(modelData); toastRect.msg = "✔ " + modelData.name }
+                                        toastTimer.restart()
+                                    }
                                 }
                             }
                         }
+
+                        // Fast scroll overlay
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: false
+                            propagateComposedEvents: true
+                            onWheel: function(wheel) {
+                                wheel.accepted = true
+                                if (systemAppsListView.contentHeight > systemAppsListView.height) {
+                                    systemAppsListView.contentY = Math.max(0, Math.min(
+                                        systemAppsListView.contentY - wheel.angleDelta.y * 1.0,
+                                        systemAppsListView.contentHeight - systemAppsListView.height))
+                                }
+                            }
+                            onPressed: function(mouse) { mouse.accepted = false }
+                            onReleased: function(mouse) { mouse.accepted = false }
+                            onClicked: function(mouse) { mouse.accepted = false }
+                        }
                     }
 
-                    // Manage list (with drag reorder)
-                    ListView {
-                        id: manageListView
-                        visible: addAppDialog.activeTab === "manage"
+                    // Manage list wrapper (with drag reorder)
+                    Item {
                         width: parent.width
                         height: dialogCard.height - Theme.spacingM * 2 - 24 - 32 - Theme.spacingS * 2
+                        visible: addAppDialog.activeTab === "manage"
+
+                        ListView {
+                            id: manageListView
+                            anchors.fill: parent
                         clip: true; spacing: 4; boundsBehavior: Flickable.StopAtBounds
                         model: host.addedApps
 
@@ -855,6 +895,26 @@ Item {
                             }
                         }
                     }
+
+                        // Fast scroll overlay
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: false
+                            propagateComposedEvents: true
+                            onWheel: function(wheel) {
+                                wheel.accepted = true
+                                if (manageListView.contentHeight > manageListView.height) {
+                                    manageListView.contentY = Math.max(0, Math.min(
+                                        manageListView.contentY - wheel.angleDelta.y * 1.0,
+                                        manageListView.contentHeight - manageListView.height))
+                                }
+                            }
+                            onPressed: function(mouse) { mouse.accepted = false }
+                            onReleased: function(mouse) { mouse.accepted = false }
+                            onClicked: function(mouse) { mouse.accepted = false }
+                        }
+                    }
+
                 }
             }
         }
@@ -863,7 +923,7 @@ Item {
         Rectangle {
             id: appSettingsDialog
             anchors.fill: parent
-            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.35)
+            color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.2)
             radius: Theme.cornerRadius; z: 100
             visible: opened || opacity > 0
             opacity: opened ? 1.0 : 0.0
@@ -883,20 +943,19 @@ Item {
                 id: settingsCard
                 z: 10
                 width: Math.min(300, parent.width - 20)
-                height: Math.min(290, parent.height - 20)
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                anchors.topMargin: 40
+                height: Math.min(450, parent.height - 20)
+                anchors.centerIn: parent
+                anchors.verticalCenterOffset: 5
                 color: Theme.surfaceContainer; radius: Theme.cornerRadius
                 border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1; clip: true
                 scale: appSettingsDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
                 Column {
-                    anchors.fill: parent; anchors.margins: Theme.spacingM; spacing: Theme.spacingS
+                    anchors.fill: parent; anchors.margins: Theme.spacingS; spacing: 4
 
                     Item {
-                        width: parent.width; height: 24
+                        width: parent.width; height: 20
                         StyledText {
                             text: I18n.tr("Settings")
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
@@ -921,6 +980,35 @@ Item {
                     }
 
                     StyledText {
+                        text: I18n.tr("Default View")
+                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
+                    }
+                    Row {
+                        spacing: 6
+                        Repeater {
+                            model: [
+                                { label: I18n.tr("Conky"), value: "conky" },
+                                { label: I18n.tr("Apps"), value: "apps" }
+                            ]
+                            Rectangle {
+                                required property var modelData
+                                width: 70; height: 28; radius: 6
+                                color: host.defaultView === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                                StyledText {
+                                    anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
+                                    color: host.defaultView === modelData.value ? Theme.onPrimary : Theme.surfaceText
+                                }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "defaultView", modelData.value) }
+                                }
+                            }
+                        }
+                    }
+
+                    Item { width: 1; height: 4 }
+
+                    StyledText {
                         text: I18n.tr("Transparency") + ": " + Math.round(host.appLauncherBgOpacity * 100) + "%"
                         font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
                     }
@@ -930,7 +1018,7 @@ Item {
                         onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) }
                     }
 
-                    Item { width: 1; height: Theme.spacingS }
+                    Item { width: 1; height: 4 }
 
                     StyledText {
                         text: I18n.tr("Icon Size") + ": " + host.appSize + "px"
@@ -942,7 +1030,7 @@ Item {
                         onValueChanged: host.setData("appSize", value)
                     }
 
-                    Item { width: 1; height: Theme.spacingS }
+                    Item { width: 1; height: 4 }
 
                     StyledText {
                         text: I18n.tr("View Mode")
@@ -972,7 +1060,7 @@ Item {
                         }
                     }
 
-                    Item { width: 1; height: Theme.spacingS }
+                    Item { width: 1; height: 4 }
 
                     StyledText {
                         text: I18n.tr("Show Header")
@@ -1074,6 +1162,24 @@ Item {
                     stop()
                     elapsed = 0
                     dissolveParticles.particles = []
+                }
+            }
+        }
+
+        // Wheel overlay for main views
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: false
+            acceptedButtons: Qt.NoButton
+            onWheel: function(wheel) {
+                var target = appsGrid.visible ? appsGrid :
+                             (appsList.visible ? appsList :
+                             (appsCompact.visible ? appsCompact : null))
+                if (target && target.contentHeight > target.height) {
+                    wheel.accepted = true
+                    target.contentY = Math.max(0, Math.min(
+                        target.contentY - wheel.angleDelta.y,
+                        target.contentHeight - target.height))
                 }
             }
         }

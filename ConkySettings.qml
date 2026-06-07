@@ -51,6 +51,39 @@ PluginSettings {
             onToggled: c => root.saveAndPersist("showMusic", c)
         }
 
+        Item { width: 1; height: Theme.spacingS }
+
+        StyledText {
+            text: I18n.tr("Default View")
+            font.pixelSize: Theme.fontSizeMedium
+            font.bold: true
+            color: Theme.surfaceText
+        }
+        Item { width: 1; height: Theme.spacingS }
+
+        Row {
+            spacing: 6
+            Repeater {
+                model: [
+                    { label: I18n.tr("Conky"), value: "conky" },
+                    { label: I18n.tr("Apps"), value: "apps" }
+                ]
+                Rectangle {
+                    required property var modelData
+                    width: 70; height: 28; radius: 6
+                    color: root.loadValue("defaultView", "conky") === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                    StyledText {
+                        anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
+                        color: root.loadValue("defaultView", "conky") === modelData.value ? Theme.onPrimary : Theme.surfaceText
+                    }
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: root.saveAndPersist("defaultView", modelData.value)
+                    }
+                }
+            }
+        }
+
         Item { width: 1; height: Theme.spacingM }
 
         component ColorPicker: Column {
