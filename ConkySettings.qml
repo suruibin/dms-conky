@@ -113,7 +113,7 @@ PluginSettings {
             width: parent.width
             property string title: ""
             property string settingKey: ""
-            property string defaultColor: "#5105DB"
+            property string defaultColor: "#7C3AED"
             property bool compact: false
 
             StyledText {
@@ -167,8 +167,8 @@ PluginSettings {
                 anchors.centerIn: parent
                 spacing: Theme.spacingM
 
-                ColorPicker { compact: true; title: I18n.tr("Primary Color"); settingKey: "accentColor"; defaultColor: "#5105DB" }
-                ColorPicker { compact: true; title: I18n.tr("Secondary Color"); settingKey: "accent2Color"; defaultColor: "#FF1493" }
+                ColorPicker { compact: true; title: I18n.tr("Primary Color"); settingKey: "accentColor"; defaultColor: "#7C3AED" }
+                ColorPicker { compact: true; title: I18n.tr("Secondary Color"); settingKey: "accent2Color"; defaultColor: "#D97706" }
             }
         }
 
@@ -224,13 +224,13 @@ PluginSettings {
                 anchors.centerIn: parent
                 spacing: 2
 
-                ColorRow { label: I18n.tr("Hour");    settingKey: "clockHourColor" }
-                ColorRow { label: I18n.tr("Minute");  settingKey: "clockMinuteColor" }
-                ColorRow { label: I18n.tr("Second");  settingKey: "clockSecondColor" }
-                ColorRow { label: I18n.tr("Colon");   settingKey: "clockColonColor" }
-                ColorRow { label: I18n.tr("Weekday"); settingKey: "dateWeekdayColor" }
-                ColorRow { label: I18n.tr("Day");     settingKey: "dateDayColor" }
-                ColorRow { label: I18n.tr("Month");   settingKey: "dateMonthColor" }
+                ColorRow { label: I18n.tr("Hour");    settingKey: "clockHourColor";    defaultColor: "#6366F1" }
+                ColorRow { label: I18n.tr("Minute");  settingKey: "clockMinuteColor";  defaultColor: "#F97316" }
+                ColorRow { label: I18n.tr("Second");  settingKey: "clockSecondColor";  defaultColor: "#EC4899" }
+                ColorRow { label: I18n.tr("Colon");   settingKey: "clockColonColor";   defaultColor: "#3B82F6" }
+                ColorRow { label: I18n.tr("Weekday"); settingKey: "dateWeekdayColor";  defaultColor: "#EAB308" }
+                ColorRow { label: I18n.tr("Day");     settingKey: "dateDayColor";      defaultColor: "#06B6D4" }
+                ColorRow { label: I18n.tr("Month");   settingKey: "dateMonthColor";    defaultColor: "#EC4899" }
             }
         }
 
@@ -257,12 +257,12 @@ PluginSettings {
                 anchors.centerIn: parent
                 spacing: 2
 
-                ColorRow { label: I18n.tr("CPU");     settingKey: "cpuGaugeColor";     defaultColor: "#5105DB" }
-                ColorRow { label: I18n.tr("Memory");  settingKey: "memGaugeColor";     defaultColor: "#8B0AC3" }
-                ColorRow { label: I18n.tr("Battery"); settingKey: "batteryGaugeColor"; defaultColor: "#C20EAC" }
+                ColorRow { label: I18n.tr("CPU");     settingKey: "cpuGaugeColor";     defaultColor: "#DC2626" }
+                ColorRow { label: I18n.tr("Memory");  settingKey: "memGaugeColor";     defaultColor: "#EAB308" }
+                ColorRow { label: I18n.tr("Battery"); settingKey: "batteryGaugeColor"; defaultColor: "#22C55E" }
                 ColorRow { label: I18n.tr("AC");      settingKey: "batteryAcGaugeColor"; defaultColor: "#22C55E" }
-                ColorRow { label: I18n.tr("Temp");    settingKey: "tempGaugeColor";    defaultColor: "#FF1493" }
-                ColorRow { label: I18n.tr("Bg");      settingKey: "ringBgColor";       defaultColor: "#26ffffff" }
+                ColorRow { label: I18n.tr("Temp");    settingKey: "tempGaugeColor";    defaultColor: "#EF4444" }
+                ColorRow { label: I18n.tr("Bg");      settingKey: "ringBgColor";       defaultColor: "#94A3B8" }
             }
         }
 
@@ -302,32 +302,32 @@ PluginSettings {
                 }
 
                 StyledText {
-                    text: I18n.tr("Widget Size") + ": " + root.loadValue("widgetWidth", 330) + " × " + root.loadValue("widgetHeight", 620)
+                    text: I18n.tr("Widget Size") + ": " + root.loadValue("widgetWidth", 370) + " × " + root.loadValue("widgetHeight", 710)
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceVariantText
                 }
                 Slider {
                     width: parent.width
                     from: 280; to: 600; stepSize: 10
-                    value: root.loadValue("widgetWidth", 330)
+                    value: root.loadValue("widgetWidth", 370)
                     onValueChanged: root.saveAndPersist("widgetWidth", value)
                 }
                 Slider {
                     width: parent.width
                     from: 500; to: 1200; stepSize: 10
-                    value: root.loadValue("widgetHeight", 620)
+                    value: root.loadValue("widgetHeight", 710)
                     onValueChanged: root.saveAndPersist("widgetHeight", value)
                 }
 
                 StyledText {
-                    text: I18n.tr("Icon Size") + ": " + root.loadValue("appSize", 88) + "px"
+                    text: I18n.tr("Icon Size") + ": " + root.loadValue("appSize", 80) + "px"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceVariantText
                 }
                 Slider {
                     width: parent.width
                     from: 48; to: 128; stepSize: 4
-                    value: root.loadValue("appSize", 88)
+                    value: root.loadValue("appSize", 80)
                     onValueChanged: root.saveAndPersist("appSize", value)
                 }
             }
@@ -413,14 +413,14 @@ PluginSettings {
                 }
 
                 StyledText {
-                    text: I18n.tr("Size") + ": " + root.loadValue("particleSize", 4.0).toFixed(1)
+                    text: I18n.tr("Size") + ": " + root.loadValue("particleSize", 8.0).toFixed(1)
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceVariantText
                 }
                 Slider {
                     width: parent.width
                     from: 0.5; to: 8.0; stepSize: 0.5
-                    value: root.loadValue("particleSize", 4.0)
+                    value: root.loadValue("particleSize", 8.0)
                     onValueChanged: root.saveAndPersist("particleSize", value)
                 }
             }

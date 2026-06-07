@@ -15,11 +15,11 @@ DesktopPluginComponent {
 
     minWidth: 280
     minHeight: 500
-    widgetWidth: getData("widgetWidth", 330)
-    widgetHeight: getData("widgetHeight", 620)
+    widgetWidth: getData("widgetWidth", 370)
+    widgetHeight: getData("widgetHeight", 710)
 
-    readonly property string accentColor: getData("accentColor", "#5105DB")
-    readonly property string accent2Color: getData("accent2Color", "#FF1493")
+    readonly property string accentColor: getData("accentColor", "#7C3AED")
+    readonly property string accent2Color: getData("accent2Color", "#D97706")
     readonly property real bgOpacity: getData("bgOpacity", 0.0)
     readonly property bool showClock: getData("showClock", true)
     readonly property bool showNetwork: getData("showNetwork", true)
@@ -29,7 +29,7 @@ DesktopPluginComponent {
     readonly property real particleOpacity: getData("particleOpacity", 1.0)
     readonly property string particleStyle: getData("particleStyle", "stars")
     readonly property int particleCount: getData("particleCount", 150)
-    readonly property real particleSize: getData("particleSize", 4.0)
+    readonly property real particleSize: getData("particleSize", 8.0)
 
     readonly property color bg: Theme.withAlpha("#0a0a0f", bgOpacity)
     readonly property color fg: "#f0f0f0"
@@ -38,21 +38,21 @@ DesktopPluginComponent {
     readonly property color accent2: accent2Color
 
     // Ring gauge colors
-    readonly property color ringBgColor: getData("ringBgColor", "#26ffffff")
-    readonly property color cpuGaugeColor: getData("cpuGaugeColor", "#5105DB")
-    readonly property color memGaugeColor: getData("memGaugeColor", "#8B0AC3")
-    readonly property color batteryGaugeColor: getData("batteryGaugeColor", "#C20EAC")
+    readonly property color ringBgColor: getData("ringBgColor", "#94A3B8")
+    readonly property color cpuGaugeColor: getData("cpuGaugeColor", "#DC2626")
+    readonly property color memGaugeColor: getData("memGaugeColor", "#EAB308")
+    readonly property color batteryGaugeColor: getData("batteryGaugeColor", "#22C55E")
     readonly property color batteryAcGaugeColor: getData("batteryAcGaugeColor", "#22C55E")
-    readonly property color tempGaugeColor: getData("tempGaugeColor", "#FF1493")
+    readonly property color tempGaugeColor: getData("tempGaugeColor", "#EF4444")
 
     // Clock / Date per-part colors
-    readonly property color clockHourColor: getData("clockHourColor", "#f0f0f0")
-    readonly property color clockMinuteColor: getData("clockMinuteColor", "#f0f0f0")
-    readonly property color clockSecondColor: getData("clockSecondColor", "#f0f0f0")
-    readonly property color clockColonColor: getData("clockColonColor", "#f0f0f0")
-    readonly property color dateWeekdayColor: getData("dateWeekdayColor", "#f0f0f0")
-    readonly property color dateDayColor: getData("dateDayColor", "#f0f0f0")
-    readonly property color dateMonthColor: getData("dateMonthColor", "#f0f0f0")
+    readonly property color clockHourColor: getData("clockHourColor", "#6366F1")
+    readonly property color clockMinuteColor: getData("clockMinuteColor", "#F97316")
+    readonly property color clockSecondColor: getData("clockSecondColor", "#EC4899")
+    readonly property color clockColonColor: getData("clockColonColor", "#3B82F6")
+    readonly property color dateWeekdayColor: getData("dateWeekdayColor", "#EAB308")
+    readonly property color dateDayColor: getData("dateDayColor", "#06B6D4")
+    readonly property color dateMonthColor: getData("dateMonthColor", "#EC4899")
 
     readonly property int leftX: 14
     readonly property int rightX: 172
@@ -85,7 +85,7 @@ DesktopPluginComponent {
     // --- App Launcher properties ---
     property string appSearchQuery: ""
     property bool appEditMode: false
-    readonly property real appSize: getData("appSize", 88)
+    readonly property real appSize: getData("appSize", 80)
     readonly property string appViewMode: pluginData.viewMode ?? "grid"
     readonly property bool appShowHeader: pluginData.showHeader ?? true
     readonly property real appLauncherBgOpacity: (pluginData.backgroundOpacity ?? 80) / 100
