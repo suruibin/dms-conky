@@ -58,3 +58,6 @@ Conky可配置项目：
 ## 中文翻译 
 
 sudo cp zh_CN.json /usr/share/quickshell/dms/translations/poexports/zh_CN.json
+
+## 默认播放器 SPlayer
+https://github.com/SPlayer-Dev/SPlayer

@@ -311,4 +311,13 @@ DesktopPluginComponent {
             }
         }
     }
+
+    function triggerSplayerOrResume() {
+        var p = MprisController.activePlayer
+        if (p) {
+            p.togglePlaying()
+        } else {
+            Quickshell.execDetached(["/usr/local/bin/splayer"])
+        }
+    }
 }

@@ -427,16 +427,13 @@ Item {
                     elide: Text.ElideRight
                 }
 
-                // Double-click on HardWare area → resume playback
+                // Double-click on HardWare area → launch splayer or resume playback
                 MouseArea {
                     visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX - 20; y: host.yBase + 365
                     width: 165; height: 115
                     acceptedButtons: Qt.LeftButton
-                    onDoubleClicked: {
-                        var p = content.activePlayer
-                        if (p) p.togglePlaying()
-                    }
+                    onDoubleClicked: host.triggerSplayerOrResume()
                 }
 
                 // Music info (when playing)
