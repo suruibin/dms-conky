@@ -88,7 +88,7 @@ DesktopPluginComponent {
     property bool appEditMode: false
     readonly property real appSize: getData("appSize", 80)
     readonly property string appViewMode: pluginData.viewMode ?? "grid"
-    readonly property bool appShowHeader: pluginData.showHeader ?? true
+    readonly property bool appShowHeader: pluginData.showHeader ?? false
     readonly property bool showLauncherParticles: pluginData.showLauncherParticles ?? true
     readonly property real appLauncherBgOpacity: (pluginData.backgroundOpacity ?? 80) / 100
     readonly property real appIconSize: Math.max(28, Math.round(appSize * 0.58))
