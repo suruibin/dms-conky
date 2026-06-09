@@ -107,7 +107,7 @@ Item {
 
     // Calculate which app is hovered (JS-based, works with Qt 5 global hover)
     function gridHoveredIndex() {
-        if (!host.mouseHovered || !appsGrid.visible || filteredModel.count === 0) return -1
+        if (!launcherContainer.visible || !appsGrid.visible || filteredModel.count === 0) return -1
         var pos = appsGrid.mapFromItem(host, host.hoverMouseX, host.hoverMouseY)
         if (pos.x < 0 || pos.y < 0 || pos.x >= appsGrid.width || pos.y >= appsGrid.height) return -1
         var cols = Math.max(2, Math.floor(appsGrid.width / host.appSize))
@@ -118,7 +118,7 @@ Item {
         return (idx >= 0 && idx < filteredModel.count) ? idx : -1
     }
     function listHoveredIndex() {
-        if (!host.mouseHovered || !appsList.visible || filteredModel.count === 0) return -1
+        if (!launcherContainer.visible || !appsList.visible || filteredModel.count === 0) return -1
         var pos = appsList.mapFromItem(host, host.hoverMouseX, host.hoverMouseY)
         if (pos.y < 0 || pos.y >= appsList.height) return -1
         var itemH = Math.round(36 * (host.appSize / 88.0)) + appsList.spacing
@@ -126,7 +126,7 @@ Item {
         return (idx >= 0 && idx < filteredModel.count) ? idx : -1
     }
     function compactHoveredIndex() {
-        if (!host.mouseHovered || !appsCompact.visible || filteredModel.count === 0) return -1
+        if (!launcherContainer.visible || !appsCompact.visible || filteredModel.count === 0) return -1
         var pos = appsCompact.mapFromItem(host, host.hoverMouseX, host.hoverMouseY)
         if (pos.x < 0 || pos.y < 0 || pos.x >= appsCompact.width || pos.y >= appsCompact.height) return -1
         var cols = Math.max(2, Math.floor(appsCompact.width / 130))
@@ -139,7 +139,7 @@ Item {
     }
 
     readonly property int hoveredIndex: {
-        if (!host.mouseHovered) return -1
+        if (!launcherContainer.visible) return -1
         switch (host.appViewMode) {
             case "grid": return gridHoveredIndex()
             case "list": return listHoveredIndex()
@@ -172,6 +172,100 @@ Item {
         border.color: host.appEditMode ? Theme.primary : Theme.withAlpha(Theme.outline, 0.15)
         border.width: host.appEditMode ? 2 : 1
         clip: true
+
+        // Ambient particles
+        Canvas {
+            id: launcherParticles
+            anchors.fill: parent; z: -1
+            opacity: host.showLauncherParticles ? host.particleOpacity : 0
+
+            property var particles: []
+            property int tick: 0
+
+            function spawn() {
+                if (particles.length >= host.particleCount) return
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: -(8 + Math.random() * 16),
+                    size: 1 + Math.random() * host.particleSize,
+                    life: 1.0,
+                    decay: 0.3 + Math.random() * 0.5,
+                    hue: Math.random(),
+                    sat: 0.7 + Math.random() * 0.3,
+                    lit: 0.7 + Math.random() * 0.28
+                })
+            }
+
+            function drawShape(ctx, p) {
+                var s = p.size * (0.3 + p.life * 0.7)
+                var style = host.particleStyle || "circles"
+                switch (style) {
+                    case "squares":
+                        ctx.fillRect(p.x - s/2, p.y - s/2, s, s); break
+                    case "triangles":
+                        ctx.beginPath()
+                        ctx.moveTo(p.x, p.y - s)
+                        ctx.lineTo(p.x - s * 0.866, p.y + s * 0.5)
+                        ctx.lineTo(p.x + s * 0.866, p.y + s * 0.5)
+                        ctx.closePath(); ctx.fill(); break
+                    case "stars":
+                        ctx.beginPath()
+                        var inner = s * 0.35
+                        for (var k = 0; k < 4; k++) {
+                            var a = Math.PI / 2 * k - Math.PI / 2
+                            ctx.lineTo(p.x + Math.cos(a) * s, p.y + Math.sin(a) * s)
+                            ctx.lineTo(p.x + Math.cos(a + Math.PI/4) * inner, p.y + Math.sin(a + Math.PI/4) * inner)
+                        }
+                        ctx.closePath(); ctx.fill(); break
+                    case "lines":
+                        ctx.beginPath()
+                        ctx.moveTo(p.x - s, p.y); ctx.lineTo(p.x + s, p.y)
+                        ctx.lineWidth = Math.max(1, s * 0.4); ctx.stroke(); break
+                    default:
+                        ctx.beginPath()
+                        ctx.arc(p.x, p.y, s, 0, Math.PI * 2); ctx.fill(); break
+                }
+            }
+
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.clearRect(0, 0, width, height)
+                ctx.shadowBlur = 4
+                for (var i = 0; i < particles.length; i++) {
+                    var p = particles[i]
+                    if (p.life <= 0) continue
+                    ctx.globalAlpha = (0.25 + p.life * 0.75) * host.particleOpacity
+                    ctx.shadowColor = Qt.hsla(p.hue, p.sat, p.lit, 1.0)
+                    ctx.fillStyle = Qt.hsla(p.hue, p.sat, p.lit, 1.0)
+                    ctx.strokeStyle = Qt.hsla(p.hue, p.sat, p.lit, 1.0)
+                    launcherParticles.drawShape(ctx, p)
+                }
+            }
+
+            Timer {
+                interval: 66; running: launcherContainer.visible && host.showLauncherParticles; repeat: true
+                onTriggered: {
+                    launcherParticles.tick++
+                    if (launcherParticles.tick % 3 === 0) launcherParticles.spawn()
+                    if (launcherParticles.tick % 5 === 0) launcherParticles.spawn()
+                    var dt = 0.066
+                    var alive = []
+                    var p = launcherParticles.particles
+                    for (var i = 0; i < p.length; i++) {
+                        var pt = p[i]
+                        pt.x += pt.vx * dt
+                        pt.y += pt.vy * dt
+                        pt.vy += 1.5 * dt
+                        pt.life -= pt.decay * dt
+                        if (pt.life > 0 && pt.y > -10 && pt.y < launcherParticles.height + 10) alive.push(pt)
+                    }
+                    launcherParticles.particles = alive
+                    launcherParticles.requestPaint()
+                }
+            }
+        }
 
         Column {
             anchors.fill: parent
@@ -1005,7 +1099,7 @@ Item {
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
                 Column {
-                    anchors.fill: parent; anchors.margins: Theme.spacingS; spacing: 4
+                    anchors.fill: parent; anchors.margins: Theme.spacingS; spacing: 2
 
                     Item {
                         width: parent.width; height: 20
@@ -1017,7 +1111,6 @@ Item {
                         Item {
                             width: 28; height: 28
                             anchors.right: parent.right; anchors.rightMargin: -2; anchors.verticalCenter: parent.verticalCenter
-
                             DankIcon {
                                 anchors.centerIn: parent
                                 name: "close"; size: 16; color: Theme.surfaceText
@@ -1058,8 +1151,7 @@ Item {
                             }
                         }
                     }
-
-                    Item { width: 1; height: 4 }
+                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
 
                     StyledText {
                         text: I18n.tr("Transparency") + ": " + Math.round(host.appLauncherBgOpacity * 100) + "%"
@@ -1070,8 +1162,7 @@ Item {
                         value: Math.round(host.appLauncherBgOpacity * 100)
                         onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) }
                     }
-
-                    Item { width: 1; height: 4 }
+                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
 
                     StyledText {
                         text: I18n.tr("Icon Size") + ": " + host.appSize + "px"
@@ -1082,8 +1173,7 @@ Item {
                         value: host.appSize
                         onValueChanged: host.setData("appSize", value)
                     }
-
-                    Item { width: 1; height: 4 }
+                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
 
                     StyledText {
                         text: I18n.tr("View Mode")
@@ -1113,7 +1203,7 @@ Item {
                         }
                     }
 
-                    Item { width: 1; height: 4 }
+                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
 
                     StyledText {
                         text: I18n.tr("Show Header")
@@ -1137,6 +1227,35 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                     onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", modelData.value) }
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
+
+                    StyledText {
+                        text: I18n.tr("Particles")
+                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
+                    }
+                    Row {
+                        spacing: 6
+                        Repeater {
+                            model: [
+                                { label: I18n.tr("On"), value: true },
+                                { label: I18n.tr("Off"), value: false }
+                            ]
+                            Rectangle {
+                                required property var modelData
+                                width: 50; height: 28; radius: 6
+                                color: host.showLauncherParticles === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                                StyledText {
+                                    anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
+                                    color: host.showLauncherParticles === modelData.value ? Theme.onPrimary : Theme.surfaceText
+                                }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", modelData.value) }
                                 }
                             }
                         }

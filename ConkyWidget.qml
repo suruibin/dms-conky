@@ -76,9 +76,10 @@ DesktopPluginComponent {
     }
 
     // Throttle hover position updates to 80ms (~12Hz instead of per-pixel)
+    property bool _mouseInWidget: false
     Timer {
         id: hoverThrottle
-        interval: 80; running: root.mouseHovered; repeat: true
+        interval: 80; running: root._mouseInWidget; repeat: true
         onTriggered: { root.hoverMouseX = root._rawMouseX; root.hoverMouseY = root._rawMouseY }
     }
 
@@ -88,6 +89,7 @@ DesktopPluginComponent {
     readonly property real appSize: getData("appSize", 80)
     readonly property string appViewMode: pluginData.viewMode ?? "grid"
     readonly property bool appShowHeader: pluginData.showHeader ?? true
+    readonly property bool showLauncherParticles: pluginData.showLauncherParticles ?? true
     readonly property real appLauncherBgOpacity: (pluginData.backgroundOpacity ?? 80) / 100
     readonly property real appIconSize: Math.max(28, Math.round(appSize * 0.58))
     property var addedApps: pluginData.addedApps !== undefined ? pluginData.addedApps : []
@@ -268,6 +270,7 @@ DesktopPluginComponent {
         hoverEnabled: true
         acceptedButtons: Qt.NoButton
         onContainsMouseChanged: {
+            root._mouseInWidget = containsMouse
             if (!containsMouse && !launcherContent._keepVisible) root.mouseHovered = false
         }
         onPositionChanged: function(mouse) {
