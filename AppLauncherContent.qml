@@ -288,6 +288,38 @@ Item {
                     visible: host.appShowHeader && !searchContainer.expanded
                 }
 
+                // Centered search bar when header is off
+                Rectangle {
+                    id: headerOffSearch
+                    width: parent.width - 20; height: 28; radius: 14
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !host.appShowHeader
+                    color: Theme.withAlpha(Theme.surfaceText, 0.04)
+                    border.color: searchField.activeFocus ? Theme.primary : Theme.withAlpha(Theme.outline, 0.1)
+                    border.width: 1
+
+                    DankIcon {
+                        id: headerOffSearchIcon
+                        name: "search"; size: 14; color: Theme.surfaceText; opacity: 0.4
+                        anchors.left: parent.left; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter
+                    }
+                    TextInput {
+                        id: headerOffSearchField
+                        anchors.left: headerOffSearchIcon.right; anchors.leftMargin: 6
+                        anchors.right: parent.right; anchors.rightMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; selectByMouse: true
+                        onTextChanged: host.appSearchQuery = text
+                        Text {
+                            text: I18n.tr("Search...")
+                            font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; opacity: 0.35
+                            visible: headerOffSearchField.text === "" && !headerOffSearchField.activeFocus
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+
                 // Settings icon – always visible, detached from the toolbar Row
                 Item {
                     id: settingsBtn
