@@ -45,7 +45,8 @@ Item {
         if (search === "") {
             // Fast path: incremental sync with addedApps (no search filter)
             var target = host.addedApps
-            while (filteredModel.count > target.length) {
+            var needCount = target.length + 1  // +1 for "+" button
+            while (filteredModel.count > needCount) {
                 filteredModel.remove(filteredModel.count - 1)
             }
             for (var i = 0; i < target.length; i++) {
@@ -58,6 +59,13 @@ Item {
                 } else {
                     filteredModel.append({ appName: app.name, appIcon: app.icon, appExec: app.exec, appCategories: app.categories })
                 }
+            }
+            // Ensure "+" button at the end
+            var addIdx = target.length
+            if (addIdx < filteredModel.count) {
+                filteredModel.set(addIdx, { appName: "__add__", appIcon: "", appExec: "", appCategories: "" })
+            } else {
+                filteredModel.append({ appName: "__add__", appIcon: "", appExec: "", appCategories: "" })
             }
         } else {
             // Slow path: full rebuild for search filtering
@@ -73,6 +81,10 @@ Item {
                         appCategories: app.categories
                     })
                 }
+            }
+            // "+" button (only when no search filter active)
+            if (host.addedApps.length > 0) {
+                filteredModel.append({ appName: "__add__", appIcon: "", appExec: "", appCategories: "" })
             }
         }
     }
@@ -320,6 +332,44 @@ Item {
                     }
                 }
 
+                // Add app button (always visible when header is off)
+                Item {
+                    id: addAppBtn
+                    width: 24; height: 24
+                    anchors.right: settingsBtn.left; anchors.rightMargin: 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    property bool hovered: false
+
+                    Timer {
+                        interval: 100; running: !host.appShowHeader && launcherContainer.visible; repeat: true
+                        onTriggered: {
+                            var p = addAppBtn.mapFromItem(host, host.hoverMouseX, host.hoverMouseY)
+                            addAppBtn.hovered = p.x >= 0 && p.x <= 24 && p.y >= 0 && p.y <= 24
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: Math.round(Theme.cornerRadius / 2)
+                        color: addAppBtn.hovered ? Theme.withAlpha(Theme.primary, 0.15) : Theme.withAlpha(Theme.primary, 0.05)
+                        border.color: Theme.withAlpha(host.accent, addAppBtn.hovered ? 0.4 : 0.15); border.width: 1
+                        opacity: host.appShowHeader ? 0.0 : (addAppBtn.hovered ? 0.9 : 0.4)
+                        Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                        DankIcon {
+                            anchors.centerIn: parent
+                            name: "add"; size: 14
+                            color: addAppBtn.hovered ? Theme.primary : Theme.surfaceText
+                            opacity: addAppBtn.hovered ? 1.0 : 0.7
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        onClicked: { clearSearch(); addAppDialog.openDialog("add") }
+                    }
+                }
+
                 // Settings icon – always visible, detached from the toolbar Row
                 Item {
                     id: settingsBtn
@@ -490,13 +540,17 @@ Item {
                         id: appCard
                         anchors.fill: parent; anchors.margins: 4
                         hoverEnabled: true; cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.PointingHandCursor
-                        drag.target: host.appSearchQuery === "" ? gridDelegateItem : null
+                        drag.target: (host.appSearchQuery === "" && appName !== "__add__") ? gridDelegateItem : null
                         drag.axis: Drag.XAndYAxis
                         onPressed: _dragIdx = index
                         onClicked: {
                             if (!drag.active) {
-                                clickLaunchAnimation.start()
-                                Quickshell.execDetached(["sh", "-c", host.cleanExec(appExec)])
+                                if (appName === "__add__") {
+                                    clearSearch(); addAppDialog.openDialog("add")
+                                } else {
+                                    clickLaunchAnimation.start()
+                                    Quickshell.execDetached(["sh", "-c", host.cleanExec(appExec)])
+                                }
                             }
                         }
                         onReleased: {
@@ -556,10 +610,22 @@ Item {
                                     ColorAnimation { target: containerRect; property: "border.color"; to: appCard.containsMouse ? Theme.primary : Theme.withAlpha(Theme.primary, 0.45); duration: 200 }
                                 }
                             }
+                            Rectangle {
+                                width: host.iconSize; height: width; radius: width / 2
+                                anchors.centerIn: parent
+                                color: appCard.containsMouse ? Theme.withAlpha(host.accent, 0.2) : Theme.withAlpha(host.accent, 0.1)
+                                border.color: appCard.containsMouse ? Theme.withAlpha(host.accent, 0.5) : Theme.withAlpha(host.accent, 0.25)
+                                border.width: 1.5
+                                visible: appName === "__add__"
+                                scale: appCard.containsMouse ? 1.15 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+                                DankIcon { anchors.centerIn: parent; name: "add"; size: host.iconSize * 0.45; color: host.accent }
+                            }
                             AppIcon {
                                 iconSize: host.appIconSize
                                 iconSource: appIcon
                                 anchors.centerIn: parent
+                                visible: appName !== "__add__"
                                 scale: appCard.containsMouse ? 1.15 : 1.0
                                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
                             }
@@ -601,6 +667,13 @@ Item {
                         iconFactor: 20
                         fontSize: Theme.fontSizeSmall
                         hoveredIdx: hoveredIndex
+                    }
+
+                    // "+" button overlay for list
+                    MouseArea {
+                        anchors.fill: parent; z: 3; visible: appName === "__add__"
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { clearSearch(); addAppDialog.openDialog("add") }
                     }
 
                     // Drag grip on top of AppRowDelegate (z:10 ensures event priority)
@@ -674,6 +747,13 @@ Item {
                         iconFactor: 16
                         fontSize: Theme.fontSizeSmall - 1
                         hoveredIdx: hoveredIndex
+                    }
+
+                    // "+" button overlay for compact
+                    MouseArea {
+                        anchors.fill: parent; z: 3; visible: appName === "__add__"
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { clearSearch(); addAppDialog.openDialog("add") }
                     }
 
                     // Drag grip on left edge
