@@ -1106,7 +1106,7 @@ Item {
                         StyledText {
                             text: I18n.tr("Settings")
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
-                            anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
                         }
                         Item {
                             width: 28; height: 28
@@ -1203,6 +1203,7 @@ Item {
                         }
                     }
 
+                    Item { width: 1; height: 8 }
                     Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
 
                     StyledText {
@@ -1232,6 +1233,7 @@ Item {
                         }
                     }
 
+                    Item { width: 1; height: 8 }
                     Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
 
                     StyledText {
@@ -1267,9 +1269,10 @@ Item {
                     }
 
                     DankButton {
-                        width: parent.width
+                        width: parent.width; height: 28
                         text: I18n.tr("Desktop Widgets")
                         iconName: "widgets"
+                        iconSize: 14
                         backgroundColor: Theme.withAlpha(Theme.primary, 0.1)
                         textColor: Theme.primary
                         onClicked: {
