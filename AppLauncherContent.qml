@@ -781,23 +781,23 @@ Item {
             Rectangle {
                 id: dialogCard
                 z: 10
-                width: Math.min(320, parent.width - 20); height: Math.min(450, parent.height - 20)
+                width: Math.min(320, parent.width - 20); height: Math.min(520, parent.height - 5)
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: -5
+                anchors.verticalCenterOffset: 0
                 color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius
                 border.color: Theme.withAlpha(host.accent, 0.15); border.width: 1; clip: true
                 scale: addAppDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
                 Column {
-                    anchors.fill: parent; anchors.margins: Theme.spacingM; spacing: Theme.spacingS
+                    anchors.fill: parent; anchors.margins: Theme.spacingS; anchors.topMargin: Theme.spacingS; anchors.bottomMargin: Theme.spacingS + 30; spacing: 8
 
                     Item {
                         width: parent.width; height: 24
                         StyledText {
                             text: I18n.tr("Manage")
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
-                            anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                            anchors.horizontalCenter: parent.horizontalCenter
                         }
                         Item {
                             width: 28; height: 28
@@ -1090,16 +1090,16 @@ Item {
                 id: settingsCard
                 z: 10
                 width: Math.min(300, parent.width - 20)
-                height: Math.min(450, parent.height - 20)
+                height: Math.min(520, parent.height - 5)
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: -5
+                anchors.verticalCenterOffset: 0
                 color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius
                 border.color: Theme.withAlpha(host.accent, 0.15); border.width: 1; clip: true
                 scale: appSettingsDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
                 Column {
-                    anchors.fill: parent; anchors.margins: Theme.spacingS; spacing: 2
+                    anchors.fill: parent; anchors.margins: Theme.spacingS; anchors.topMargin: Theme.spacingS; anchors.bottomMargin: Theme.spacingS + 30; spacing: 8
 
                     Item {
                         width: parent.width; height: 20
@@ -1125,148 +1125,69 @@ Item {
                         }
                     }
 
-                    StyledText {
-                        text: I18n.tr("Default View")
-                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
-                    }
+                    StyledText { text: I18n.tr("Default View"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
                     Row {
                         spacing: 6
                         Repeater {
-                            model: [
-                                { label: I18n.tr("Conky"), value: "conky" },
-                                { label: I18n.tr("Apps"), value: "apps" }
-                            ]
+                            model: [{ label: I18n.tr("Conky"), value: "conky" }, { label: I18n.tr("Apps"), value: "apps" }]
                             Rectangle {
-                                required property var modelData
-                                width: 70; height: 28; radius: 6
+                                required property var modelData; width: 70; height: 28; radius: 6
                                 color: host.defaultView === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText {
-                                    anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
-                                    color: host.defaultView === modelData.value ? Theme.onPrimary : Theme.surfaceText
-                                }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "defaultView", modelData.value) }
-                                }
+                                StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.defaultView === modelData.value ? Theme.onPrimary : Theme.surfaceText }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "defaultView", modelData.value) } }
                             }
                         }
                     }
-                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
 
-                    StyledText {
-                        text: I18n.tr("Transparency") + ": " + Math.round(host.appLauncherBgOpacity * 100) + "%"
-                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
-                    }
-                    Slider {
-                        width: parent.width; from: 0; to: 100; stepSize: 1
-                        value: Math.round(host.appLauncherBgOpacity * 100)
-                        onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) }
-                    }
-                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
+                    StyledText { text: I18n.tr("Transparency") + ": " + Math.round(host.appLauncherBgOpacity * 100) + "%"; font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
+                    Slider { width: parent.width; from: 0; to: 100; stepSize: 1; value: Math.round(host.appLauncherBgOpacity * 100); onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) } }
 
-                    StyledText {
-                        text: I18n.tr("Icon Size") + ": " + host.appSize + "px"
-                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
-                    }
-                    Slider {
-                        width: parent.width; from: 48; to: 128; stepSize: 4
-                        value: host.appSize
-                        onValueChanged: host.setData("appSize", value)
-                    }
-                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
+                    StyledText { text: I18n.tr("Icon Size") + ": " + host.appSize + "px"; font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
+                    Slider { width: parent.width; from: 48; to: 128; stepSize: 4; value: host.appSize; onValueChanged: host.setData("appSize", value) }
 
-                    StyledText {
-                        text: I18n.tr("View Mode")
-                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
-                    }
+                    StyledText { text: I18n.tr("View Mode"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
                     Row {
                         spacing: 6
                         Repeater {
-                            model: [
-                                { label: I18n.tr("Grid"), value: "grid" },
-                                { label: I18n.tr("List"), value: "list" },
-                                { label: I18n.tr("Compact"), value: "compact" }
-                            ]
+                            model: [{ label: I18n.tr("Grid"), value: "grid" }, { label: I18n.tr("List"), value: "list" }, { label: I18n.tr("Compact"), value: "compact" }]
                             Rectangle {
-                                required property var modelData
-                                width: 70; height: 28; radius: 6
+                                required property var modelData; width: 70; height: 28; radius: 6
                                 color: host.appViewMode === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText {
-                                    anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
-                                    color: host.appViewMode === modelData.value ? Theme.onPrimary : Theme.surfaceText
-                                }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "viewMode", modelData.value) }
-                                }
+                                StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.appViewMode === modelData.value ? Theme.onPrimary : Theme.surfaceText }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "viewMode", modelData.value) } }
                             }
                         }
                     }
 
-                    Item { width: 1; height: 8 }
-                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
-
-                    StyledText {
-                        text: I18n.tr("Show Header")
-                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
-                    }
+                    StyledText { text: I18n.tr("Show Header"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
                     Row {
                         spacing: 6
                         Repeater {
-                            model: [
-                                { label: I18n.tr("On"), value: true },
-                                { label: I18n.tr("Off"), value: false }
-                            ]
+                            model: [{ label: I18n.tr("On"), value: true }, { label: I18n.tr("Off"), value: false }]
                             Rectangle {
-                                required property var modelData
-                                width: 50; height: 28; radius: 6
+                                required property var modelData; width: 50; height: 28; radius: 6
                                 color: host.appShowHeader === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText {
-                                    anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
-                                    color: host.appShowHeader === modelData.value ? Theme.onPrimary : Theme.surfaceText
-                                }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", modelData.value) }
-                                }
+                                StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.appShowHeader === modelData.value ? Theme.onPrimary : Theme.surfaceText }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", modelData.value) } }
                             }
                         }
                     }
 
-                    Item { width: 1; height: 8 }
-                    Rectangle { width: parent.width; height: 1; color: Theme.withAlpha(Theme.surfaceVariantText, 0.1) }
-
-                    StyledText {
-                        text: I18n.tr("Particles")
-                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
-                    }
+                    StyledText { text: I18n.tr("Particles"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
                     Row {
                         spacing: 6
                         Repeater {
-                            model: [
-                                { label: I18n.tr("On"), value: true },
-                                { label: I18n.tr("Off"), value: false }
-                            ]
+                            model: [{ label: I18n.tr("On"), value: true }, { label: I18n.tr("Off"), value: false }]
                             Rectangle {
-                                required property var modelData
-                                width: 50; height: 28; radius: 6
+                                required property var modelData; width: 50; height: 28; radius: 6
                                 color: host.showLauncherParticles === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText {
-                                    anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11
-                                    color: host.showLauncherParticles === modelData.value ? Theme.onPrimary : Theme.surfaceText
-                                }
-                                MouseArea {
-                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                                    onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", modelData.value) }
-                                }
+                                StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.showLauncherParticles === modelData.value ? Theme.onPrimary : Theme.surfaceText }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", modelData.value) } }
                             }
                         }
                     }
 
-                    Rectangle {
-                        width: parent.width; height: 1
-                        color: Theme.withAlpha(Theme.surfaceVariantText, 0.15)
-                    }
+                    Item { width: 1; height: 6 }
 
                     DankButton {
                         width: parent.width; height: 28
