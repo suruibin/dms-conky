@@ -111,6 +111,24 @@ DesktopPluginComponent {
     property color cpuInfoColor: "#f0f0f0"
     property color gpuInfoColor: "#f0f0f0"
     property color hoverHighlightColor: "#7C3AED"
+    property color blobColor: "#7C3AED"
+    property string _lastTrackId: ""
+
+    function refreshBlobColor() {
+        // Generate color from track title hash (same song = same color)
+        var ap = MprisController.activePlayer
+        var seed = ""
+        if (ap && ap.metadata) {
+            seed = ap.metadata["xesam:album"] || ap.metadata["xesam:title"] || ""
+        }
+        if (!seed) { root.blobColor = randomVibrantColor(); return }
+        var hash = 0
+        for (var i = 0; i < seed.length; i++) { hash = ((hash << 5) - hash) + seed.charCodeAt(i); hash |= 0 }
+        var h = Math.abs(hash % 360) / 360
+        var s = 0.65 + Math.abs(hash % 30) / 100
+        var l = 0.55 + Math.abs(hash % 20) / 100
+        root.blobColor = Qt.hsla(h, s, l, 1.0)
+    }
 
     function randomVibrantColor() {
         // HSL: random hue, high saturation, high lightness (visible on dark bg, never black)
@@ -148,6 +166,18 @@ DesktopPluginComponent {
         onTriggered: {
             var playing = hasActivePlayer && MprisController.activePlayer && MprisController.activePlayer.isPlaying
             var conkyVisible = (root.defaultView === "apps") ? root.mouseHovered : !root.mouseHovered
+
+            // Detect track change and refresh blob color
+            var ap = MprisController.activePlayer
+            var trackTitle = ""
+            if (ap && ap.metadata) {
+                trackTitle = (ap.metadata["xesam:title"] || "")
+            }
+            if (_lastTrackId !== trackTitle) {
+                _lastTrackId = trackTitle
+                if (playing && trackTitle !== "") refreshBlobColor()
+            }
+
             if (showMusic && playing && conkyVisible) {
                 musicTick++
             }
@@ -155,6 +185,7 @@ DesktopPluginComponent {
             if (_wasPlaying && !playing) {
                 root.cpuInfoColor = randomVibrantColor()
                 root.gpuInfoColor = randomVibrantColor()
+                root.blobColor = randomVibrantColor()
                 musicResetTick++
             }
             _wasPlaying = playing
@@ -172,6 +203,7 @@ DesktopPluginComponent {
         root.cpuInfoColor = randomVibrantColor()
         root.gpuInfoColor = randomVibrantColor()
         root.hoverHighlightColor = randomVibrantColor()
+        root.blobColor = randomVibrantColor()
 
         // Detect CPU model
         root._cpuProc = Qt.createQmlObject(`
@@ -317,6 +349,7 @@ DesktopPluginComponent {
     }
 
     readonly property string musicPlayerPath: getData("musicPlayerPath", "/usr/local/bin/splayer")
+    readonly property bool showRotatingAlbum: getData("showRotatingAlbum", true)
 
     function triggerSplayerOrResume() {
         var p = MprisController.activePlayer

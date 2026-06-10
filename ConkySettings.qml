@@ -68,6 +68,12 @@ PluginSettings {
                     checked: root.loadValue("showStorage", true)
                     onToggled: c => root.saveAndPersist("showStorage", c)
                 }
+                DankToggle {
+                    width: parent.width
+                    text: I18n.tr("Rotating Album")
+                    checked: root.loadValue("showRotatingAlbum", true)
+                    onToggled: c => root.saveAndPersist("showRotatingAlbum", c)
+                }
             }
         }
 
