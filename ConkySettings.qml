@@ -62,6 +62,12 @@ PluginSettings {
                     checked: root.loadValue("showMusic", true)
                     onToggled: c => root.saveAndPersist("showMusic", c)
                 }
+                DankToggle {
+                    width: parent.width
+                    text: I18n.tr("Storage")
+                    checked: root.loadValue("showStorage", true)
+                    onToggled: c => root.saveAndPersist("showStorage", c)
+                }
             }
         }
 
@@ -329,6 +335,34 @@ PluginSettings {
                     from: 48; to: 128; stepSize: 4
                     value: root.loadValue("appSize", 80)
                     onValueChanged: root.saveAndPersist("appSize", value)
+                }
+
+                Item { width: 1; height: 4 }
+
+                StyledText {
+                    text: I18n.tr("Music Player")
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                }
+                StyledRect {
+                    width: parent.width; height: 28; radius: 6
+                    color: Theme.withAlpha(Theme.surfaceText, 0.04)
+                    border.color: musicPathField.activeFocus ? Theme.primary : Theme.withAlpha(Theme.outline, 0.1)
+                    border.width: 1
+                    TextInput {
+                        id: musicPathField
+                        anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
+                        text: root.loadValue("musicPlayerPath", "/usr/local/bin/splayer")
+                        selectByMouse: true
+                        onTextChanged: root.saveAndPersist("musicPlayerPath", text)
+                    }
+                }
+                StyledText {
+                    text: I18n.tr("GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app")
+                    font.pixelSize: Theme.fontSizeSmall; color: "#3B82F6"
+                    wrapMode: Text.Wrap; width: parent.width
                 }
             }
         }

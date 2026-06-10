@@ -25,6 +25,7 @@ DesktopPluginComponent {
     readonly property bool showNetwork: getData("showNetwork", true)
     readonly property bool showWeather: getData("showWeather", true)
     readonly property bool showMusic: getData("showMusic", true)
+    readonly property bool showStorage: getData("showStorage", true)
     readonly property string defaultView: pluginData.defaultView ?? "conky"  // "conky" or "apps"
     readonly property real particleOpacity: getData("particleOpacity", 1.0)
     readonly property string particleStyle: getData("particleStyle", "stars")
@@ -315,12 +316,14 @@ DesktopPluginComponent {
         }
     }
 
+    readonly property string musicPlayerPath: getData("musicPlayerPath", "/usr/local/bin/splayer")
+
     function triggerSplayerOrResume() {
         var p = MprisController.activePlayer
         if (p) {
             p.togglePlaying()
         } else {
-            Quickshell.execDetached(["/usr/local/bin/splayer"])
+            Quickshell.execDetached(["sh", "-c", musicPlayerPath])
         }
     }
 }

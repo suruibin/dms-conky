@@ -280,6 +280,7 @@ Item {
                 // Storage
                 // ============================================
                 Text {
+                    visible: host.showStorage
                     x: host.leftX; y: host.yBase + 365
                     width: 111
                     horizontalAlignment: Text.AlignHCenter
@@ -291,6 +292,7 @@ Item {
                 }
 
                 Text {
+                    visible: host.showStorage
                     x: host.leftX; y: host.yBase + 390
                     text: "Root :"
                     font.family: abelFont.name
@@ -299,6 +301,7 @@ Item {
                 }
 
                 Rectangle {
+                    visible: host.showStorage
                     x: host.leftX; y: host.yBase + 415
                     width: 111; height: 15; radius: 2
                     color: "#18ffffff"
@@ -311,6 +314,7 @@ Item {
                 }
 
                 Text {
+                    visible: host.showStorage
                     x: host.leftX + 4; y: host.yBase + 416
                     text: host.sysDiskInfo
                     font.family: abelFont.name
@@ -319,6 +323,7 @@ Item {
                 }
 
                 Text {
+                    visible: host.showStorage
                     x: host.leftX; y: host.yBase + 433
                     text: "Home :"
                     font.family: abelFont.name
@@ -327,6 +332,7 @@ Item {
                 }
 
                 Rectangle {
+                    visible: host.showStorage
                     x: host.leftX; y: host.yBase + 455
                     width: 111; height: 15; radius: 2
                     color: "#18ffffff"
@@ -339,6 +345,7 @@ Item {
                 }
 
                 Text {
+                    visible: host.showStorage
                     x: host.leftX + 4; y: host.yBase + 456
                     text: host.homeDiskInfo
                     font.family: abelFont.name
