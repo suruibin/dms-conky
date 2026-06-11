@@ -13,6 +13,9 @@ DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，
 
 ![系统监控](Screenshots/截图1_1.png)   ![演示](Screenshots/demo.gif)
 
+![系统监控](Screenshots/promo.png)
+
+
 ## 整体显示
 ![应用启动器](Screenshots/截图3.png)
 ![应用启动器](Screenshots/截图4.png)
