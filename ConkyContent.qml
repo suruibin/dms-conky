@@ -44,6 +44,13 @@ Item {
             opacity: 1.0
         }
 
+        // Block wheel scrolling in Conky view
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.NoButton
+            onWheel: function(wheel) { wheel.accepted = true }
+        }
+
         Flickable {
             anchors.fill: parent
             anchors.topMargin: 10
@@ -51,6 +58,7 @@ Item {
             contentHeight: contentItem.height + 20
             clip: true
             boundsBehavior: Flickable.StopAtBounds
+            interactive: false
 
             Item {
                 id: contentItem
