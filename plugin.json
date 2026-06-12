@@ -1,13 +1,13 @@
 {
-    "id": "conky",
-    "name": "Conky",
+    "id": "dmsconky",
+    "name": "DMS Conky",
     "description": "Classic Conky-style system monitor for your desktop",
     "version": "1.0.0",
-    "author": "DMS User",
+    "author": "Suruibin",
     "type": "desktop",
     "capabilities": ["desktop-widget"],
     "component": "./ConkyWidget.qml",
     "settings": "./ConkySettings.qml",
-    "icon": "terminal",
+    "icon": "apps",
     "permissions": ["settings_read", "settings_write"]
 }

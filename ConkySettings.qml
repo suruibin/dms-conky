@@ -6,11 +6,11 @@ import qs.Modules.Plugins
 
 PluginSettings {
     id: root
-    pluginId: "conky"
+    pluginId: "dmsconky"
 
     function saveAndPersist(key, value) {
         root.saveValue(key, value)
-        SettingsData.setPluginSetting("conky", key, value)
+        SettingsData.setPluginSetting(root.pluginId, key, value)
         SettingsData.savePluginSettings()
     }
 

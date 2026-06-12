@@ -195,17 +195,6 @@ DesktopPluginComponent {
     Timer { id: diskTimer; interval: 60000; running: true; repeat: true; onTriggered: root.refreshDiskCache() }
     Timer { interval: 1500; running: true; repeat: false; onTriggered: root.refreshDiskCache() }
 
-    // Weather retry: if unavailable, refresh every 60s
-    property int _weatherRetryTick: 0
-    Timer {
-        interval: 60000; running: true; repeat: true
-        onTriggered: {
-            if (!WeatherService.weather.available && _weatherRetryTick < 10) {
-                WeatherService.updateLocation()
-                _weatherRetryTick++
-            }
-        }
-    }
 
     Component.onCompleted: {
         DgopService.addRef(activeModules)
