@@ -326,13 +326,14 @@ DesktopPluginComponent {
         }
     }
 
-    // GPU detection — declarative Process (more reliable than Qt.createQmlObject)
+    // GPU detection — declarative Process with 3s timeout
     Process {
         id: gpuProc
         command: ["sh", "-c", "lspci 2>/dev/null | grep -i vga | head -1"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
+                gpuTimeout.stop()
                 var t = text.trim()
                 if (t) {
                     var m = t.match(/\[([^\]]+)\]/)
@@ -344,6 +345,20 @@ DesktopPluginComponent {
                         root.gpuModel = v + m[1].replace("GeForce ", "").replace("Radeon ", "")
                     }
                 }
+                if (root.gpuModel === "") root.gpuModel = "Unknown"
+                gpuProc.destroy()
+            }
+        }
+    }
+
+    Timer {
+        id: gpuTimeout
+        interval: 3000
+        running: true
+        repeat: false
+        onTriggered: {
+            if (root.gpuModel === "" && gpuProc) {
+                root.gpuModel = "Unknown"
                 gpuProc.destroy()
             }
         }
