@@ -788,7 +788,7 @@ Item {
             Rectangle {
                 id: dialogCard
                 z: 10
-                width: Math.min(320, parent.width - 20); height: Math.min(520, parent.height - 5)
+                width: Math.min(320, parent.width - 20); height: Math.min(505, parent.height - 5)
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: 0
                 color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius
@@ -1106,7 +1106,7 @@ Item {
                 id: settingsCard
                 z: 10
                 width: Math.min(300, parent.width - 20)
-                height: Math.min(520, parent.height - 5)
+                height: Math.min(505, parent.height - 5)
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: 0
                 color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius

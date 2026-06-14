@@ -15,8 +15,8 @@ DesktopPluginComponent {
 
     minWidth: 280
     minHeight: 500
-    widgetWidth: getData("widgetWidth", 370)
-    widgetHeight: getData("widgetHeight", 710)
+    widgetWidth: getData("widgetWidth", 298)
+    widgetHeight: getData("widgetHeight", 522)
 
     readonly property string accentColor: getData("accentColor", "#7C3AED")
     readonly property string accent2Color: getData("accent2Color", "#D97706")

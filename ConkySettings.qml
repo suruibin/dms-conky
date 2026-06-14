@@ -314,20 +314,20 @@ PluginSettings {
                 }
 
                 StyledText {
-                    text: I18n.tr("Widget Size") + ": " + root.loadValue("widgetWidth", 370) + " × " + root.loadValue("widgetHeight", 710)
+                    text: I18n.tr("Widget Size") + ": " + root.loadValue("widgetWidth", 298) + " × " + root.loadValue("widgetHeight", 522)
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceVariantText
                 }
                 Slider {
                     width: parent.width
                     from: 280; to: 600; stepSize: 10
-                    value: root.loadValue("widgetWidth", 370)
+                    value: root.loadValue("widgetWidth", 298)
                     onValueChanged: root.saveAndPersist("widgetWidth", value)
                 }
                 Slider {
                     width: parent.width
                     from: 500; to: 1200; stepSize: 10
-                    value: root.loadValue("widgetHeight", 710)
+                    value: root.loadValue("widgetHeight", 522)
                     onValueChanged: root.saveAndPersist("widgetHeight", value)
                 }
 
