@@ -892,8 +892,7 @@ Item {
                             anchors.fill: parent
                             clip: true; spacing: 2; boundsBehavior: Flickable.StopAtBounds
                             model: addAppDialog.filteredSystemApps
-                            ScrollBar.vertical: DankScrollbar {}
-                            delegate: Rectangle {
+                                                        delegate: Rectangle {
                                 width: parent.width; height: 38
                                 radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
                                 color: listMouseArea.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.04) : "transparent"
@@ -910,7 +909,7 @@ Item {
                                 }
                                 Rectangle {
                                     width: 22; height: 22; radius: 11
-                                    anchors.right: parent.right; anchors.rightMargin: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter
+                                    anchors.right: parent.right; anchors.rightMargin: Theme.spacingS + 8; anchors.verticalCenter: parent.verticalCenter
                                     color: parent.isAdded ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
                                     border.color: parent.isAdded ? Theme.primary : Theme.withAlpha(Theme.outline, 0.3); border.width: 1
                                     DankIcon { anchors.centerIn: parent; name: parent.parent.isAdded ? "done" : "add"; size: 12; color: parent.parent.isAdded ? Theme.primary : Theme.surfaceText }
@@ -926,6 +925,10 @@ Item {
                             }
                         }
 
+                        Rectangle { width: 6; radius: 3; anchors.right: parent.right; anchors.rightMargin: 2; visible: systemAppsListView.contentHeight > systemAppsListView.height; y: parent.height * systemAppsListView.visibleArea.yPosition; height: Math.max(20, parent.height * systemAppsListView.visibleArea.heightRatio); color: Theme.withAlpha(Theme.primary, 0.2); z: 5
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; property real _py: 0; property real _cy: 0
+                                onPressed: function(mouse) { _py = mouse.y; _cy = systemAppsListView.contentY }
+                                onPositionChanged: function(mouse) { var lv = systemAppsListView; if (lv.contentHeight > lv.height) { var r = (mouse.y - _py) / lv.height; lv.contentY = Math.max(0, Math.min(lv.contentHeight - lv.height, _cy + r * lv.contentHeight)) } } } }
                         // Fast scroll overlay
                         MouseArea {
                             anchors.fill: parent
@@ -956,9 +959,7 @@ Item {
                             anchors.fill: parent
                             clip: true; spacing: 4; boundsBehavior: Flickable.StopAtBounds
                             model: host.addedApps
-                            ScrollBar.vertical: DankScrollbar {}
-
-                        displaced: Transition {
+                                                        displaced: Transition {
                             NumberAnimation { properties: "x,y"; duration: 200; easing.type: Easing.OutQuad }
                         }
 
@@ -1052,6 +1053,10 @@ Item {
                         }
                     }
 
+                        Rectangle { width: 6; radius: 3; anchors.right: parent.right; anchors.rightMargin: 2; visible: manageListView.contentHeight > manageListView.height; y: parent.height * manageListView.visibleArea.yPosition; height: Math.max(20, parent.height * manageListView.visibleArea.heightRatio); color: Theme.withAlpha(Theme.primary, 0.2); z: 5
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; property real _py: 0; property real _cy: 0
+                                onPressed: function(mouse) { _py = mouse.y; _cy = manageListView.contentY }
+                                onPositionChanged: function(mouse) { var lv = manageListView; if (lv.contentHeight > lv.height) { var r = (mouse.y - _py) / lv.height; lv.contentY = Math.max(0, Math.min(lv.contentHeight - lv.height, _cy + r * lv.contentHeight)) } } } }
                         // Fast scroll overlay
                         MouseArea {
                             anchors.fill: parent
