@@ -152,6 +152,8 @@ DesktopPluginComponent {
             else if (m[i].mount === "/home") { c.homePct = parseFloat(m[i].percent) / 100; c.homeInfo = m[i].used + " / " + m[i].size }
             if (c.sysPct > 0 && c.homePct > 0) break
         }
+        // Fallback: no separate /home mount → reuse root data
+        if (c.homePct === 0 && c.sysPct > 0) { c.homePct = c.sysPct; c.homeInfo = c.sysInfo }
         root.diskCache = c
     }
 
