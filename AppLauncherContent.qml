@@ -892,7 +892,7 @@ Item {
                             anchors.fill: parent
                             clip: true; spacing: 2; boundsBehavior: Flickable.StopAtBounds
                             model: addAppDialog.filteredSystemApps
-                            ScrollBar.vertical: ScrollBar {}
+                            ScrollBar.vertical: DankScrollbar {}
                             delegate: Rectangle {
                                 width: parent.width; height: 38
                                 radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
@@ -956,7 +956,7 @@ Item {
                             anchors.fill: parent
                             clip: true; spacing: 4; boundsBehavior: Flickable.StopAtBounds
                             model: host.addedApps
-                            ScrollBar.vertical: ScrollBar {}
+                            ScrollBar.vertical: DankScrollbar {}
 
                         displaced: Transition {
                             NumberAnimation { properties: "x,y"; duration: 200; easing.type: Easing.OutQuad }
