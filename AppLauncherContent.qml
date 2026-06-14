@@ -32,6 +32,32 @@ Item {
         }
     }
 
+    // Reusable drag grip handle
+    component DragGrip: Item {
+        z: 10; width: 22; height: parent.height
+        property alias dragMouseArea: gripMA
+        property real leftMargin: 0
+        anchors { left: parent.left; leftMargin: leftMargin; verticalCenter: parent.verticalCenter }
+        visible: host.appSearchQuery === ""
+        DankIcon {
+            anchors.centerIn: parent
+            name: "drag_indicator"; size: 14; color: Theme.surfaceText
+            opacity: gripMA.containsMouse || gripMA.drag.active ? 0.6 : 0.1
+        }
+        MouseArea {
+            id: gripMA
+            anchors.fill: parent; hoverEnabled: true; preventStealing: true
+            cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+        }
+    }
+
+    // Reusable "+" add button overlay
+    component AddOverlay: MouseArea {
+        anchors.fill: parent; z: 3; visible: appName === "__add__"
+        cursorShape: Qt.PointingHandCursor
+        onClicked: { clearSearch(); addAppDialog.openDialog("add") }
+    }
+
     ListModel { id: filteredModel }
 
     function clearSearch() {
@@ -566,13 +592,13 @@ Item {
 
                     property int _dragIdx: -1
 
-                    Drag.active: dragHandle.drag.active
+                    Drag.active: listGrip.dragMouseArea.drag.active
                     Drag.source: listWrapper
                     Drag.hotSpot.x: width / 2
                     Drag.hotSpot.y: height / 2
 
                     states: State {
-                        when: dragHandle.drag.active
+                        when: listGrip.dragMouseArea.drag.active
                         ParentChange { target: listWrapper; parent: appsList.contentItem }
                     }
 
@@ -584,42 +610,17 @@ Item {
                         hoveredIdx: hoveredIndex
                     }
 
-                    // "+" button overlay for list
-                    MouseArea {
-                        anchors.fill: parent; z: 3; visible: appName === "__add__"
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: { clearSearch(); addAppDialog.openDialog("add") }
-                    }
-
-                    // Drag grip on top of AppRowDelegate (z:10 ensures event priority)
-                    Item {
-                        z: 10
-                        width: 22; height: parent.height
-                        anchors { left: parent.left; leftMargin: 2; verticalCenter: parent.verticalCenter }
-                        visible: host.appSearchQuery === ""
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: "drag_indicator"
-                            size: 14; color: Theme.surfaceText
-                            opacity: dragHandle.containsMouse || dragHandle.drag.active ? 0.6 : 0.1
-                        }
-
-                        MouseArea {
-                            id: dragHandle
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            preventStealing: true
-                            drag.target: listWrapper
-                            drag.axis: Drag.YAxis
-                            cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                            onPressed: _dragIdx = index
-                            onReleased: {
-                                if (drag.active) {
-                                    var toIdx = Math.round(listWrapper.y / (listWrapper.height + appsList.spacing))
-                                    toIdx = Math.max(0, Math.min(toIdx, host.addedApps.length - 1))
-                                    if (toIdx !== _dragIdx) host.moveAppToIndex(_dragIdx, toIdx)
-                                }
+                    AddOverlay {}
+                    DragGrip {
+                        id: listGrip; leftMargin: 2
+                        dragMouseArea.drag.target: listWrapper
+                        dragMouseArea.drag.axis: Drag.YAxis
+                        dragMouseArea.onPressed: _dragIdx = index
+                        dragMouseArea.onReleased: {
+                            if (dragMouseArea.drag.active) {
+                                var toIdx = Math.round(listWrapper.y / (listWrapper.height + appsList.spacing))
+                                toIdx = Math.max(0, Math.min(toIdx, filteredModel.count - 1))
+                                if (toIdx !== _dragIdx) host.moveAppToIndex(_dragIdx, toIdx)
                             }
                         }
                     }
@@ -646,13 +647,13 @@ Item {
 
                     property int _dragIdx: -1
 
-                    Drag.active: compactDragHandle.drag.active
+                    Drag.active: compactGrip.dragMouseArea.drag.active
                     Drag.source: compactDelegateItem
                     Drag.hotSpot.x: width / 2
                     Drag.hotSpot.y: height / 2
 
                     states: State {
-                        when: compactDragHandle.drag.active
+                        when: compactGrip.dragMouseArea.drag.active
                         ParentChange { target: compactDelegateItem; parent: appsCompact.contentItem }
                     }
 
@@ -664,44 +665,19 @@ Item {
                         hoveredIdx: hoveredIndex
                     }
 
-                    // "+" button overlay for compact
-                    MouseArea {
-                        anchors.fill: parent; z: 3; visible: appName === "__add__"
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: { clearSearch(); addAppDialog.openDialog("add") }
-                    }
-
-                    // Drag grip on left edge
-                    Item {
-                        z: 10
-                        width: 22; height: parent.height
-                        anchors { left: parent.left; leftMargin: 0; verticalCenter: parent.verticalCenter }
-                        visible: host.appSearchQuery === ""
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: "drag_indicator"
-                            size: 14; color: Theme.surfaceText
-                            opacity: compactDragHandle.containsMouse || compactDragHandle.drag.active ? 0.6 : 0.1
-                        }
-
-                        MouseArea {
-                            id: compactDragHandle
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            preventStealing: true
-                            drag.target: compactDelegateItem
-                            drag.axis: Drag.XAndYAxis
-                            cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                            onPressed: _dragIdx = index
-                            onReleased: {
-                                if (drag.active) {
-                                    var cols = Math.max(2, Math.floor(appsCompact.width / appsCompact.cellWidth))
-                                    var toCol = Math.round(compactDelegateItem.x / appsCompact.cellWidth)
-                                    var toRow = Math.round(compactDelegateItem.y / appsCompact.cellHeight)
-                                    var toIdx = Math.max(0, Math.min(toRow * cols + toCol, filteredModel.count - 1))
-                                    if (toIdx !== _dragIdx) host.moveAppToIndex(_dragIdx, toIdx)
-                                }
+                    AddOverlay {}
+                    DragGrip {
+                        id: compactGrip; leftMargin: 0
+                        dragMouseArea.drag.target: compactDelegateItem
+                        dragMouseArea.drag.axis: Drag.XAndYAxis
+                        dragMouseArea.onPressed: _dragIdx = index
+                        dragMouseArea.onReleased: {
+                            if (dragMouseArea.drag.active) {
+                                var cols = Math.max(2, Math.floor(appsCompact.width / appsCompact.cellWidth))
+                                var toCol = Math.round(compactDelegateItem.x / appsCompact.cellWidth)
+                                var toRow = Math.round(compactDelegateItem.y / appsCompact.cellHeight)
+                                var toIdx = Math.max(0, Math.min(toRow * cols + toCol, filteredModel.count - 1))
+                                if (toIdx !== _dragIdx) host.moveAppToIndex(_dragIdx, toIdx)
                             }
                         }
                     }
