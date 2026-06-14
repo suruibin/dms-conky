@@ -892,6 +892,7 @@ Item {
                             anchors.fill: parent
                             clip: true; spacing: 2; boundsBehavior: Flickable.StopAtBounds
                             model: addAppDialog.filteredSystemApps
+                            ScrollBar.vertical: ScrollBar {}
                             delegate: Rectangle {
                                 width: parent.width; height: 38
                                 radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
@@ -953,8 +954,9 @@ Item {
                         ListView {
                             id: manageListView
                             anchors.fill: parent
-                        clip: true; spacing: 4; boundsBehavior: Flickable.StopAtBounds
-                        model: host.addedApps
+                            clip: true; spacing: 4; boundsBehavior: Flickable.StopAtBounds
+                            model: host.addedApps
+                            ScrollBar.vertical: ScrollBar {}
 
                         displaced: Transition {
                             NumberAnimation { properties: "x,y"; duration: 200; easing.type: Easing.OutQuad }
