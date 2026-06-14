@@ -26,7 +26,7 @@ DesktopPluginComponent {
     readonly property bool showWeather: getData("showWeather", true)
     readonly property bool showMusic: getData("showMusic", true)
     readonly property bool showStorage: getData("showStorage", true)
-    readonly property string defaultView: pluginData.defaultView ?? "conky"  // "conky" or "apps"
+    readonly property string defaultView: getData("defaultView", "conky")
     readonly property real particleOpacity: getData("particleOpacity", 1.0)
     readonly property string particleStyle: getData("particleStyle", "stars")
     readonly property int particleCount: getData("particleCount", 150)
@@ -88,12 +88,12 @@ DesktopPluginComponent {
     property string appSearchQuery: ""
     property bool appEditMode: false
     readonly property real appSize: getData("appSize", 80)
-    readonly property string appViewMode: pluginData.viewMode ?? "grid"
-    readonly property bool appShowHeader: pluginData.showHeader ?? false
-    readonly property bool showLauncherParticles: pluginData.showLauncherParticles ?? true
-    readonly property real appLauncherBgOpacity: (pluginData.backgroundOpacity ?? 80) / 100
+    readonly property string appViewMode: getData("viewMode", "grid")
+    readonly property bool appShowHeader: getData("showHeader", false)
+    readonly property bool showLauncherParticles: getData("showLauncherParticles", true)
+    readonly property real appLauncherBgOpacity: (getData("backgroundOpacity", 80)) / 100
     readonly property real appIconSize: Math.max(28, Math.round(appSize * 0.58))
-    property var addedApps: pluginData.addedApps !== undefined ? pluginData.addedApps : []
+    property var addedApps: getData("addedApps", [])
 
     readonly property bool hasActivePlayer: MprisController.activePlayer !== null && MprisController.activePlayer !== undefined
     property int musicTick: 0
@@ -254,7 +254,9 @@ DesktopPluginComponent {
     }
 
     function saveAddedApps(newList) {
-        if (pluginService) pluginService.savePluginData(pluginId, "addedApps", newList)
+        root.setData("addedApps", newList)
+        SettingsData.setPluginSetting(pluginId, "addedApps", newList)
+        SettingsData.savePluginSettings()
         root.addedApps = newList
     }
 
