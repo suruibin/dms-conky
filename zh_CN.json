@@ -1672,6 +1672,9 @@
   "Empty": {
     "Empty": "空"
   },
+  "Enable": {
+    "Enable": "启用"
+  },
   "Enable 10-bit color depth for wider color gamut and HDR support": {
     "Enable 10-bit color depth for wider color gamut and HDR support": "为广色域与HDR支持启用10位色深"
   },

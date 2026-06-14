@@ -24,7 +24,8 @@ Item {
     FontLoader { id: materialFont; source: "./fonts/Material.ttf" }
 
     SystemClock { id: sysClock; precision: SystemClock.Seconds }
-    readonly property var _w: WeatherService.weather  // cache to reduce QObject lookups
+    readonly property var _w: WeatherService.weather
+    readonly property var _ap: MprisController.activePlayer
 
     // ============================================
     // CONKY VIEW (visible when mouse is outside)
@@ -288,84 +289,54 @@ Item {
                 // ============================================
                 // Storage
                 // ============================================
-                Text {
+                Item {
                     visible: host.showStorage
-                    x: host.leftX; y: host.yBase + 365
-                    width: 111
-                    horizontalAlignment: Text.AlignHCenter
-                    text: "Storage"
-                    font.family: abelFont.name
-                    font.bold: true
-                    font.pixelSize: 18
-                    color: host.fg
-                }
-
-                Text {
-                    visible: host.showStorage
-                    x: host.leftX; y: host.yBase + 390
-                    text: "Root :"
-                    font.family: abelFont.name
-                    font.pixelSize: 15
-                    color: host.fg
-                }
-
-                Rectangle {
-                    visible: host.showStorage
-                    x: host.leftX; y: host.yBase + 415
-                    width: 111; height: 15; radius: 2
-                    color: "#18ffffff"
-                    Rectangle {
-                        width: parent.width * host.sysDiskPct
-                        height: 15; radius: 2
-                        color: host.sysDiskPct > 0.9 ? "#EF4444" : (host.sysDiskPct > 0.5 ? "#F59E0B" : "#22C55E")
-                        Behavior on color { ColorAnimation { duration: 600 } }
+                    Text {
+                        x: host.leftX; y: host.yBase + 365
+                        width: 111; horizontalAlignment: Text.AlignHCenter
+                        text: "Storage"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg
                     }
-                }
-
-                Text {
-                    visible: host.showStorage
-                    x: host.leftX + 4; y: host.yBase + 416
-                    text: host.sysDiskInfo
-                    font.family: abelFont.name
-                    font.pixelSize: 12
-                    color: host.fg
-                }
-
-                Text {
-                    visible: host.showStorage
-                    x: host.leftX; y: host.yBase + 433
-                    text: "Home :"
-                    font.family: abelFont.name
-                    font.pixelSize: 15
-                    color: host.fg
-                }
-
-                Rectangle {
-                    visible: host.showStorage
-                    x: host.leftX; y: host.yBase + 455
-                    width: 111; height: 15; radius: 2
-                    color: "#18ffffff"
-                    Rectangle {
-                        width: parent.width * host.homeDiskPct
-                        height: 15; radius: 2
-                        color: host.homeDiskPct > 0.9 ? "#EF4444" : (host.homeDiskPct > 0.5 ? "#F59E0B" : "#22C55E")
-                        Behavior on color { ColorAnimation { duration: 600 } }
+                    Text {
+                        x: host.leftX; y: host.yBase + 390
+                        text: "Root :"; font.family: abelFont.name; font.pixelSize: 15; color: host.fg
                     }
-                }
-
-                Text {
-                    visible: host.showStorage
-                    x: host.leftX + 4; y: host.yBase + 456
-                    text: host.homeDiskInfo
-                    font.family: abelFont.name
-                    font.pixelSize: 12
-                    color: host.fg
+                    Rectangle {
+                        x: host.leftX; y: host.yBase + 415
+                        width: 111; height: 15; radius: 2; color: "#18ffffff"
+                        Rectangle {
+                            width: parent.width * host.sysDiskPct; height: 15; radius: 2
+                            color: host.sysDiskPct > 0.9 ? "#EF4444" : (host.sysDiskPct > 0.5 ? "#F59E0B" : "#22C55E")
+                            Behavior on color { ColorAnimation { duration: 600 } }
+                        }
+                    }
+                    Text {
+                        x: host.leftX + 4; y: host.yBase + 416
+                        text: host.sysDiskInfo; font.family: abelFont.name; font.pixelSize: 12; color: host.fg
+                    }
+                    Text {
+                        x: host.leftX; y: host.yBase + 433
+                        text: "Home :"; font.family: abelFont.name; font.pixelSize: 15; color: host.fg
+                    }
+                    Rectangle {
+                        x: host.leftX; y: host.yBase + 455
+                        width: 111; height: 15; radius: 2; color: "#18ffffff"
+                        Rectangle {
+                            width: parent.width * host.homeDiskPct; height: 15; radius: 2
+                            color: host.homeDiskPct > 0.9 ? "#EF4444" : (host.homeDiskPct > 0.5 ? "#F59E0B" : "#22C55E")
+                            Behavior on color { ColorAnimation { duration: 600 } }
+                        }
+                    }
+                    Text {
+                        x: host.leftX + 4; y: host.yBase + 456
+                        text: host.homeDiskInfo; font.family: abelFont.name; font.pixelSize: 12; color: host.fg
+                    }
                 }
 
                 // ============================================
                 // Music Player / System Info (right side)
                 // ============================================
-                readonly property bool isPlaying: content.activePlayer && content.activePlayer.isPlaying
+                readonly property bool _ms: host.showMusic && musicUIVisible
+                readonly property bool isPlaying: content._ap && content._ap.isPlaying
                 property bool musicUIVisible: isPlaying
                 property bool userPaused: false
 
@@ -459,12 +430,17 @@ Item {
                     x: host.rightX + 24; y: host.yBase + 395
                     width: 62; height: 62
 
+                    Loader {
+                        active: content._ap && content._ap.isPlaying
+                        sourceComponent: Component { Ref { service: CavaService } }
+                    }
+
                     Shape {
                         id: morphingBlob
                         width: parent.width * 1.3
                         height: parent.height * 1.3
                         anchors.centerIn: parent
-                        visible: CavaService.cavaAvailable && content.activePlayer && content.activePlayer.isPlaying
+                        visible: CavaService.cavaAvailable && content._ap && content._ap.isPlaying
                         asynchronous: false; antialiasing: true
                         preferredRendererType: Shape.CurveRenderer
                         z: 0
@@ -552,7 +528,7 @@ Item {
                         id: albumRotation
                         target: albumArtBox; property: "_rotation"
                         from: 0; to: 360; duration: 20000
-                        running: content.activePlayer && content.activePlayer.isPlaying
+                        running: content._ap && content._ap.isPlaying
                         loops: Animation.Infinite
                     }
 
@@ -560,7 +536,7 @@ Item {
                         anchors.centerIn: parent; z: 1
                         width: 48; height: 48
                         imageSource: {
-                            var p = content.activePlayer
+                            var p = content._ap
                             if (!p || !p.metadata) return ""
                             return p.metadata["mpris:artUrl"] || ""
                         }
@@ -577,7 +553,7 @@ Item {
                 // Music info (when playing)
                 Item {
                     id: musicInfoBox
-                    visible: host.showMusic && parent.musicUIVisible
+                    visible: parent._ms
                     x: host.rightX - 20; y: host.yBase + 365
                     width: 145; height: 22
 
@@ -585,7 +561,7 @@ Item {
 
                     Timer {
                         interval: 2000
-                        running: content.activePlayer && content.activePlayer.isPlaying
+                        running: content._ap && content._ap.isPlaying
                         repeat: true
                         onTriggered: {
                             musicInfoBox._tick = (musicInfoBox._tick + 1) % 7
@@ -628,7 +604,7 @@ Item {
                     visible: host.showMusic && !host.showRotatingAlbum && parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 392
                     text: {
-                        var p = content.activePlayer
+                        var p = content._ap
                         if (!p || !p.metadata) return ""
                         return p.metadata["xesam:artist"] ? p.metadata["xesam:artist"].join(", ") : ""
                     }
@@ -643,7 +619,7 @@ Item {
                     visible: host.showMusic && !host.showRotatingAlbum && parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 413
                     text: {
-                        var p = content.activePlayer
+                        var p = content._ap
                         if (!p || !p.metadata) return ""
                         return p.metadata["xesam:title"] || ""
                     }
@@ -665,19 +641,19 @@ Item {
 
                 // Double-click on music playing area → pause
                 MouseArea {
-                    visible: host.showMusic && parent.musicUIVisible
+                    visible: parent._ms
                     x: host.rightX - 20; y: host.yBase + 365
                     width: 165; height: 115
                     acceptedButtons: Qt.LeftButton
                     onDoubleClicked: {
-                        var p = content.activePlayer
+                        var p = content._ap
                         if (p) { contentItem.userPaused = true; p.togglePlaying() }
                     }
                 }
 
                 // Music control buttons (previous / play-pause / next)
                 Row {
-                    visible: host.showMusic && parent.musicUIVisible
+                    visible: parent._ms
                     x: host.rightX + 10; y: host.yBase + 456
                     spacing: 8
 
@@ -686,7 +662,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                var p = content.activePlayer
+                                var p = content._ap
                                 if (p) p.previous()
                             }
                             DankIcon {
@@ -702,7 +678,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                var p = content.activePlayer
+                                var p = content._ap
                                 if (p) { contentItem.userPaused = true; p.togglePlaying() }
                             }
                             DankIcon {
@@ -718,7 +694,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                var p = content.activePlayer
+                                var p = content._ap
                                 if (p) p.next()
                             }
                             DankIcon {
@@ -734,7 +710,7 @@ Item {
                 // Full-area ambient particles
                 // ============================================
                 ParticleBackground {
-                    running: content.visible
+                    running: content.visible && host.showLauncherParticles
                     particleOpacity: host.particleOpacity
                     particleCount: host.particleCount
                     particleSize: host.particleSize

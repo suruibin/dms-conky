@@ -396,6 +396,13 @@ PluginSettings {
                 anchors.centerIn: parent
                 spacing: Theme.spacingS
 
+                DankToggle {
+                    width: parent.width
+                    text: I18n.tr("Enable")
+                    checked: root.loadValue("showLauncherParticles", true)
+                    onToggled: c => root.saveAndPersist("showLauncherParticles", c)
+                }
+
                 StyledText {
                     text: I18n.tr("Style")
                     font.pixelSize: Theme.fontSizeSmall
