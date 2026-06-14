@@ -6,7 +6,6 @@ import qs.Services
 import qs.Widgets
 import qs.Modules.Plugins
 
-
 Item {
     id: content
     property Item host
