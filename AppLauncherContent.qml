@@ -764,10 +764,14 @@ Item {
                 if (systemAppsList.length === 0) {
                     var allEntries = DesktopEntries.applications.values
                     var apps = []
+                    var seen = {}
                     for (var i = 0; i < allEntries.length; i++) {
                         var app = allEntries[i]
                         if (app && !app.noDisplay) {
-                            apps.push({ name: app.name || "", exec: host.cleanExec(app.execString || (app.command ? app.command.join(" ") : "")), icon: app.icon || "" })
+                            var nm = app.name || ""
+                            if (seen[nm]) continue  // skip duplicates by name
+                            seen[nm] = true
+                            apps.push({ name: nm, exec: host.cleanExec(app.execString || (app.command ? app.command.join(" ") : "")), icon: app.icon || "" })
                         }
                     }
                     apps.sort(function(a, b) { return (a.name || "").localeCompare(b.name || "") })
