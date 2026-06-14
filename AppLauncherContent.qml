@@ -925,10 +925,11 @@ Item {
                             }
                         }
 
-                        Rectangle { width: 6; radius: 3; anchors.right: parent.right; anchors.rightMargin: 2; visible: systemAppsListView.contentHeight > systemAppsListView.height; y: parent.height * systemAppsListView.visibleArea.yPosition; height: Math.max(20, parent.height * systemAppsListView.visibleArea.heightRatio); color: Theme.withAlpha(Theme.primary, 0.2); z: 5
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; property real _py: 0; property real _cy: 0
-                                onPressed: function(mouse) { _py = mouse.y; _cy = systemAppsListView.contentY }
-                                onPositionChanged: function(mouse) { var lv = systemAppsListView; if (lv.contentHeight > lv.height) { var r = (mouse.y - _py) / lv.height; lv.contentY = Math.max(0, Math.min(lv.contentHeight - lv.height, _cy + r * lv.contentHeight)) } } } }
+                        Item { width: 16; anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom; z: 10; visible: systemAppsListView.contentHeight > systemAppsListView.height
+                            Rectangle { id: sysSB; width: 6; radius: 3; anchors.right: parent.right; anchors.rightMargin: 2; height: Math.max(20, parent.height * systemAppsListView.visibleArea.heightRatio); color: Theme.withAlpha(Theme.primary, 0.2); y: systemAppsListView.contentY / systemAppsListView.contentHeight * parent.height }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; property real _py: 0
+                                onPressed: function(mouse) { _py = mouse.y - sysSB.y }
+                                onPositionChanged: function(mouse) { var lv = systemAppsListView; if (lv.contentHeight > lv.height) { var ny = Math.max(0, Math.min(parent.height - sysSB.height, mouse.y - _py)); sysSB.y = ny; lv.contentY = ny / parent.height * lv.contentHeight } } } }
                         // Fast scroll overlay
                         MouseArea {
                             anchors.fill: parent
@@ -1053,10 +1054,11 @@ Item {
                         }
                     }
 
-                        Rectangle { width: 6; radius: 3; anchors.right: parent.right; anchors.rightMargin: 2; visible: manageListView.contentHeight > manageListView.height; y: parent.height * manageListView.visibleArea.yPosition; height: Math.max(20, parent.height * manageListView.visibleArea.heightRatio); color: Theme.withAlpha(Theme.primary, 0.2); z: 5
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; property real _py: 0; property real _cy: 0
-                                onPressed: function(mouse) { _py = mouse.y; _cy = manageListView.contentY }
-                                onPositionChanged: function(mouse) { var lv = manageListView; if (lv.contentHeight > lv.height) { var r = (mouse.y - _py) / lv.height; lv.contentY = Math.max(0, Math.min(lv.contentHeight - lv.height, _cy + r * lv.contentHeight)) } } } }
+                        Item { width: 16; anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom; z: 10; visible: manageListView.contentHeight > manageListView.height
+                            Rectangle { id: mgrSB; width: 6; radius: 3; anchors.right: parent.right; anchors.rightMargin: 2; height: Math.max(20, parent.height * manageListView.visibleArea.heightRatio); color: Theme.withAlpha(Theme.primary, 0.2); y: manageListView.contentY / manageListView.contentHeight * parent.height }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; property real _off: 0
+                                onPressed: function(mouse) { _off = mouse.y - mgrSB.y }
+                                onPositionChanged: function(mouse) { var lv = manageListView; if (lv.contentHeight > lv.height) { var ny = Math.max(0, Math.min(parent.height - mgrSB.height, mouse.y - _off)); mgrSB.y = ny; lv.contentY = ny / parent.height * lv.contentHeight } } } }
                         // Fast scroll overlay
                         MouseArea {
                             anchors.fill: parent
