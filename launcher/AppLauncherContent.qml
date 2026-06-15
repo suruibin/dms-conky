@@ -5,6 +5,7 @@ import qs.Common
 import qs.Services
 import qs.Widgets
 import qs.Modules.Plugins
+import "../common"
 
 Item {
     id: content
@@ -186,7 +187,7 @@ Item {
         }
     }
 
-    property color hoverColor: host.accent
+    property color hoverColor: host.accentColor
     property int _hi: hoveredIndex
     on_HiChanged: {
         if (hoveredIndex >= 0) {
@@ -293,7 +294,7 @@ Item {
                         anchors.fill: parent
                         radius: Math.round(Theme.cornerRadius / 2)
                         color: addAppBtn.hovered ? Theme.withAlpha(Theme.primary, 0.15) : Theme.withAlpha(Theme.primary, 0.05)
-                        border.color: Theme.withAlpha(host.accent, addAppBtn.hovered ? 0.4 : 0.15); border.width: 1
+                        border.color: Theme.withAlpha(host.accentColor, addAppBtn.hovered ? 0.4 : 0.15); border.width: 1
                         opacity: host.appShowHeader ? 0.0 : (addAppBtn.hovered ? 0.9 : 0.4)
                         Behavior on opacity { NumberAnimation { duration: 200 } }
 
@@ -509,7 +510,7 @@ Item {
                             width: Math.round(host.appIconSize * 1.85); height: width
                             anchors.centerIn: parent
                             radius: Math.round(Theme.cornerRadius)
-                            color: appCard.containsMouse ? Theme.withAlpha(host.accent, 0.08) : "transparent"
+                            color: appCard.containsMouse ? Theme.withAlpha(host.accentColor, 0.08) : "transparent"
                             scale: appCard.containsMouse ? 1.08 : 1.0
                             Behavior on color { ColorAnimation { duration: 200 } }
                             Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
@@ -554,13 +555,13 @@ Item {
                             Rectangle {
                                 width: host.iconSize; height: width; radius: width / 2
                                 anchors.centerIn: parent
-                                color: appCard.containsMouse ? Theme.withAlpha(host.accent, 0.2) : Theme.withAlpha(host.accent, 0.1)
-                                border.color: appCard.containsMouse ? Theme.withAlpha(host.accent, 0.5) : Theme.withAlpha(host.accent, 0.25)
+                                color: appCard.containsMouse ? Theme.withAlpha(host.accentColor, 0.2) : Theme.withAlpha(host.accentColor, 0.1)
+                                border.color: appCard.containsMouse ? Theme.withAlpha(host.accentColor, 0.5) : Theme.withAlpha(host.accentColor, 0.25)
                                 border.width: 1.5
                                 visible: appName === "__add__"
                                 scale: appCard.containsMouse ? 1.15 : 1.0
                                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-                                DankIcon { anchors.centerIn: parent; name: "add"; size: host.iconSize * 0.45; color: host.accent }
+                                DankIcon { anchors.centerIn: parent; name: "add"; size: host.iconSize * 0.45; color: host.accentColor }
                             }
                             AppIcon {
                                 iconSize: host.appIconSize
@@ -792,7 +793,7 @@ Item {
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: 0
                 color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius
-                border.color: Theme.withAlpha(host.accent, 0.15); border.width: 1; clip: true
+                border.color: Theme.withAlpha(host.accentColor, 0.15); border.width: 1; clip: true
                 scale: addAppDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
@@ -1110,7 +1111,7 @@ Item {
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: 0
                 color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius
-                border.color: Theme.withAlpha(host.accent, 0.15); border.width: 1; clip: true
+                border.color: Theme.withAlpha(host.accentColor, 0.15); border.width: 1; clip: true
                 scale: appSettingsDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 

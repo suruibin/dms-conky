@@ -6,6 +6,8 @@ import qs.Common
 import qs.Services
 import qs.Widgets
 import qs.Modules.Plugins
+import "conky"
+import "launcher"
 
 DesktopPluginComponent {
     id: root
@@ -18,8 +20,8 @@ DesktopPluginComponent {
     widgetWidth: getData("widgetWidth", 298)
     widgetHeight: getData("widgetHeight", 522)
 
-    readonly property string accentColor: getData("accentColor", "#7C3AED")
-    readonly property string accent2Color: getData("accent2Color", "#D97706")
+    readonly property color accentColor: getData("accentColor", "#7C3AED")
+    readonly property color accent2Color: getData("accent2Color", "#D97706")
     readonly property real bgOpacity: getData("bgOpacity", 0.0)
     readonly property bool showClock: getData("showClock", true)
     readonly property bool showNetwork: getData("showNetwork", true)
@@ -35,8 +37,6 @@ DesktopPluginComponent {
     readonly property color bg: Theme.withAlpha("#0a0a0f", bgOpacity)
     readonly property color fg: "#f0f0f0"
     readonly property color dim: "#aaaaaa"
-    readonly property color accent: accentColor
-    readonly property color accent2: accent2Color
 
     // Ring gauge colors
     readonly property color ringBgColor: getData("ringBgColor", "#94A3B8")
