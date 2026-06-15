@@ -274,6 +274,17 @@ Item {
                     }
                 }
 
+                // Shared hover timer for header-off buttons
+                Timer {
+                    interval: 100; running: !host.appShowHeader && launcherContainer.visible; repeat: true
+                    onTriggered: {
+                        var p1 = addAppBtn.mapFromItem(host, host.hoverMouseX, host.hoverMouseY)
+                        addAppBtn.hovered = p1.x >= 0 && p1.x <= 24 && p1.y >= 0 && p1.y <= 24
+                        var p2 = settingsBtn.mapFromItem(host, host.hoverMouseX, host.hoverMouseY)
+                        settingsBtn.hovered = p2.x >= 0 && p2.x <= 24 && p2.y >= 0 && p2.y <= 24
+                    }
+                }
+
                 // Add app button (always visible when header is off)
                 Item {
                     id: addAppBtn
@@ -281,14 +292,6 @@ Item {
                     anchors.right: settingsBtn.left; anchors.rightMargin: 4
                     anchors.verticalCenter: parent.verticalCenter
                     property bool hovered: false
-
-                    Timer {
-                        interval: 100; running: !host.appShowHeader && launcherContainer.visible; repeat: true
-                        onTriggered: {
-                            var p = addAppBtn.mapFromItem(host, host.hoverMouseX, host.hoverMouseY)
-                            addAppBtn.hovered = p.x >= 0 && p.x <= 24 && p.y >= 0 && p.y <= 24
-                        }
-                    }
 
                     Rectangle {
                         anchors.fill: parent
@@ -319,14 +322,6 @@ Item {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     property bool hovered: false
-
-                    Timer {
-                        interval: 100; running: !host.appShowHeader && launcherContainer.visible; repeat: true
-                        onTriggered: {
-                            var p = settingsBtn.mapFromItem(host, host.hoverMouseX, host.hoverMouseY)
-                            settingsBtn.hovered = p.x >= 0 && p.x <= 24 && p.y >= 0 && p.y <= 24
-                        }
-                    }
 
                     Rectangle {
                         id: settingsBg
