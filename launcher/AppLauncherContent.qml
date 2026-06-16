@@ -1155,7 +1155,7 @@ Item {
                     Slider { width: parent.width; from: 0; to: 100; stepSize: 1; value: Math.round(host.appLauncherBgOpacity * 100); onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) } }
 
                     StyledText { text: I18n.tr("Icon Size") + ": " + host.appSize + "px"; font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
-                    Slider { width: parent.width; from: 48; to: 128; stepSize: 4; value: host.appSize; onValueChanged: host.setData("appSize", value) }
+                    Slider { width: parent.width; from: 48; to: 128; stepSize: 4; value: host.appSize; onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "appSize", value) } }
 
                     StyledText { text: I18n.tr("View Mode"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
                     Row {

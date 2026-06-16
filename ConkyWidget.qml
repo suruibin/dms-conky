@@ -166,6 +166,7 @@ DesktopPluginComponent {
         running: true
         repeat: true
         onTriggered: {
+            if (!root.showMusic) return
             var playing = hasActivePlayer && MprisController.activePlayer && MprisController.activePlayer.isPlaying
             var conkyVisible = (root.defaultView === "apps") ? root.mouseHovered : !root.mouseHovered
 
