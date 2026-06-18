@@ -30,7 +30,8 @@ DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，
 - **音乐播放/硬件信息切换**：硬件信息界面时双击鼠标切换到音乐播放界面
 - **悬停排除区**：Storage 和 HardWare 底部区域不触发应用启动器切换，防止误触
 - **粒子消散动画**：整个conky界面背景显示粒子效果
-- **默认界面设置**：可以设置默认的界面是:系统监控/应用启动器
+- **默认界面设置**：可以设置默认的界面是:系统监控/
+- **磁盘信息界面**：双击Stroage可以切换显示folderView(https://github.com/hthienloc/dms-folder-view) 目录下这个是我修改后的，你需要手动把folderView文件夹放在/.config/DankMaterialShell/plugins/ 目录下
 
 ## 安装
 
