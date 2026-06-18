@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import Quickshell
 import qs.Common
 import qs.Services
@@ -784,11 +785,16 @@ Item {
             Rectangle {
                 id: dialogCard
                 z: 10
-                width: Math.min(320, parent.width - 20); height: Math.min(505, parent.height - 5)
+                width: Math.min(320, parent.width - 20); height: Math.min(480, parent.height - 5)
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: 0
-                color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius
-                border.color: Theme.withAlpha(host.accentColor, 0.15); border.width: 1; clip: true
+                color: Theme.surfaceContainer; radius: Theme.cornerRadius
+                border.color: Qt.rgba(1, 1, 1, 0.06); border.width: 1; clip: true
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true; shadowHorizontalOffset: 0; shadowVerticalOffset: 8
+                    shadowBlur: 0.8; shadowColor: Qt.rgba(0, 0, 0, 0.6); shadowOpacity: 0.7
+                }
                 scale: addAppDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
@@ -1102,11 +1108,16 @@ Item {
                 id: settingsCard
                 z: 10
                 width: Math.min(300, parent.width - 20)
-                height: Math.min(505, parent.height - 5)
+                height: Math.min(480, parent.height - 5)
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: 0
-                color: Theme.surfaceContainerHigh; radius: Theme.cornerRadius
-                border.color: Theme.withAlpha(host.accentColor, 0.15); border.width: 1; clip: true
+                color: Theme.surfaceContainer; radius: Theme.cornerRadius
+                border.color: Qt.rgba(1, 1, 1, 0.06); border.width: 1; clip: true
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true; shadowHorizontalOffset: 0; shadowVerticalOffset: 8
+                    shadowBlur: 0.8; shadowColor: Qt.rgba(0, 0, 0, 0.6); shadowOpacity: 0.7
+                }
                 scale: appSettingsDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
@@ -1199,11 +1210,10 @@ Item {
                         }
                     }
 
-                    Item { width: 1; height: 6 }
-
                     DankButton {
                         width: parent.width; height: 28
                         text: I18n.tr("Desktop Widgets")
+                        transform: Translate { y: -3 }
                         iconName: "widgets"
                         iconSize: 14
                         backgroundColor: Theme.withAlpha(Theme.primary, 0.1)
