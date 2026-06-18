@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import Quickshell.Wayland
 import Quickshell
 import Quickshell.Io
 import qs.Common
@@ -8,6 +9,7 @@ import qs.Widgets
 import qs.Modules.Plugins
 import "conky"
 import "launcher"
+import "folderView"
 
 DesktopPluginComponent {
     id: root
@@ -303,8 +305,96 @@ DesktopPluginComponent {
         host: root
     }
 
+    // ============================================
+    // FOLDER VIEW - Custom pluginService bridge
+    // ============================================
+    // Redirects data to/from "folderView" namespace in SettingsData
+    QtObject {
+        id: folderPluginService
+
+        signal pluginDataChanged(string pluginId)
+
+        function loadPluginData(pluginId, key, defaultValue) {
+            return SettingsData.getPluginSetting("folderView", key, defaultValue)
+        }
+
+        function savePluginData(pluginId, key, value) {
+            SettingsData.setPluginSetting("folderView", key, value)
+            SettingsData.savePluginSettings()
+            Qt.callLater(function() { folderPluginService.pluginDataChanged("folderView") })
+        }
+    }
+
+    // ============================================
+    // FOLDER VIEW FLOATING PANEL
+    // ============================================
+    PanelWindow {
+        id: folderViewWindow
+        visible: root.showFolderView
+        color: "transparent"
+
+        // Draggable position (margins-based fallback)
+        property real _left: 200
+        property real _top: 100
+
+        WlrLayershell.namespace: "dms:folderView"
+        WlrLayershell.layer: WlrLayershell.Top
+        WlrLayershell.exclusiveZone: -1
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+
+        anchors {
+            left: true
+            top: true
+            right: false
+            bottom: false
+        }
+
+        WlrLayershell.margins {
+            left: folderViewWindow._left
+            top: folderViewWindow._top
+        }
+
+        implicitWidth: 640
+        implicitHeight: 500
+
+        // Resize edges (DMS standard)
+        FloatingWindowControls {
+            targetWindow: folderViewWindow
+        }
+
+        FolderView {
+            id: folderViewInstance
+            anchors.fill: parent
+            anchors.margins: 0
+            pluginService: folderPluginService
+            pluginId: "folderView"
+        }
+
+        // Drag handle (top 20px) — MUST be after FolderView to stay on top
+        MouseArea {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 20
+            cursorShape: Qt.SizeAllCursor
+            z: 10
+            // Use Qt's system window move (works on Wayland if compositor supports it)
+            onPressed: { folderViewWindow.startSystemMove() }
+        }
+
+        Shortcut {
+            sequence: "Escape"
+            onActivated: root.showFolderView = false
+        }
+
+        onVisibleChanged: {
+            if (!visible) root.showFolderView = false
+        }
+    }
+
     // --- Global hover (widget switching + position for delegate effects) ---
     MouseArea {
+        id: hoverArea
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.NoButton
@@ -371,6 +461,9 @@ DesktopPluginComponent {
 
     readonly property string musicPlayerPath: getData("musicPlayerPath", "/usr/local/bin/splayer")
     readonly property bool showRotatingAlbum: getData("showRotatingAlbum", true)
+
+    // FolderView overlay
+    property bool showFolderView: false
 
     function triggerSplayerOrResume() {
         var p = MprisController.activePlayer

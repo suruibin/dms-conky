@@ -240,14 +240,20 @@ Item {
                 }
 
                 // ============================================
-                // Storage
+                // Storage (double-click to toggle FolderView)
                 // ============================================
                 Item {
                     visible: host.showStorage
-                    Text {
+                    MouseArea {
                         x: host.leftX; y: host.yBase + 365
-                        width: 111; horizontalAlignment: Text.AlignHCenter
-                        text: "Storage"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg
+                        width: 111; height: 22
+                        acceptedButtons: Qt.LeftButton
+                        cursorShape: Qt.PointingHandCursor
+                        onDoubleClicked: host.showFolderView = !host.showFolderView
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Storage"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg
+                        }
                     }
                     Text {
                         x: host.leftX; y: host.yBase + 390
