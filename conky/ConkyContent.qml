@@ -244,16 +244,12 @@ Item {
                 // ============================================
                 Item {
                     visible: host.showStorage
-                    MouseArea {
-                        x: host.leftX; y: host.yBase + 365
-                        width: 111; height: 22
-                        acceptedButtons: Qt.LeftButton
-                        cursorShape: Qt.PointingHandCursor
-                        onDoubleClicked: host.showFolderView = !host.showFolderView
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Storage"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg
-                        }
+                    Item {
+                        width: 111; height: 20; x: host.leftX; y: host.yBase + 365
+                        Text { anchors.centerIn: parent
+                            text: "Storage"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg }
+                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.LeftButton
+                            onDoubleClicked: host.toggleFolderView() }
                     }
                     Text {
                         x: host.leftX; y: host.yBase + 390
@@ -566,6 +562,7 @@ Item {
                     particleSize: host.particleSize
                     particleStyle: host.particleStyle
                 }
+
             }
         }
     }

@@ -22,6 +22,30 @@ DesktopPluginComponent {
     widgetWidth: getData("widgetWidth", 298)
     widgetHeight: getData("widgetHeight", 522)
 
+    // FolderView toggle — match DMS settings panel behavior
+    property string _fvId: ""
+    function toggleFolderView() {
+        if (!_fvId) {
+            // Find folderView instance ID (first time only)
+            var instances = SettingsData.desktopWidgetInstances || []
+            for (var i = 0; i < instances.length; i++) {
+                if (instances[i].widgetType === "folderView") {
+                    _fvId = instances[i].id
+                    break
+                }
+            }
+        }
+        if (_fvId) {
+            var insts = SettingsData.desktopWidgetInstances || []
+            for (var i = 0; i < insts.length; i++) {
+                if (insts[i].id === _fvId) {
+                    SettingsData.updateDesktopWidgetInstance(_fvId, { enabled: !insts[i].enabled })
+                    break
+                }
+            }
+        }
+    }
+
     readonly property color accentColor: getData("accentColor", "#7C3AED")
     readonly property color accent2Color: getData("accent2Color", "#D97706")
     readonly property real bgOpacity: getData("bgOpacity", 0.0)
@@ -473,4 +497,5 @@ DesktopPluginComponent {
             Quickshell.execDetached(["sh", "-c", musicPlayerPath])
         }
     }
+
 }
