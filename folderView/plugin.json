@@ -1,0 +1,14 @@
+{
+  "id": "folderView",
+  "name": "Folder View",
+  "description": "Displays and opens files/folders located in a selected directory.",
+  "version": "2.2.0",
+  "author": "Loc Huynh",
+  "type": "desktop",
+  "capabilities": ["desktop-widget"],
+  "component": "./FolderView.qml",
+  "icon": "folder",
+  "settings": "./FolderViewSettings.qml",
+  "requires_dms": ">=1.2.0",
+  "permissions": ["settings_read", "settings_write", "shell_execute"]
+}
