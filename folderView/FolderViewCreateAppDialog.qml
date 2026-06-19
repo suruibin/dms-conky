@@ -18,10 +18,6 @@ Popup {
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    Keys.onPressed: event => {
-        if (event.key === Qt.Key_Escape) { close(); event.accepted = true; }
-    }
-
     x: parent ? Math.round((parent.width - width) / 2) : 0
     y: parent ? Math.round((parent.height - height) / 2) : 0
 
@@ -83,7 +79,7 @@ Popup {
     }
 
     contentItem: Rectangle {
-        color: Theme.withAlpha(Theme.surfaceContainer, 0.95)
+        color: Theme.surfaceContainer
         radius: Theme.cornerRadius
         border.color: Theme.withAlpha(Theme.outline, 0.15)
         border.width: 1
@@ -289,6 +285,32 @@ Popup {
                                     }
                                 }
                             }
+                        }
+
+                        // Custom scrollbar — matches conky/launcher/AppLauncherContent.qml pattern (lines 930-934)
+                        Item { width: 16; anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom; z: 10; visible: appListView.contentHeight > appListView.height
+                            Rectangle { id: appSB; width: 6; radius: 3; anchors.right: parent.right; anchors.rightMargin: 2; height: Math.max(20, parent.height * appListView.visibleArea.heightRatio); color: Theme.withAlpha(Theme.primary, 0.2); y: appListView.contentY / appListView.contentHeight * parent.height }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; preventStealing: true; property real _py: 0
+                                onPressed: mouse => { _py = mouse.y - appSB.y }
+                                onPositionChanged: mouse => { var lv = appListView; if (lv.contentHeight > lv.height) { var ny = Math.max(0, Math.min(parent.height - appSB.height, mouse.y - _py)); appSB.y = ny; lv.contentY = ny / parent.height * lv.contentHeight } } }
+                        }
+
+                        // Fast scroll overlay — matches conky/launcher/AppLauncherContent.qml pattern
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: false
+                            propagateComposedEvents: true
+                            onWheel: wheel => {
+                                wheel.accepted = true
+                                if (appListView.contentHeight > appListView.height) {
+                                    appListView.contentY = Math.max(0, Math.min(
+                                        appListView.contentY - wheel.angleDelta.y,
+                                        appListView.contentHeight - appListView.height))
+                                }
+                            }
+                            onPressed: mouse => mouse.accepted = false
+                            onReleased: mouse => mouse.accepted = false
+                            onClicked: mouse => mouse.accepted = false
                         }
                     }
                 }
