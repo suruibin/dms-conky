@@ -28,11 +28,15 @@ Popup {
         // Fetch all apps directly from Quickshell's DesktopEntries singleton
         const allEntries = DesktopEntries.applications.values;
         let apps = [];
+        let seen = {};
         for (let i = 0; i < allEntries.length; i++) {
             const app = allEntries[i];
             if (app && !app.noDisplay) {
+                const nm = app.name || "";
+                if (seen[nm]) continue; // skip duplicates by name
+                seen[nm] = true;
                 apps.push({
-                    name: app.name || "",
+                    name: nm,
                     exec: app.execString || (app.command ? app.command.join(" ") : ""),
                     icon: app.icon || ""
                 });

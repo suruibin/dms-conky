@@ -36,8 +36,9 @@ DesktopPluginComponent {
     readonly property string headerPosition: pluginData.headerPosition ?? "top"
     property bool showHeader: pluginData.showHeader ?? true
     readonly property var pinnedPaths: pluginData.pinnedPaths ?? []
-    onPinnedPathsChanged: updateFilteredModel()
+    onPinnedPathsChanged: { updateFilteredModel(); buildFolderDropdownModel(); }
 
+    property var folderDropdownModel: []
     property var stacks: pluginData.stacks ?? []
     onStacksChanged: updateFilteredModel()
     property var expandedStackIds: []
@@ -335,6 +336,20 @@ DesktopPluginComponent {
     // Folder navigation
     property var folderHistory: []
     property var forwardHistory: []
+    function resolveStandardFolderPath(type) {
+        switch (type) {
+            case "home": return Platform.StandardPaths.writableLocation(Platform.StandardPaths.HomeLocation).toString();
+            case "desktop": return Platform.StandardPaths.writableLocation(Platform.StandardPaths.DesktopLocation).toString();
+            case "downloads": return Platform.StandardPaths.writableLocation(Platform.StandardPaths.DownloadLocation).toString();
+            case "music": return Platform.StandardPaths.writableLocation(Platform.StandardPaths.MusicLocation).toString();
+            case "pictures": return Platform.StandardPaths.writableLocation(Platform.StandardPaths.PicturesLocation).toString();
+            case "videos": return Platform.StandardPaths.writableLocation(Platform.StandardPaths.MoviesLocation).toString();
+            case "documents": return Platform.StandardPaths.writableLocation(Platform.StandardPaths.DocumentsLocation).toString();
+            case "trash": return Platform.StandardPaths.writableLocation(Platform.StandardPaths.HomeLocation).toString() + "/.local/share/Trash/files";
+            default: return "";
+        }
+    }
+
     function navigateToFolder(folderPath) {
         let cleanPath = root._cleanPath(String(folderPath));
         let current = root.targetFolderUrl;
@@ -494,6 +509,7 @@ DesktopPluginComponent {
         selectionClearTimer.stop();
         inlineRenameArmTimer.stop();
     }
+    Component.onCompleted: buildFolderDropdownModel()
 
     ListModel {
         id: filteredModel
@@ -873,6 +889,95 @@ DesktopPluginComponent {
         } else if (viewMode === "compact" && typeof fileCompact !== "undefined" && fileCompact) {
             fileCompact.contentY = 0;
         }
+    }
+
+    function buildFolderDropdownModel() {
+        var items = [
+            { label: I18n.tr("Home"), value: "home", icon: "home" },
+            { label: I18n.tr("Desktop"), value: "desktop", icon: "desktop_mac" },
+            { label: I18n.tr("Downloads"), value: "downloads", icon: "download" },
+            { label: I18n.tr("Music"), value: "music", icon: "music_note" },
+            { label: I18n.tr("Pictures"), value: "pictures", icon: "image" },
+            { label: I18n.tr("Videos"), value: "videos", icon: "movie" },
+            { label: I18n.tr("Documents"), value: "documents", icon: "description" },
+            { label: I18n.tr("Trash"), value: "trash", icon: "delete" }
+        ];
+
+        // Resolve home as clean filesystem path (strip file:// if present)
+        var homeUrl = Platform.StandardPaths.writableLocation(Platform.StandardPaths.HomeLocation).toString();
+        var homePath = homeUrl;
+        if (homePath.indexOf("file://") === 0) homePath = homePath.substring(7);
+
+        // Collect standard paths (clean paths, no file:// prefix) to skip duplicates
+        var stdPaths = {};
+        stdPaths[homePath] = true;
+        stdPaths[homePath + "/Desktop"] = true;
+        stdPaths[homePath + "/Downloads"] = true;
+        stdPaths[homePath + "/Music"] = true;
+        stdPaths[homePath + "/Pictures"] = true;
+        stdPaths[homePath + "/Videos"] = true;
+        stdPaths[homePath + "/Documents"] = true;
+
+        // Read GTK bookmarks (system file manager favorites)
+        var bookmarkItems = [];
+        try {
+            var bkUrl = homeUrl;
+            if (bkUrl.charAt(bkUrl.length - 1) !== "/") bkUrl += "/";
+            bkUrl += ".config/gtk-3.0/bookmarks";
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", bkUrl, false);
+            xhr.send();
+            if (xhr.status === 0 || xhr.status === 200) {
+                var lines = xhr.responseText.split("\n");
+                for (var bi = 0; bi < lines.length; bi++) {
+                    var line = String(lines[bi]).trim();
+                    if (line === "") continue;
+                    // Format: "file:///path optional_label"
+                    var spaceIdx = line.indexOf(" ");
+                    var uri = spaceIdx >= 0 ? line.substring(0, spaceIdx) : line;
+                    var label = spaceIdx >= 0 ? line.substring(spaceIdx + 1).trim() : "";
+                    var filePath = decodeURIComponent(uri);
+                    if (filePath.indexOf("file://") === 0) filePath = filePath.substring(7);
+
+                    // Skip if matches a standard path
+                    if (stdPaths[filePath] !== undefined) continue;
+                    // Skip home root or empty
+                    if (filePath === "" || filePath === homePath) continue;
+
+                    var displayName = label || filePath.split("/").filter(function(s) { return s !== ""; }).pop() || filePath;
+                    bookmarkItems.push({ label: displayName, value: "bookmark", icon: "bookmark", path: filePath });
+                }
+            }
+        } catch (e) {}
+
+        // Add bookmarks section
+        if (bookmarkItems.length > 0) {
+            items.push({ value: "separator", icon: "", label: "" });
+            for (var bj = 0; bj < bookmarkItems.length; bj++) {
+                items.push(bookmarkItems[bj]);
+            }
+        }
+
+        // Add pinnedPaths (folderView's own pin-to-top items)
+        var pins = root.pinnedPaths || [];
+        var hasPins = false;
+        for (var pi = 0; pi < pins.length; pi++) {
+            if (String(pins[pi]).indexOf("stack://") !== 0) { hasPins = true; break; }
+        }
+
+        if (hasPins) {
+            items.push({ value: "separator", icon: "", label: "" });
+            for (var i = 0; i < pins.length; i++) {
+                var pinPath = String(pins[i]);
+                if (pinPath.indexOf("stack://") === 0) continue;
+                var parts = pinPath.split("/");
+                var name = parts[parts.length - 1] || pinPath;
+                items.push({ label: name, value: "pinned", icon: "push_pin", path: pinPath });
+            }
+        }
+
+        items.push({ label: I18n.tr("Custom..."), value: "custom", icon: "folder" });
+        root.folderDropdownModel = items;
     }
 
     Connections {
@@ -2928,27 +3033,32 @@ DesktopPluginComponent {
                 spacing: 2
 
                 Repeater {
-                    model: [
-                        { label: I18n.tr("Home"), value: "home", icon: "home" },
-                        { label: I18n.tr("Desktop"), value: "desktop", icon: "desktop_mac" },
-                        { label: I18n.tr("Downloads"), value: "downloads", icon: "download" },
-                        { label: I18n.tr("Music"), value: "music", icon: "music_note" },
-                        { label: I18n.tr("Pictures"), value: "pictures", icon: "image" },
-                        { label: I18n.tr("Videos"), value: "videos", icon: "movie" },
-                        { label: I18n.tr("Documents"), value: "documents", icon: "description" },
-                        { label: I18n.tr("Trash"), value: "trash", icon: "delete" },
-                        { label: I18n.tr("Custom..."), value: "custom", icon: "folder" }
-                    ]
+                    model: root.folderDropdownModel
 
                     delegate: Rectangle {
                         width: parent.width
-                        height: 28
+                        height: modelData.value === "separator" ? 10 : 28
                         radius: Theme.cornerRadius - 2
-                        color: dropdownItemArea.containsMouse 
-                            ? Theme.withAlpha(Theme.primary, 0.15) 
+                        color: !isSeparator && dropdownItemArea.containsMouse
+                            ? Theme.withAlpha(Theme.primary, 0.15)
                             : "transparent"
 
+                        readonly property bool isSeparator: modelData.value === "separator"
+                        readonly property bool isPinned: modelData.value === "pinned" || modelData.value === "bookmark"
+
+                        // Separator line
+                        Rectangle {
+                            anchors.left: parent.left; anchors.leftMargin: Theme.spacingS
+                            anchors.right: parent.right; anchors.rightMargin: Theme.spacingS
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: 1
+                            color: Theme.withAlpha(Theme.outline, 0.12)
+                            visible: isSeparator
+                        }
+
+                        // Normal item row (hidden for separator)
                         Row {
+                            visible: !isSeparator
                             anchors.left: parent.left
                             anchors.leftMargin: Theme.spacingS
                             anchors.right: parent.right
@@ -2957,17 +3067,17 @@ DesktopPluginComponent {
                             spacing: Theme.spacingS
 
                             DankIcon {
-                                name: modelData.icon
+                                name: modelData.icon || "folder"
                                 size: 14
-                                color: root.folderType === modelData.value ? Theme.primary : Theme.surfaceText
+                                color: isPinned ? Theme.primary : (root.folderType === modelData.value ? Theme.primary : Theme.surfaceText)
                                 anchors.verticalCenter: parent.verticalCenter
                             }
 
                             StyledText {
                                 text: modelData.label
                                 font.pixelSize: Theme.fontSizeSmall
-                                font.bold: root.folderType === modelData.value
-                                color: root.folderType === modelData.value ? Theme.primary : Theme.surfaceText
+                                font.bold: isPinned || root.folderType === modelData.value
+                                color: isPinned ? Theme.primary : (root.folderType === modelData.value ? Theme.primary : Theme.surfaceText)
                                 anchors.verticalCenter: parent.verticalCenter
                                 elide: Text.ElideRight
                             }
@@ -2976,15 +3086,25 @@ DesktopPluginComponent {
                         MouseArea {
                             id: dropdownItemArea
                             anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: !isSeparator
+                            cursorShape: isSeparator ? Qt.ArrowCursor : Qt.PointingHandCursor
+                            visible: !isSeparator
+
                             onClicked: {
                                 folderDropdown.close();
-                                if (modelData.value === "custom") {
+                                if (isPinned) {
+                                    root.navigateToFolder(modelData.path);
+                                } else if (modelData.value === "custom") {
                                     folderPickerDialog.open();
                                 } else {
-                                    if (pluginService) {
-                                        pluginService.savePluginData(pluginId, "folderType", modelData.value);
+                                    // Default standard folder type
+                                    var stdPath = root.resolveStandardFolderPath(modelData.value);
+                                    if (stdPath !== "") {
+                                        root.navigateToFolder(stdPath);
+                                        // Override folderType so display name shows correctly (navigateToFolder sets it to "custom")
+                                        if (pluginService) {
+                                            pluginService.savePluginData(pluginId, "folderType", modelData.value);
+                                        }
                                     }
                                 }
                             }
