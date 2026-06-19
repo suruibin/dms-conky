@@ -17,16 +17,10 @@ DesktopPluginComponent {
     // Accept keyboard focus for text input (search boxes)
     property bool acceptsKeyboardFocus: true
 
-    minWidth: 280
-    minHeight: 500
-    widgetWidth: getData("widgetWidth", 298)
-    widgetHeight: getData("widgetHeight", 522)
-
-    // FolderView toggle — match DMS settings panel behavior
+    // FolderView toggle
     property string _fvId: ""
     function toggleFolderView() {
         if (!_fvId) {
-            // Find folderView instance ID (first time only)
             var instances = SettingsData.desktopWidgetInstances || []
             for (var i = 0; i < instances.length; i++) {
                 if (instances[i].widgetType === "folderView") {
@@ -45,6 +39,11 @@ DesktopPluginComponent {
             }
         }
     }
+
+    minWidth: 280
+    minHeight: 500
+    widgetWidth: getData("widgetWidth", 298)
+    widgetHeight: getData("widgetHeight", 522)
 
     readonly property color accentColor: getData("accentColor", "#7C3AED")
     readonly property color accent2Color: getData("accent2Color", "#D97706")
@@ -330,18 +329,14 @@ DesktopPluginComponent {
     }
 
     // ============================================
-    // FOLDER VIEW - Custom pluginService bridge
+    // FOLDER VIEW
     // ============================================
-    // Redirects data to/from "folderView" namespace in SettingsData
     QtObject {
         id: folderPluginService
-
         signal pluginDataChanged(string pluginId)
-
         function loadPluginData(pluginId, key, defaultValue) {
             return SettingsData.getPluginSetting("folderView", key, defaultValue)
         }
-
         function savePluginData(pluginId, key, value) {
             SettingsData.setPluginSetting("folderView", key, value)
             SettingsData.savePluginSettings()
@@ -349,70 +344,46 @@ DesktopPluginComponent {
         }
     }
 
-    // ============================================
-    // FOLDER VIEW FLOATING PANEL
-    // ============================================
-    PanelWindow {
-        id: folderViewWindow
-        visible: root.showFolderView
-        color: "transparent"
+    Loader {
+        id: folderViewLoader
+        active: root.showFolderView
+        sourceComponent: Component {
+            PanelWindow {
+                id: folderViewWindow
+                color: "transparent"
+                property real _left: 200
+                property real _top: 100
 
-        // Draggable position (margins-based fallback)
-        property real _left: 200
-        property real _top: 100
+                WlrLayershell.namespace: "dms:folderView"
+                WlrLayershell.layer: WlrLayer.Top
+                WlrLayershell.exclusionMode: ExclusionMode.Ignore
+                WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
-        WlrLayershell.namespace: "dms:folderView"
-        WlrLayershell.layer: WlrLayershell.Top
-        WlrLayershell.exclusiveZone: -1
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+                anchors { left: true; top: true; right: false; bottom: false }
+                WlrLayershell.margins { left: folderViewWindow._left; top: folderViewWindow._top }
+                implicitWidth: 640; implicitHeight: 500
 
-        anchors {
-            left: true
-            top: true
-            right: false
-            bottom: false
-        }
+                FloatingWindowControls { targetWindow: folderViewWindow }
 
-        WlrLayershell.margins {
-            left: folderViewWindow._left
-            top: folderViewWindow._top
-        }
+                FolderView {
+                    id: folderViewInstance
+                    anchors.fill: parent; anchors.margins: 0
+                    pluginService: folderPluginService; pluginId: "folderView"
+                }
 
-        implicitWidth: 640
-        implicitHeight: 500
+                MouseArea {
+                    anchors.top: parent.top; anchors.left: parent.left
+                    anchors.right: parent.right; height: 20
+                    cursorShape: Qt.SizeAllCursor; z: 10
+                    onPressed: { folderViewWindow.startSystemMove() }
+                }
 
-        // Resize edges (DMS standard)
-        FloatingWindowControls {
-            targetWindow: folderViewWindow
-        }
-
-        FolderView {
-            id: folderViewInstance
-            anchors.fill: parent
-            anchors.margins: 0
-            pluginService: folderPluginService
-            pluginId: "folderView"
-        }
-
-        // Drag handle (top 20px) — MUST be after FolderView to stay on top
-        MouseArea {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 20
-            cursorShape: Qt.SizeAllCursor
-            z: 10
-            // Use Qt's system window move (works on Wayland if compositor supports it)
-            onPressed: { folderViewWindow.startSystemMove() }
-        }
-
-        Shortcut {
-            sequence: "Escape"
-            onActivated: root.showFolderView = false
-        }
-
-        onVisibleChanged: {
-            if (!visible) root.showFolderView = false
+                Shortcut {
+                    sequence: "Escape"
+                    onActivated: root.showFolderView = false
+                }
+                onVisibleChanged: { if (!visible) root.showFolderView = false }
+            }
         }
     }
 
