@@ -24,6 +24,51 @@ Popup {
     property string targetFolderUrl: ""
     property var allApps: []
 
+    // ── Plugin I18n ──────────────────────────────────────────────────────────
+    property var _pluginFlatTranslations: ({})
+    property bool _pluginI18nReady: false
+    property int __i18nTick: 1
+    // Set from FolderView.qml to inherit current language
+    property string pluginLanguage: "system"
+    onPluginLanguageChanged: _loadPluginTranslations(pluginLanguage)
+
+    function _loadPluginTranslations(locale) {
+        if (locale === "System Default" || locale === "") locale = "system";
+        if (locale === "system") locale = "en";
+        if (!locale) {
+            createAppDialog._pluginFlatTranslations = ({});
+            createAppDialog._pluginI18nReady = false;
+            __i18nTick++;
+            return;
+        }
+        pluginI18nLoader.path = Qt.resolvedUrl("translations/i18n/" + locale + ".json");
+    }
+
+    function i18n(term, context) {
+        var _ = __i18nTick;
+        if (_pluginI18nReady && _pluginFlatTranslations[term]) {
+            return _pluginFlatTranslations[term];
+        }
+        return I18n.tr(term, context);
+    }
+
+    FileView {
+        id: pluginI18nLoader
+        onLoaded: {
+            try {
+                createAppDialog._pluginFlatTranslations = JSON.parse(text());
+                createAppDialog._pluginI18nReady = true;
+            } catch (e) {
+                console.warn("CreateAppDialog I18n: error parsing:", e);
+            }
+        }
+        onLoadFailed: error => {
+            console.warn("CreateAppDialog I18n: failed to load:", error);
+        }
+    }
+
+    Component.onCompleted: _loadPluginTranslations(pluginLanguage)
+
     function fetchApps() {
         // Fetch all apps directly from Quickshell's DesktopEntries singleton
         const allEntries = DesktopEntries.applications.values;
@@ -99,7 +144,7 @@ Popup {
                 height: 24
                 
                 StyledText {
-                    text: I18n.tr("New Application")
+                    text: i18n("New Application")
                     font.bold: true
                     font.pixelSize: Theme.fontSizeMedium
                     color: Theme.surfaceText
@@ -158,7 +203,7 @@ Popup {
 
                             StyledText {
                                 anchors.centerIn: parent
-                                text: I18n.tr("System Apps")
+                                text: i18n("System Apps")
                                 font.bold: modeStack.currentIndex === 0
                                 font.pixelSize: Theme.fontSizeSmall
                                 color: modeStack.currentIndex === 0 ? Theme.onPrimary : Theme.surfaceText
@@ -185,7 +230,7 @@ Popup {
 
                             StyledText {
                                 anchors.centerIn: parent
-                                text: I18n.tr("Custom App")
+                                text: i18n("Custom App")
                                 font.bold: modeStack.currentIndex === 1
                                 font.pixelSize: Theme.fontSizeSmall
                                 color: modeStack.currentIndex === 1 ? Theme.onPrimary : Theme.surfaceText
@@ -208,7 +253,7 @@ Popup {
                     DankTextField {
                         id: searchField
                         width: parent.width
-                        placeholderText: I18n.tr("Search apps...")
+                        placeholderText: i18n("Search apps...")
                         onTextChanged: updateAppModel()
                     }
 
@@ -326,21 +371,21 @@ Popup {
                     DankTextField {
                         id: nameField
                         width: parent.width
-                        placeholderText: I18n.tr("App name...")
+                        placeholderText: i18n("App name...")
                         onAccepted: execField.forceActiveFocus()
                     }
 
                     DankTextField {
                         id: execField
                         width: parent.width
-                        placeholderText: I18n.tr("Command...")
+                        placeholderText: i18n("Command...")
                         onAccepted: iconField.forceActiveFocus()
                     }
 
                     DankTextField {
                         id: iconField
                         width: parent.width
-                        placeholderText: I18n.tr("Icon (optional)...")
+                        placeholderText: i18n("Icon (optional)...")
                         onAccepted: createAppDialog.performCreate()
                     }
 
@@ -352,14 +397,14 @@ Popup {
                         layoutDirection: Qt.RightToLeft
 
                         DankButton {
-                            text: I18n.tr("Create")
+                            text: i18n("Create")
                             backgroundColor: Theme.primary
                             textColor: Theme.primaryText
                             onClicked: createAppDialog.performCreate()
                         }
 
                         DankButton {
-                            text: I18n.tr("Cancel")
+                            text: i18n("Cancel")
                             backgroundColor: Theme.surfaceContainerHigh
                             textColor: Theme.surfaceText
                             onClicked: createAppDialog.close()
@@ -407,7 +452,7 @@ Popup {
         let iconVal = iconField.text.trim();
 
         if (name.length === 0 || execVal.length === 0) {
-            ToastService.showToast(I18n.tr("App name and Command are required"), ToastService.levelWarning);
+            ToastService.showToast(i18n("App name and Command are required"), ToastService.levelWarning);
             return;
         }
 

@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell.Io
 import qs.Common
 import qs.Widgets
 
@@ -13,6 +14,48 @@ FocusScope {
     property string targetName: ""
     property bool targetIsDir: false
     property int fontPixelSize: Theme.fontSizeSmall
+
+    // ── Plugin I18n ──────────────────────────────────────────────────────────
+    property var _pluginFlatTranslations: ({})
+    property bool _pluginI18nReady: false
+    property int __i18nTick: 1
+    property string pluginLanguage: "system"
+    onPluginLanguageChanged: _loadPluginTranslations(pluginLanguage)
+
+    function _loadPluginTranslations(locale) {
+        if (locale === "System Default" || locale === "") locale = "system";
+        if (locale === "system") locale = "en";
+        if (!locale) {
+            editor._pluginFlatTranslations = ({});
+            editor._pluginI18nReady = false;
+            __i18nTick++;
+            return;
+        }
+        pluginI18nLoader.path = Qt.resolvedUrl("translations/i18n/" + locale + ".json");
+    }
+
+    function i18n(term, context) {
+        var _ = __i18nTick;
+        if (_pluginI18nReady && _pluginFlatTranslations[term]) {
+            return _pluginFlatTranslations[term];
+        }
+        return I18n.tr(term, context);
+    }
+
+    FileView {
+        id: pluginI18nLoader
+        onLoaded: {
+            try {
+                editor._pluginFlatTranslations = JSON.parse(text());
+                editor._pluginI18nReady = true;
+            } catch (e) {
+                console.warn("InlineRename I18n: error parsing:", e);
+            }
+        }
+        onLoadFailed: error => {
+            console.warn("InlineRename I18n: failed to load:", error);
+        }
+    }
 
     signal accepted(string newBaseName)
     signal canceled
@@ -65,12 +108,13 @@ FocusScope {
         topPadding: Theme.spacingXS
         bottomPadding: Theme.spacingXS
         font.pixelSize: editor.fontPixelSize
-        placeholderText: I18n.tr("Enter new name...")
+        placeholderText: i18n("Enter new name...")
         onAccepted: editor.commit()
         onEditingFinished: editor.commit()
     }
 
     Component.onCompleted: {
+        _loadPluginTranslations(pluginLanguage);
         Qt.callLater(() => {
             // The editor can be torn down within the same tick (e.g. the item
             // is removed from the model), so the deferred field may be gone.

@@ -2,19 +2,31 @@ import QtQuick
 import QtQuick.Controls
 import Qt.labs.folderlistmodel
 import Qt.labs.platform as Platform
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Widgets
+import Quickshell.Io
 import qs.Common
 import qs.Widgets
 import qs.Services
 import qs.Modules.Plugins
 import QtQuick.Dialogs
+import QtMultimedia
 import "./dms-common"
 
 DesktopPluginComponent {
     id: root
 
     property bool acceptsKeyboardFocus: true
+
+    layer.enabled: true
+    layer.effect: OpacityMask {
+        maskSource: Rectangle {
+            width: root.width
+            height: root.height
+            radius: 12
+        }
+    }
 
 
     // Desktop widget dimensions
@@ -42,6 +54,76 @@ DesktopPluginComponent {
     property var stacks: pluginData.stacks ?? []
     onStacksChanged: updateFilteredModel()
     property var expandedStackIds: []
+
+    // ── Plugin I18n ──────────────────────────────────────────────────────────────
+    property string pluginLanguage: pluginData.pluginLanguage ?? "system"
+    onPluginLanguageChanged: {
+        _applyPluginLanguage(pluginLanguage);
+        buildFolderDropdownModel();
+    }
+    property var _pluginFlatTranslations: ({})
+    property bool _pluginI18nReady: false
+
+    // ── Reactive Language Sync ──
+    // DesktopPluginComponent binds pluginData = instanceConfig for instances.
+    // Global settings changes (e.g. language in FolderViewSettings) update
+    // the pluginService store and emit pluginDataChanged, but the instanceConfig
+    // reference stays the same → QML does NOT see a change → pluginLanguage
+    // never updates → translations never reload.
+    //
+    // Fix: poll pluginService.loadPluginData() on a timer.  ~800 ms latency
+    // on language switch is imperceptible and this bypasses every QML binding /
+    // signal wiring issue in one shot.
+    Timer {
+        id: languageSyncTimer
+        interval: 800
+        repeat: true
+        running: true
+        onTriggered: {
+            if (!pluginService) return;
+            var lang = pluginService.loadPluginData(pluginId, "pluginLanguage", "system");
+            if (lang !== pluginLanguage)
+                pluginLanguage = lang;
+        }
+    }
+
+    // Model arrays that auto-rebuild when translations change (non-readonly so i18n()
+    // bindings re-evaluate when _pluginFlatTranslations or I18n.translations change)
+    property var _viewModeOptions: [
+        { label: i18n("Grid View"), value: "grid", icon: "grid_view" },
+        { label: i18n("List View"), value: "list", icon: "view_list" },
+        { label: i18n("Compact View"), value: "compact", icon: "view_module" }
+    ]
+    property var _createNewOptions: [
+        { label: i18n("New Folder"), value: "folder", icon: "create_new_folder" },
+        { label: i18n("New Document"), value: "file", icon: "note_add" },
+        { label: i18n("New App"), value: "app", icon: "add_to_home_screen" }
+    ]
+    property var _sortOptions: [
+        { label: i18n("Sort by Name"), value: "name", icon: "sort_by_alpha" },
+        { label: i18n("Sort by Date"), value: "time", icon: "schedule" },
+        { label: i18n("Sort by Size"), value: "size", icon: "bar_chart" },
+        { label: i18n("Sort by Type"), value: "type", icon: "category" }
+    ]
+    property var _fileTypeOptions: [
+        { label: i18n("All Files"), value: "all", icon: "menu" },
+        { label: i18n("Folders Only"), value: "folders", icon: "folder" },
+        { label: i18n("Files Only"), value: "files", icon: "description" },
+        { label: i18n("Images Only"), value: "images", icon: "image" },
+        { label: i18n("Documents Only"), value: "documents", icon: "article" },
+        { label: i18n("Audio & Video"), value: "audio_video", icon: "movie" }
+    ]
+    property var _timeFilterOptions: [
+        { label: i18n("Any Time"), value: "all", icon: "schedule" },
+        { label: i18n("Last 24 Hours"), value: "today", icon: "today" },
+        { label: i18n("Last 7 Days"), value: "week", icon: "date_range" },
+        { label: i18n("Last 30 Days"), value: "month", icon: "calendar_month" },
+        { label: i18n("Last 365 Days"), value: "year", icon: "history" }
+    ]
+    property var _headerPositionOptions: [
+        { label: i18n("Top"), val: "top" },
+        { label: i18n("Bottom"), val: "bottom" }
+    ]
 
     readonly property bool isScrolledDown: viewMode === "grid"
         ? (typeof fileGrid !== "undefined" && fileGrid ? fileGrid.contentY > 50 : false)
@@ -86,23 +168,28 @@ DesktopPluginComponent {
         }
     }
 
-    readonly property string folderDisplayName: {
+    property string folderDisplayName: {
         switch (folderType) {
-            case "home": return I18n.tr("Home");
-            case "desktop": return I18n.tr("Desktop");
-            case "downloads": return I18n.tr("Downloads");
-            case "music": return I18n.tr("Music");
-            case "pictures": return I18n.tr("Pictures");
-            case "videos": return I18n.tr("Videos");
-            case "documents": return I18n.tr("Documents");
-            case "trash": return I18n.tr("Trash");
+            case "home": {
+                var homePath = Platform.StandardPaths.writableLocation(Platform.StandardPaths.HomeLocation).toString();
+                // Extract username from the last segment of the home path
+                var parts = homePath.split("/");
+                return parts[parts.length - 1] || i18n("Home");
+            }
+            case "desktop": return i18n("Desktop");
+            case "downloads": return i18n("Downloads");
+            case "music": return i18n("Music");
+            case "pictures": return i18n("Pictures");
+            case "videos": return i18n("Videos");
+            case "documents": return i18n("Documents");
+            case "trash": return i18n("Trash");
             case "custom":
                 if (customFolderPath) {
                     const parts = customFolderPath.trim().split("/");
-                    return parts[parts.length - 1] || I18n.tr("Folder");
+                    return parts[parts.length - 1] || i18n("Folder");
                 }
-                return I18n.tr("Folder");
-            default: return I18n.tr("Folder");
+                return i18n("Folder");
+            default: return i18n("Folder");
         }
     }
 
@@ -124,12 +211,154 @@ DesktopPluginComponent {
     property string selectedFileInfo: ""
     property string emptyColor: pluginData.emptyColor ?? "#FF1744"
     property string folderColor: pluginData.folderColor ?? ""
+    readonly property var favoritePaths: pluginData.favoritePaths ?? []
+    onFavoritePathsChanged: buildFolderDropdownModel()
+
+    function toggleFavorite(filePath) {
+        if (!pluginService) return;
+        var favs = root.favoritePaths.slice();
+        var idx = favs.indexOf(filePath);
+        if (idx !== -1) favs.splice(idx, 1);
+        else favs.push(filePath);
+        pluginService.savePluginData(pluginId, "favoritePaths", favs);
+    }
+
+    function removeBookmark(filePath) {
+        // Remove from in-memory model immediately
+        var newModel = [];
+        for (var i = 0; i < root.folderDropdownModel.length; i++) {
+            var item = root.folderDropdownModel[i];
+            if (!(item.value === "bookmark" && item.path === filePath)) {
+                newModel.push(item);
+            }
+        }
+        root.folderDropdownModel = newModel;
+        // Remove from GTK bookmarks file
+        var bookFile = "/home/suruibin/.config/gtk-3.0/bookmarks";
+        var encoded = encodeURIComponent(filePath).replace(/%2F/g, "/");
+        Quickshell.execDetached(["sed", "-i", "\\|" + encoded + "|d", bookFile]);
+    }
 
     // Inline rename state: file path of the item currently renamed in place
     // ("" when no item is being renamed). _inlineRenameArmPath holds the path
     // queued by inlineRenameArmTimer until it fires.
     property string renamingFilePath: ""
     property string _inlineRenameArmPath: ""
+
+    // Clipboard copy/paste (replaces drag-and-drop)
+    property var copiedFilePaths: []
+    property bool cutMode: false
+
+    function _syncToSystemClipboard() {
+        if (root.copiedFilePaths.length === 0) return;
+        var uris = root.copiedFilePaths.map(function(p) {
+            return "file://" + root._cleanPath(p);
+        }).join("\n");
+        Quickshell.execDetached(["wl-copy", "-t", "text/uri-list", uris]);
+    }
+
+    Shortcut {
+        sequence: StandardKey.Copy
+        onActivated: {
+            if (root.selectedFilePaths.length > 0) {
+                root.copiedFilePaths = root.selectedFilePaths.slice();
+                root.cutMode = false;
+                root._syncToSystemClipboard();
+            }
+        }
+    }
+    Shortcut {
+        sequence: StandardKey.Cut
+        onActivated: {
+            if (root.selectedFilePaths.length > 0) {
+                root.copiedFilePaths = root.selectedFilePaths.slice();
+                root.cutMode = true;
+                root._syncToSystemClipboard();
+            }
+        }
+    }
+    Shortcut {
+        sequence: StandardKey.Paste
+        onActivated: {
+            if (root.copiedFilePaths.length > 0) {
+                var dest = root._cleanPath(root.targetFolderUrl);
+                var isCut = root.cutMode;
+                for (var i = 0; i < root.copiedFilePaths.length; i++) {
+                    var src = root._cleanPath(root.copiedFilePaths[i]);
+                    var name = src.split("/").pop();
+                    var srcDir = src.substring(0, src.lastIndexOf("/"));
+                    var destPath = dest + "/" + name;
+                    if (srcDir === dest) {
+                        var base = name.replace(/\.[^.]+$/, "");
+                        var ext = name.substring(base.length);
+                        destPath = dest + "/" + base + " (copy)" + ext;
+                    }
+                    if (src === destPath) continue;
+                    if (isCut) {
+                        Quickshell.execDetached(["mv", src, destPath]);
+                    } else {
+                        Quickshell.execDetached(["cp", "-a", src, destPath]);
+                    }
+                }
+                root.copiedFilePaths = [];
+                root.cutMode = false;
+            }
+        }
+    }
+    Shortcut {
+        sequence: "Del"
+        onActivated: {
+            if (root.selectedFilePaths.length > 0) {
+                var paths = root.selectedFilePaths.slice();
+                root.clearSelection();
+                for (var i = 0; i < paths.length; i++) {
+                    Quickshell.execDetached(["gio", "trash", "--", root._cleanPath(paths[i])]);
+                }
+            }
+        }
+    }
+    Shortcut {
+        sequences: ["F2"]
+        onActivated: {
+            if (root.selectedFilePaths.length === 1) {
+                root.armInlineRename(root.selectedFilePaths[0]);
+            }
+        }
+    }
+    Shortcut {
+        sequence: "Space"
+        onActivated: {
+            if (previewPopup.opened) {
+                previewPopup.close();
+            } else if (root.selectedFilePaths.length === 1) {
+                var path = root.selectedFilePaths[0];
+                for (var i = 0; i < filteredModel.count; i++) {
+                    if (filteredModel.get(i).filePath === path) {
+                        if (filteredModel.get(i).fileIsDir) return;
+                        previewPopup._currentIndex = i;
+                        break;
+                    }
+                }
+                previewPopup.filePath = path;
+                previewPopup.open();
+            }
+        }
+    }
+    Shortcut {
+        sequence: StandardKey.SelectAll
+        onActivated: {
+            var arr = [];
+            var set = {};
+            for (var i = 0; i < filteredModel.count; i++) {
+                var fp = filteredModel.get(i).filePath;
+                if (fp.startsWith("stack://")) continue;
+                arr.push(fp);
+                set[fp] = true;
+            }
+            root.selectedFilePaths = arr;
+            root.selectedPathsSet = set;
+        }
+    }
 
     function clearSelection() {
         selectedFilePaths = [];
@@ -233,7 +462,7 @@ DesktopPluginComponent {
             // A slash would turn the rename into a move into another directory
             // (or an invalid path), so reject it.
             if (trimmed.indexOf("/") !== -1) {
-                ToastService.showToast(I18n.tr("Rename failed") + ": " + I18n.tr("Name cannot contain slashes"), ToastService.levelError);
+                ToastService.showToast(i18n("Rename failed") + ": " + i18n("Name cannot contain slashes"), ToastService.levelError);
                 return;
             }
 
@@ -262,7 +491,7 @@ DesktopPluginComponent {
             const newPath = parts.join("/") + "/" + newName;
             Quickshell.execDetached(["mv", pathStr, newPath]);
         } catch (e) {
-            ToastService.showToast(I18n.tr("Rename failed") + ": " + e.message, ToastService.levelError);
+            ToastService.showToast(i18n("Rename failed") + ": " + e.message, ToastService.levelError);
         }
     }
 
@@ -275,14 +504,8 @@ DesktopPluginComponent {
     // item that is already the sole selection arms an inline rename; any other
     // left click just (re)selects the item.
     function handleItemLabelClick(mouseArea, labelItem, mouseX, mouseY, filePath) {
-        const lp = mouseArea.mapToItem(labelItem, mouseX, mouseY);
-        const onLabel = labelItem.visible && lp.x >= 0 && lp.x <= labelItem.width && lp.y >= 0 && lp.y <= labelItem.height;
-        const wasSole = root.selectedFilePaths.length === 1 && root.selectedFilePaths[0] === filePath;
-        if (wasSole && onLabel) {
-            root.armInlineRename(filePath);
-        } else {
-            root.selectSingle(filePath);
-        }
+        // Rename is F2-only; click always selects
+        root.selectSingle(filePath);
     }
 
     function isPathInFilteredModel(path) {
@@ -305,12 +528,29 @@ DesktopPluginComponent {
 
     function endInlineRename() {
         inlineRenameArmTimer.stop();
-        // Clear on the next tick: this runs from inside the inline editor's own
-        // signal handler, so flipping renamingFilePath here would tear the
-        // editor down while it is still emitting.
-        Qt.callLater(() => {
-            root.renamingFilePath = "";
-        });
+        Qt.callLater(() => { root.renamingFilePath = ""; });
+    }
+
+    // Wrapper for file execution — avoids needing Quickshell import in delegates
+    function execFile(filePath) {
+        Quickshell.execDetached(["gio", "open", root._cleanPath(filePath)]);
+    }
+
+    // Wrapper for rename timer — avoids direct property access from delegates
+    function stopRenameArmTimer() { inlineRenameArmTimer.stop(); }
+    function restartRenameArmTimer() { inlineRenameArmTimer.restart(); }
+
+    // Wrapper for showing the quick context menu from a delegate
+    function showQuickMenu(filePath, fileName, fileIsDir, x, y) {
+        if (root.selectedFilePaths.indexOf(filePath) === -1)
+            root.selectSingle(filePath);
+        quickMenu.currentPath = filePath;
+        quickMenu.currentName = fileName;
+        quickMenu.currentIsDir = fileIsDir;
+        quickMenu.parent = root;
+        quickMenu.x = Math.max(0, Math.min(root.width - quickMenu.width, x));
+        quickMenu.y = Math.max(0, Math.min(root.height - quickMenu.height, y));
+        quickMenu.open();
     }
 
     function dragMimeData(filePath) {
@@ -364,7 +604,7 @@ DesktopPluginComponent {
             root.forwardHistory = [];
         }
         let url = cleanPath.startsWith("file://") ? cleanPath : "file://" + cleanPath;
-        folderModel.folder = url;
+        folderModel.folder = Qt.resolvedUrl(url);
         if (pluginService) {
             pluginService.savePluginData(pluginId, "customFolderPath", cleanPath);
             pluginService.savePluginData(pluginId, "folderType", "custom");
@@ -434,7 +674,7 @@ DesktopPluginComponent {
         let scriptPath = decodeURIComponent(root._cleanPath(Qt.resolvedUrl("paste.py")));
         let pathStr = decodeURIComponent(root._cleanPath(root.targetFolderUrl));
 
-        ToastService.showToast(I18n.tr("Pasting files..."), ToastService.levelInfo);
+        ToastService.showToast(i18n("Pasting files..."), ToastService.levelInfo);
         Quickshell.execDetached([scriptPath, pathStr]);
     }
 
@@ -446,7 +686,7 @@ DesktopPluginComponent {
         let scriptPath = decodeURIComponent(root._cleanPath(Qt.resolvedUrl("paste.py")));
         let pathStr = decodeURIComponent(root._cleanPath(root.targetFolderUrl));
 
-        ToastService.showToast(I18n.tr("Copying files..."), ToastService.levelInfo);
+        ToastService.showToast(i18n("Copying files..."), ToastService.levelInfo);
         Quickshell.execDetached([scriptPath, "--drop", pathStr].concat(fileUris));
     }
 
@@ -472,6 +712,7 @@ DesktopPluginComponent {
                     const isDir = item.fileIsDir;
                     const size = (!isDir && item.fileSize) ? root.formatFileSize(item.fileSize) : "";
                     const parts = [name];
+                    if (root.favoritePaths.indexOf(selPath) !== -1) parts[0] = "★ " + name;
                     if (mtime) parts.push(mtime);
                     if (size) parts.push(size);
                     info = parts.join("  ");
@@ -505,11 +746,189 @@ DesktopPluginComponent {
         onTriggered: root.beginInlineRename(root._inlineRenameArmPath)
     }
 
+    // ── Plugin I18n: Load plugin translations & use them locally ────────────────
+    FileView {
+        id: pluginI18nLoader
+        onLoaded: {
+            try {
+                root._pluginFlatTranslations = JSON.parse(text());
+                root._pluginI18nReady = true;
+                console.info(`FolderView I18n: loaded ${Object.keys(root._pluginFlatTranslations).length} translations for '${root.pluginLanguage}'`);
+                // Rebuild model arrays now that translations are available
+                root.buildFolderDropdownModel();
+                root._rebuildI18nArrays();
+                // Publish translation map to instance config so settings page
+                // can resolve dynamic labels (e.g. header position "Top"/"Bottom").
+                if (root.pluginService && root.pluginId) {
+                    root.pluginService.savePluginData(root.pluginId, "i18nMap", root._pluginFlatTranslations);
+                    root.pluginService.savePluginData(root.pluginId, "i18nToken", Date.now());
+                }
+            } catch (e) {
+                console.warn("FolderView I18n: error parsing:", e);
+            }
+        }
+        onLoadFailed: error => {
+            console.warn("FolderView I18n: failed to load:", error);
+            // Fall back to English (always present)
+            if (root.pluginLanguage !== "en") {
+                pluginI18nLoader.path = Qt.resolvedUrl("translations/i18n/en.json");
+            }
+        }
+    }
+
+    function _applyPluginLanguage(locale) {
+        if (locale === "System Default" || locale === "") locale = "system";
+        if (!locale) return;
+
+        if (locale === "system") {
+            var sys = _stripLocaleEnc(Qt.locale().name);
+            // Try to load plugin file matching system locale;
+            // onLoadFailed will fall back to en.json.
+            pluginI18nLoader.path = Qt.resolvedUrl("translations/i18n/" + sys + ".json");
+            console.info("FolderView I18n: switching to system locale", sys);
+            return;
+        }
+
+        // en, zh_CN, de, fr, ... — load plugin's own translation file
+        pluginI18nLoader.path = Qt.resolvedUrl("translations/i18n/" + locale + ".json");
+        console.info("FolderView I18n: switching to", locale);
+    }
+
+    // Force-rebuild all i18n-dependent model arrays so every UI string picks up
+    // the current translation regardless of how QML tracks binding dependencies.
+    function _rebuildI18nArrays() {
+        root._viewModeOptions = [
+            { label: i18n("Grid View"), value: "grid", icon: "grid_view" },
+            { label: i18n("List View"), value: "list", icon: "view_list" },
+            { label: i18n("Compact View"), value: "compact", icon: "view_module" }
+        ];
+        root._createNewOptions = [
+            { label: i18n("New Folder"), value: "folder", icon: "create_new_folder" },
+            { label: i18n("New Document"), value: "file", icon: "note_add" },
+            { label: i18n("New App"), value: "app", icon: "add_to_home_screen" }
+        ];
+        root._sortOptions = [
+            { label: i18n("Sort by Name"), value: "name", icon: "sort_by_alpha" },
+            { label: i18n("Sort by Date"), value: "time", icon: "schedule" },
+            { label: i18n("Sort by Size"), value: "size", icon: "bar_chart" },
+            { label: i18n("Sort by Type"), value: "type", icon: "category" }
+        ];
+        root._fileTypeOptions = [
+            { label: i18n("All Files"), value: "all", icon: "menu" },
+            { label: i18n("Folders Only"), value: "folders", icon: "folder" },
+            { label: i18n("Files Only"), value: "files", icon: "description" },
+            { label: i18n("Images Only"), value: "images", icon: "image" },
+            { label: i18n("Documents Only"), value: "documents", icon: "article" },
+            { label: i18n("Audio & Video"), value: "audio_video", icon: "movie" }
+        ];
+        root._timeFilterOptions = [
+            { label: i18n("Any Time"), value: "all", icon: "schedule" },
+            { label: i18n("Last 24 Hours"), value: "today", icon: "today" },
+            { label: i18n("Last 7 Days"), value: "week", icon: "date_range" },
+            { label: i18n("Last 30 Days"), value: "month", icon: "calendar_month" },
+            { label: i18n("Last 365 Days"), value: "year", icon: "history" }
+        ];
+        root._headerPositionOptions = [
+            { label: i18n("Top"), val: "top" },
+            { label: i18n("Bottom"), val: "bottom" }
+        ];
+        // Bump token after rebuilding arrays so inline i18n() bindings
+        // (e.g. StyledText { text: i18n("...") }) re-evaluate too.
+        root._i18nToken++;
+    }
+
+    // Local i18n() — checks plugin translations first, falls back to system I18n
+    property int _i18nToken: 0
+    function i18n(term, context) {
+        // _i18nToken is read to create a QML binding dependency — when it changes
+        // (after translations are reloaded) every binding that calls i18n()
+        // re-evaluates and picks up the new translation.
+        if (_i18nToken < 0) {}
+        if (_pluginI18nReady && _pluginFlatTranslations[term]) {
+            return _pluginFlatTranslations[term];
+        }
+        return I18n.tr(term, context);
+    }
+
+    // ── System Locale Change Detection ──────────────────────────────────────────
+    // Qt.locale().name is frozen at process startup, so it can't detect system
+    // locale changes.  Instead we poll /etc/locale.conf (the systemd locale
+    // config that localectl writes to) via a shell command every 15 s.  When the
+    // locale changes the new translation file is loaded into I18n.translations,
+    // which triggers every I18n.tr() / i18n() binding to re-evaluate.
+    property string _lastSystemLocale: Qt.locale().name
+    property bool _checkingLocale: false
+
+    // Strip encoding suffix (".UTF-8" → "") for translation file lookup
+    function _stripLocaleEnc(loc) {
+        var s = String(loc).trim();
+        var dot = s.indexOf(".");
+        return dot > 0 ? s.substring(0, dot) : s;
+    }
+
+    function retranslate() {
+        // Force-reload system translations for the current locale
+        var loc = root._stripLocaleEnc(root._lastSystemLocale);
+        if (!loc || loc === "en" || loc === "C" || loc === "POSIX") return;
+        if (root.pluginLanguage === "system" || root.pluginLanguage === "") {
+            var folder = String(I18n.translationsFolder);
+            var sep = folder.charAt(folder.length - 1) === "/" ? "" : "/";
+            systemLocaleLoader.path = folder + sep + loc + ".json";
+        }
+    }
+
+    FileView {
+        id: systemLocaleLoader
+        onLoaded: {
+            try {
+                I18n.translations = JSON.parse(text());
+                I18n.translationsLoaded = true;
+                root._rebuildI18nArrays();
+                console.info("FolderView I18n: reloaded system translations for", root._lastSystemLocale);
+            } catch (e) {
+                console.warn("FolderView I18n: error parsing system locale:", e);
+                I18n.translations = ({});
+                I18n.translationsLoaded = true;
+            }
+        }
+        onLoadFailed: {
+            I18n.translations = ({});
+            I18n.translationsLoaded = true;
+            console.warn("FolderView I18n: no translation file for", root._lastSystemLocale);
+        }
+    }
+
+    Timer {
+        id: localeCheckTimer
+        interval: 15000
+        repeat: true
+        running: true
+        onTriggered: {
+            if (root._checkingLocale) return;
+            root._checkingLocale = true;
+            Proc.runCommand("locale-check", ["sh", "-c",
+                "cat /etc/locale.conf 2>/dev/null | grep '^LANG=' | head -1 | cut -sd= -f2- | tr -d '\\\" '"],
+                (out, code) => {
+                    root._checkingLocale = false;
+                    if (code !== 0 || !out) return;
+                    var cur = String(out).trim();
+                    if (cur && cur !== root._lastSystemLocale) {
+                        root._lastSystemLocale = cur;
+                        root.retranslate();
+                    }
+                }, 500);
+        }
+    }
+
     Component.onDestruction: {
         selectionClearTimer.stop();
         inlineRenameArmTimer.stop();
+        localeCheckTimer.stop();
     }
-    Component.onCompleted: buildFolderDropdownModel()
+    Component.onCompleted: {
+        buildFolderDropdownModel();
+        _applyPluginLanguage(pluginLanguage);
+    }
 
     ListModel {
         id: filteredModel
@@ -582,9 +1001,12 @@ DesktopPluginComponent {
                 const isDir = !!fIsDir;
 
                 // 1. Search Pattern filter check
-                if (pattern !== "" && nameStr.toLowerCase().indexOf(pattern) === -1) {
-                    continue;
-                }
+        if (pattern !== "") {
+            // Support * and ? wildcards → convert to regex
+            var escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
+            var regex = new RegExp(escaped);
+            if (!regex.test(nameStr.toLowerCase())) continue;
+        }
 
                 // 2. File Type filter check (inlined extension checks — avoids 3 function calls per item)
                 if (root.filterType !== "all") {
@@ -893,14 +1315,14 @@ DesktopPluginComponent {
 
     function buildFolderDropdownModel() {
         var items = [
-            { label: I18n.tr("Home"), value: "home", icon: "home" },
-            { label: I18n.tr("Desktop"), value: "desktop", icon: "desktop_mac" },
-            { label: I18n.tr("Downloads"), value: "downloads", icon: "download" },
-            { label: I18n.tr("Music"), value: "music", icon: "music_note" },
-            { label: I18n.tr("Pictures"), value: "pictures", icon: "image" },
-            { label: I18n.tr("Videos"), value: "videos", icon: "movie" },
-            { label: I18n.tr("Documents"), value: "documents", icon: "description" },
-            { label: I18n.tr("Trash"), value: "trash", icon: "delete" }
+            { label: i18n("Home"), value: "home", icon: "home" },
+            { label: i18n("Desktop"), value: "desktop", icon: "desktop_mac" },
+            { label: i18n("Downloads"), value: "downloads", icon: "download" },
+            { label: i18n("Music"), value: "music", icon: "music_note" },
+            { label: i18n("Pictures"), value: "pictures", icon: "image" },
+            { label: i18n("Videos"), value: "videos", icon: "movie" },
+            { label: i18n("Documents"), value: "documents", icon: "description" },
+            { label: i18n("Trash"), value: "trash", icon: "delete" }
         ];
 
         // Resolve home as clean filesystem path (strip file:// if present)
@@ -976,7 +1398,19 @@ DesktopPluginComponent {
             }
         }
 
-        items.push({ label: I18n.tr("Custom..."), value: "custom", icon: "folder" });
+        // Favorites section
+        var favs = root.favoritePaths || [];
+        if (favs.length > 0) {
+            items.push({ value: "separator", icon: "", label: "" });
+            for (var fi = 0; fi < favs.length; fi++) {
+                var favPath = String(favs[fi]);
+                var favName = favPath.split("/").pop() || favPath;
+                if (favName.length > 10) favName = favName.substring(0, 9) + "…";
+                items.push({ label: favName, value: "favorite", icon: "star", path: favPath });
+            }
+        }
+
+        items.push({ label: i18n("Custom..."), value: "custom", icon: "folder" });
         root.folderDropdownModel = items;
     }
 
@@ -1163,10 +1597,31 @@ DesktopPluginComponent {
             anchors.fill: parent
             anchors.margins: Theme.spacingM
 
+            // Sidebar toggle icon
+            MouseArea {
+                id: sidebarToggleBtn
+                anchors.left: parent.left
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                width: 20; height: 20
+                visible: root.showHeader ? root.headerPosition === "bottom" : true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: folderDropdown.visible ? folderDropdown.close() : folderDropdown.open()
+
+                DankIcon {
+                    anchors.centerIn: parent
+                    name: "menu"
+                    size: 16
+                    color: Theme.surfaceText
+                    opacity: sidebarToggleBtn.containsMouse ? 1.0 : 0.7
+                }
+            }
+
             // Premium Header (left content: folder name + file status)
             Item {
                 id: headerContainer
-                anchors.left: parent.left
+                anchors.left: sidebarToggleBtn.right
+                anchors.leftMargin: root.sidebarPinned ? Math.min(root.width * 0.12, 250) : 0
                 anchors.right: settingsBox.left
                 height: 24
                 anchors.top: parent.top
@@ -1198,14 +1653,16 @@ DesktopPluginComponent {
                         width: folderRow.implicitWidth
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: folderDropdown.visible ? folderDropdown.close() : folderDropdown.open()
+                        onClicked: {}
+                        onPressAndHold: { if (!root.sidebarPinned) root.showFullPath = true; }
+                        onReleased: root.showFullPath = false
 
                         Row {
                             id: folderRow
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Theme.spacingXS
                             DankIcon { name: "folder_open"; size: 18; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.8; anchors.verticalCenter: parent.verticalCenter }
-                            StyledText { text: root.folderDisplayName; font.pixelSize: Theme.fontSizeSmall; font.bold: true; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.8; anchors.verticalCenter: parent.verticalCenter }
+                            StyledText { text: root.showFullPath ? root.targetFolderUrl.replace("file://", "") : root.folderDisplayName; font.pixelSize: Theme.fontSizeSmall; font.bold: true; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.8; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideMiddle }
                             DankIcon { name: "arrow_drop_down"; size: 14; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.6; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
@@ -1238,7 +1695,7 @@ DesktopPluginComponent {
                                 text: {
                                     let c = folderModel.count, s = root.selectedFilePaths.length;
                                     let str = "(" + c + ")";
-                                    if (s > 0) str += " [" + s + " " + I18n.tr("selected") + "]";
+                                    if (s > 0) str += " [" + s + " " + i18n("selected") + "]";
                                     return str;
                                 }
                                 font.pixelSize: Theme.fontSizeSmall
@@ -1256,6 +1713,7 @@ DesktopPluginComponent {
             MouseArea {
                 id: backBtn
                 anchors.left: parent.left
+                anchors.leftMargin: root.sidebarPinned ? Math.min(root.width * 0.16, 250) : 0
                 anchors.top: parent.top
                 width: 20
                 height: 24
@@ -1387,7 +1845,7 @@ DesktopPluginComponent {
 
                             // Placeholder Text
                             Text {
-                                text: I18n.tr("Search...")
+                                text: i18n("Search...")
                                 font.pixelSize: Theme.fontSizeSmall - 1
                                 color: Theme.surfaceText
                                 opacity: 0.35
@@ -1464,19 +1922,22 @@ DesktopPluginComponent {
                         width: 130
                         height: viewModeColumn.implicitHeight + Theme.spacingS * 2
                         padding: 0
-                        modal: true
-                        dim: false
+        modal: false
+        dim: false
                         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
                         x: viewModeBtn.width - viewModeDropdown.width
                         y: root.headerPosition === "bottom" ? -height - 4 : viewModeBtn.height + 4
 
                         background: Rectangle { color: "transparent" }
 
-                        contentItem: Rectangle {
-                            color: Theme.withAlpha(Theme.surfaceContainer, 0.95)
-                            radius: Theme.cornerRadius
-                            border.color: Theme.withAlpha(Theme.outline, 0.15)
-                            border.width: 1
+        contentItem: Rectangle {
+            color: Theme.withAlpha(Theme.surfaceContainer, 0.95)
+            radius: Theme.cornerRadius
+            border.color: Theme.withAlpha(Theme.outline, 0.15)
+            border.width: 1
+            clip: true
+            focus: true
+            Keys.onEscapePressed: { if (sidebarPinned) folderDropdown.close(); }
 
                             Column {
                                 id: viewModeColumn
@@ -1485,11 +1946,7 @@ DesktopPluginComponent {
                                 spacing: 2
 
                                 Repeater {
-                                    model: [
-                                        { label: I18n.tr("Grid View"), value: "grid", icon: "grid_view" },
-                                        { label: I18n.tr("List View"), value: "list", icon: "view_list" },
-                                        { label: I18n.tr("Compact View"), value: "compact", icon: "view_module" }
-                                    ]
+                                    model: root._viewModeOptions
 
                                     delegate: Rectangle {
                                         width: parent.width
@@ -1658,7 +2115,7 @@ DesktopPluginComponent {
                             spacing: Theme.spacingS
 
                             StyledText {
-                                text: I18n.tr("Appearance")
+                                text: i18n("Appearance")
                                 font.pixelSize: Theme.fontSizeSmall
                                 font.bold: true
                                 color: Theme.surfaceText
@@ -1666,8 +2123,8 @@ DesktopPluginComponent {
 
                             // Background Opacity
                             Row { width: parent.width; height: 24; spacing: Theme.spacingS
-                                StyledText { text: I18n.tr("Bg Opacity"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText; width: 70; anchors.verticalCenter: parent.verticalCenter }
-                                Item { width: parent.width - 70 - 40; height: parent.height; anchors.verticalCenter: parent.verticalCenter
+                                StyledText { text: i18n("Bg Opacity"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText; width: 85; anchors.verticalCenter: parent.verticalCenter }
+                                Item { width: parent.width - 85 - 40; height: parent.height; anchors.verticalCenter: parent.verticalCenter
                                     Slider {
                                         id: bgSlider; anchors.verticalCenter: parent.verticalCenter; width: parent.width
                                         from: 0; to: 100; value: pluginData.backgroundOpacity ?? 80
@@ -1679,8 +2136,8 @@ DesktopPluginComponent {
 
                             // Border Opacity
                             Row { width: parent.width; height: 24; spacing: Theme.spacingS
-                                StyledText { text: I18n.tr("Border Op"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText; width: 70; anchors.verticalCenter: parent.verticalCenter }
-                                Item { width: parent.width - 70 - 40; height: parent.height; anchors.verticalCenter: parent.verticalCenter
+                                StyledText { text: i18n("Border Op"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText; width: 85; anchors.verticalCenter: parent.verticalCenter }
+                                Item { width: parent.width - 85 - 40; height: parent.height; anchors.verticalCenter: parent.verticalCenter
                                     Slider {
                                         id: borderSlider; anchors.verticalCenter: parent.verticalCenter; width: parent.width
                                         from: 0; to: 100; value: pluginData.borderOpacity ?? 0
@@ -1692,10 +2149,10 @@ DesktopPluginComponent {
 
                             // Header Position
                             Row { width: parent.width; height: 24; spacing: Theme.spacingS
-                                StyledText { text: I18n.tr("Header"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText; width: 70; anchors.verticalCenter: parent.verticalCenter }
+                                StyledText { text: i18n("Header"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText; width: 85; anchors.verticalCenter: parent.verticalCenter }
                                 Row { spacing: Theme.spacingXS; anchors.verticalCenter: parent.verticalCenter
                                     Repeater {
-                                        model: [{label: "Top", val: "top"}, {label: "Bottom", val: "bottom"}]
+                                        model: root._headerPositionOptions
                                         delegate: Rectangle {
                                             width: 50; height: 22; radius: 4
                                             color: (root.headerPosition === modelData.val) ? Theme.primary : (hpArea.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.1) : "transparent")
@@ -1709,7 +2166,7 @@ DesktopPluginComponent {
 
                             // Show Header toggle
                             Row { width: parent.width; height: 24; spacing: Theme.spacingS
-                                StyledText { text: I18n.tr("Show Header"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText; width: 70; anchors.verticalCenter: parent.verticalCenter }
+                                StyledText { text: i18n("Show Header"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText; width: 85; anchors.verticalCenter: parent.verticalCenter }
                                 Item { width: 40; height: parent.height; anchors.verticalCenter: parent.verticalCenter
                                     DankIcon {
                                         anchors.centerIn: parent; name: root.showHeader ? "toggle_on" : "toggle_off"; size: 24
@@ -1721,7 +2178,7 @@ DesktopPluginComponent {
 
                             // Empty indicator color
                             Column { width: parent.width; spacing: 6
-                                StyledText { text: I18n.tr("Empty Color"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText }
+                                StyledText { text: i18n("Empty Color"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText }
                                 Row { spacing: 5
                                     Repeater {
                                         model: ["#FF1744", "#00E676", "#FFEA00", "#448AFF", "#D500F9", "#00BFA5", "#FF9100", "#E91E63", "#00BCD4", "#795548"]
@@ -1739,7 +2196,7 @@ DesktopPluginComponent {
 
                             // Folder icon color
                             Column { width: parent.width; spacing: 6
-                                StyledText { text: I18n.tr("Folder Color"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText }
+                                StyledText { text: i18n("Folder Color"); font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceVariantText }
                                 Row { spacing: 5
                                     Repeater {
                                         model: ["", "#FF1744", "#00E676", "#FFEA00", "#448AFF", "#D500F9", "#00BFA5", "#FF9100", "#E91E63", "#00BCD4"]
@@ -1754,6 +2211,164 @@ DesktopPluginComponent {
                                     }
                                 }
                             }
+
+                            // Language switcher — dropdown style
+                            Item {
+                                id: langSection
+                                width: parent.width
+                                height: langSectionCol.implicitHeight + 4
+
+                                readonly property var _langModel: [
+                                    { label: i18n("System Default"), code: "system" },
+                                    { label: "中文", code: "zh_CN" },
+                                    { label: "English", code: "en" },
+                                    { label: "Deutsch", code: "de" },
+                                    { label: "Español", code: "es" },
+                                    { label: "Français", code: "fr" },
+                                    { label: "日本語", code: "ja" },
+                                    { label: "한국어", code: "ko" },
+                                    { label: "Русский", code: "ru" },
+                                    { label: "Tiếng Việt", code: "vi" }
+                                ]
+                                property bool langListOpen: false
+                                readonly property string _currentLangLabel: {
+                                    for (var i = 0; i < _langModel.length; i++) {
+                                        if (_langModel[i].code === root.pluginLanguage)
+                                            return _langModel[i].label;
+                                    }
+                                    return root.pluginLanguage;
+                                }
+
+                                Column {
+                                    id: langSectionCol
+                                    width: parent.width
+                                    spacing: 2
+
+                                    StyledText {
+                                        text: i18n("Language")
+                                        font.pixelSize: Theme.fontSizeSmall - 1
+                                        font.bold: true
+                                        color: Theme.surfaceText
+                                    }
+
+                                    // Dropdown button
+                                    Rectangle {
+                                        width: parent.width
+                                        height: 28
+                                        radius: 4
+                                        color: langDropArea.containsMouse ? Theme.withAlpha(Theme.primary, 0.1) : Theme.withAlpha(Theme.outline, 0.08)
+                                        border.color: Theme.withAlpha(Theme.outline, 0.2)
+                                        border.width: 1
+
+                                        Row {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 8
+                                            anchors.rightMargin: 8
+                                            spacing: 4
+
+                                            StyledText {
+                                                text: langSection._currentLangLabel
+                                                font.pixelSize: Theme.fontSizeSmall - 1
+                                                color: Theme.surfaceText
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: parent.width - 24
+                                                elide: Text.ElideRight
+                                            }
+
+                                            DankIcon {
+                                                name: langSection.langListOpen ? "expand_less" : "expand_more"
+                                                size: 16
+                                                color: Theme.surfaceVariantText
+                                                anchors.verticalCenter: parent.verticalCenter
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            id: langDropArea
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: langSection.langListOpen = !langSection.langListOpen
+                                        }
+                                    }
+
+                                    // Dropdown list
+                                    Rectangle {
+                                        width: parent.width
+                                        height: langSection.langListOpen ? Math.min(200, langListView.implicitHeight + 4) : 0
+                                        radius: 4
+                                        color: Theme.withAlpha(Theme.surfaceContainer, 0.98)
+                                        border.color: Theme.withAlpha(Theme.outline, 0.15)
+                                        border.width: 1
+                                        clip: true
+                                        visible: height > 0
+
+                                        Flickable {
+                                            anchors.fill: parent
+                                            anchors.margins: 2
+                                            contentHeight: langListView.implicitHeight
+                                            boundsBehavior: Flickable.StopAtBounds
+
+                                            Column {
+                                                id: langListView
+                                                width: parent.width
+
+                                                Repeater {
+                                                    model: langSection._langModel
+
+                                                    delegate: Rectangle {
+                                                        width: parent.width
+                                                        height: 24
+                                                        radius: 2
+                                                        color: {
+                                                            if (root.pluginLanguage === modelData.code)
+                                                                return Theme.withAlpha(Theme.primary, 0.15);
+                                                            if (langItemArea.containsMouse)
+                                                                return Theme.withAlpha(Theme.surfaceText, 0.06);
+                                                            return "transparent";
+                                                        }
+
+                                                        StyledText {
+                                                            text: modelData.label
+                                                            font.pixelSize: Theme.fontSizeSmall - 1
+                                                            color: root.pluginLanguage === modelData.code ? Theme.primary : Theme.surfaceText
+                                                            font.weight: root.pluginLanguage === modelData.code ? Font.Medium : Font.Normal
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            anchors.left: parent.left
+                                                            anchors.leftMargin: 8
+                                                        }
+
+                                                        MouseArea {
+                                                            id: langItemArea
+                                                            anchors.fill: parent
+                                                            hoverEnabled: true
+                                                            cursorShape: Qt.PointingHandCursor
+                                                            onClicked: {
+                                                                root.pluginLanguage = modelData.code;
+                                                                if (pluginService)
+                                                                    pluginService.savePluginData(pluginId, "pluginLanguage", modelData.code);
+                                                                langSection.langListOpen = false;
+    }
+    Shortcut {
+        sequence: StandardKey.Delete
+        onActivated: {
+            if (root.selectedFilePaths.length > 0) {
+                var paths = root.selectedFilePaths.slice();
+                root.clearSelection();
+                for (var i = 0; i < paths.length; i++) {
+                    Quickshell.execDetached(["gio", "trash", "--", root._cleanPath(paths[i])]);
+                }
+            }
+        }
+    }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1762,6 +2377,7 @@ DesktopPluginComponent {
             Item {
                 id: filesContainer
                 anchors.left: parent.left
+                anchors.leftMargin: root.sidebarPinned ? Math.min(root.width * 0.14, 250) : 0
                 anchors.right: parent.right
                 clip: true
 
@@ -1797,6 +2413,7 @@ DesktopPluginComponent {
 
                 GridView {
                     id: fileGrid
+                    interactive: root.renamingFilePath === ""
                     // Center grid content horizontally so left/right borders stay equal
                     readonly property int _cols: Math.max(1, Math.floor((parent ? parent.width : root.cellSize) / root.cellSize))
                     anchors.top: parent.top
@@ -1818,249 +2435,27 @@ DesktopPluginComponent {
                         NumberAnimation { property: "opacity"; to: 0; duration: 80 }
                     }
 
-                    delegate: Item {
-                        id: delegateRoot
+                    delegate: FileItemDelegate {
                         width: fileGrid.cellWidth
                         height: fileGrid.cellHeight
-
-                        required property string filePath
-                        required property string fileName
-                        required property bool fileIsDir
-                        required property int index
-                        required property string displayBaseName
-                        required property string iconName
-                        required property string iconColor
-                        required property string itemType
-
-                        required property bool isDesktop
-                        required property string appIcon
-                        required property bool isStack
-                        required property string belongingStackId
-                        required property bool isEmpty
-                        readonly property bool isSelected: root.selectedPathsSet[filePath] !== undefined
-                        readonly property bool editing: delegateRoot.filePath !== "" && root.renamingFilePath === delegateRoot.filePath && root.viewMode === "grid"
-                        property bool isLaunching: false
-
-                        // Pre-computed colors for reduced binding overhead
-                        readonly property color _bgNormal: itemHover.containsMouse
-                            ? (belongingStackId !== ""
-                                ? (isStack ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(Theme.primary, 0.12))
-                                : Theme.withAlpha(Theme.surfaceText, 0.06))
-                            : (belongingStackId !== ""
-                                ? (isStack ? Theme.withAlpha(Theme.primary, 0.12) : Theme.withAlpha(Theme.primary, 0.05))
-                                : "transparent")
-                        readonly property color _bgColor: isLaunching
-                            ? Theme.withAlpha(Theme.primary, 0.3)
-                            : (isSelected ? Theme.withAlpha(Theme.primary, 0.15) : _bgNormal)
-                        readonly property color _borderColor: isLaunching
-                            ? Theme.primary
-                            : (isSelected ? Theme.primary
-                                : (belongingStackId !== ""
-                                    ? (isStack ? Theme.primary : Theme.withAlpha(Theme.primary, 0.25))
-                                    : "transparent"))
-                        readonly property int _borderWidth: isLaunching ? 2 : (isSelected ? 1 : (belongingStackId !== "" ? 1 : 0))
-
-                        Drag.dragType: Drag.Automatic
-                        Drag.supportedActions: Qt.CopyAction
-
-                        DragHandler {
-                            id: gridDragHandler
-                            target: null
-                            acceptedButtons: Qt.LeftButton
-                            grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.ApprovesCancellation
-                            enabled: !delegateRoot.isStack && !delegateRoot.filePath.startsWith("stack://") && !delegateRoot.editing
-                            onActiveChanged: {
-                                if (active) {
-                                    delegateRoot.Drag.mimeData = root.dragMimeData(delegateRoot.filePath);
-                                    delegateRoot.grabToImage(function (result) {
-                                        // grabToImage is async: bail out if the press
-                                        // was already released in the meantime
-                                        if (!gridDragHandler.active)
-                                            return;
-                                        delegateRoot.Drag.imageSource = result.url;
-                                        delegateRoot.Drag.active = true;
-                                    });
-                                } else {
-                                    delegateRoot.Drag.active = false;
-                                }
-                            }
-                        }
-
-                        SequentialAnimation {
-                            id: launchPulse
-                            running: false
-                            NumberAnimation { target: delegateRoot; property: "scale"; to: 0.92; duration: 100; easing.type: Easing.OutQuad }
-                            NumberAnimation { target: delegateRoot; property: "scale"; to: 1.05; duration: 150; easing.type: Easing.OutBack }
-                            NumberAnimation { target: delegateRoot; property: "scale"; to: 1.0; duration: 100; easing.type: Easing.OutQuad }
-                        }
-
-                        Timer {
-                            id: launchTimer
-                            interval: 800
-                            repeat: false
-                            onTriggered: delegateRoot.isLaunching = false
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.margins: Theme.spacingXS
-                            radius: Theme.cornerRadius
-                            color: delegateRoot._bgColor
-                            border.color: delegateRoot._borderColor
-                            border.width: delegateRoot._borderWidth
-
-                            Column {
-                                anchors.fill: parent
-                                anchors.margins: Theme.spacingS
-                                spacing: Theme.spacingXS
-
-                                // File/Folder Icon
-                                Item {
-                                    width: parent.width
-                                    height: parent.height - 30
-
-                                    FolderViewThumbnail {
-                                        anchors.fill: parent
-                                        filePath: delegateRoot.filePath
-                                        fileName: delegateRoot.fileName
-                                        isDir: delegateRoot.fileIsDir
-                                        appIcon: delegateRoot.appIcon
-                                        iconName: delegateRoot.iconName
-                                        iconColor: delegateRoot.iconColor
-                                        itemType: delegateRoot.itemType
-                                        sizeScale: root.sizeScale
-                                        hover: itemHover.containsMouse
-                                    }
-
-                                    // Empty file/folder indicator — red dot centered on icon
-                                    Rectangle {
-                                        anchors.centerIn: parent
-                                        width: 8
-                                        height: 8
-                                        radius: 4
-                                        color: root.emptyColor
-                                        visible: delegateRoot.isEmpty
-                                    }
-                                }
-
-                                // File/Folder Name
-                                StyledText {
-                                    id: gridNameLabel
-                                    width: parent.width
-                                    visible: !delegateRoot.editing
-                                    font.pixelSize: Theme.fontSizeSmall + 1
-                                    text: delegateRoot.displayBaseName
-                                    color: Theme.surfaceText
-                                    horizontalAlignment: Text.AlignHCenter
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 2
-                                    wrapMode: Text.WrapAnywhere
-                                    opacity: itemHover.containsMouse ? 1.0 : 0.85
-                                }
-
-                                // Inline rename editor (replaces the label while editing)
-                                Loader {
-                                    width: parent.width
-                                    height: active && item ? item.implicitHeight : 0
-                                    active: delegateRoot.editing
-                                    visible: active
-                                    sourceComponent: Component {
-                                        FolderViewInlineRename {
-                                            fontPixelSize: Theme.fontSizeSmall - 1
-                                            targetName: delegateRoot.fileName
-                                            targetIsDir: delegateRoot.fileIsDir
-                                            onAccepted: newBaseName => {
-                                                root.applyRename(delegateRoot.filePath, delegateRoot.fileName, delegateRoot.fileIsDir, newBaseName);
-                                                root.endInlineRename();
-                                            }
-                                            onCanceled: root.endInlineRename()
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Pin indicator overlay
-                            DankIcon {
-                                name: "push_pin"
-                                size: 16
-                                color: Theme.primary
-                                anchors.top: parent.top
-                                anchors.topMargin: Theme.spacingXS + 2
-                                anchors.right: parent.right
-                                anchors.rightMargin: Theme.spacingXS + 2
-                                visible: root.pinnedPaths.indexOf(filePath) !== -1
-                            }
-
-                            MouseArea {
-                                id: itemHover
-                                anchors.fill: parent
-                                enabled: !delegateRoot.editing
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-
-                                onClicked: mouse => {
-                                    if (mouse.button === Qt.LeftButton) {
-                                        if (delegateRoot.filePath.startsWith("stack://")) {
-                                            let stackId = delegateRoot.filePath.substring(8);
-                                            root.toggleStackExpanded(stackId);
-                                            return;
-                                        }
-                                        if (mouse.modifiers & Qt.ControlModifier) {
-                                            root.toggleSelection(delegateRoot.filePath);
-                                        } else if (mouse.modifiers & Qt.ShiftModifier) {
-                                            root.selectRangeTo(delegateRoot.index);
-                                        } else {
-                                            // Clicking the name label of an already-selected item starts
-                                            // an inline rename; a double-click opens instead (see below).
-                                            root.handleItemLabelClick(itemHover, gridNameLabel, mouse.x, mouse.y, delegateRoot.filePath);
-                                        }
-                                    } else if (mouse.button === Qt.MiddleButton) {
-                                        inlineRenameArmTimer.stop();
-                                        if (root.selectedFilePaths.indexOf(delegateRoot.filePath) === -1) {
-                                            root.selectSingle(delegateRoot.filePath);
-                                        }
-
-                                        quickMenu.currentPath = delegateRoot.filePath;
-                                        quickMenu.currentName = delegateRoot.fileName;
-                                        quickMenu.currentIsDir = delegateRoot.fileIsDir;
-                                        
-                                        const globalPos = mapToItem(root, mouse.x, mouse.y);
-                                        quickMenu.parent = root;
-                                        quickMenu.x = Math.max(0, Math.min(root.width - quickMenu.width, globalPos.x));
-                                        quickMenu.y = Math.max(0, Math.min(root.height - quickMenu.height, globalPos.y));
-                                        quickMenu.open();
-                                    }
-                                }
-
-                                onDoubleClicked: mouse => {
-                                    if (mouse.button === Qt.LeftButton) {
-                                        inlineRenameArmTimer.stop();
-                                        if (delegateRoot.filePath.startsWith("stack://")) {
-                                            let stackId = delegateRoot.filePath.substring(8);
-                                            root.toggleStackExpanded(stackId);
-                                            return;
-                                        }
-                                        isLaunching = true;
-                                        launchPulse.restart();
-                                        launchTimer.restart();
-                                        // Open file or navigate into folder
-                                        if (delegateRoot.fileIsDir) { root.navigateToFolder(delegateRoot.filePath); } else if (delegateRoot.isDesktop) {
-                                            root.launchDesktopFile(delegateRoot.filePath);
-                                        } else {
-                                            Quickshell.execDetached(["gio", "open", root._cleanPath(delegateRoot.filePath)]);
-                                        }
-                                        root.clearSelection();
-                                    }
-                                }
-                            }
-                        }
+                        folderView: root
+                        viewMode: "grid"
+                        layoutMode: false
+                        thumbnailSize: 20
+                        launchScale: 0.92
+                        pinIconSize: 16
+                        labelPixelSize: Theme.fontSizeSmall + 1
+                        labelMaxLines: 2
+                        labelWrap: true
+                        bgMargin: Theme.spacingXS
+                        bgRadius: Theme.cornerRadius
                     }
                 }
 
                 // List View of files
                 ListView {
                     id: fileList
+                    interactive: root.renamingFilePath === ""
                     anchors.fill: parent
                     model: filteredModel
                     visible: root.viewMode === "list"
@@ -2077,236 +2472,25 @@ DesktopPluginComponent {
                         NumberAnimation { property: "opacity"; to: 0; duration: 60 }
                     }
 
-                    delegate: Item {
-                        id: listDelegateRoot
+                    delegate: FileItemDelegate {
                         width: fileList.width
                         height: Math.round(36 * root.sizeScale)
-
-                        required property string filePath
-                        required property string fileName
-                        required property bool fileIsDir
-                        required property int index
-                        required property string displayBaseName
-                        required property string iconName
-                        required property string iconColor
-                        required property string itemType
-
-                        required property bool isDesktop
-                        required property string appIcon
-                        required property bool isStack
-                        required property string belongingStackId
-                        required property bool isEmpty
-                        readonly property bool isSelected: root.selectedPathsSet[filePath] !== undefined
-                        readonly property bool editing: listDelegateRoot.filePath !== "" && root.renamingFilePath === listDelegateRoot.filePath && root.viewMode === "list"
-                        property bool isLaunching: false
-
-                        // Pre-computed colors
-                        readonly property color _bgNormal: listItemHover.containsMouse
-                            ? (belongingStackId !== ""
-                                ? (isStack ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(Theme.primary, 0.12))
-                                : Theme.withAlpha(Theme.surfaceText, 0.06))
-                            : (belongingStackId !== ""
-                                ? (isStack ? Theme.withAlpha(Theme.primary, 0.12) : Theme.withAlpha(Theme.primary, 0.05))
-                                : "transparent")
-                        readonly property color _bgColor: isLaunching
-                            ? Theme.withAlpha(Theme.primary, 0.3)
-                            : (isSelected ? Theme.withAlpha(Theme.primary, 0.15) : _bgNormal)
-                        readonly property color _borderColor: isLaunching
-                            ? Theme.primary
-                            : (isSelected ? Theme.primary
-                                : (belongingStackId !== ""
-                                    ? (isStack ? Theme.primary : Theme.withAlpha(Theme.primary, 0.25))
-                                    : "transparent"))
-                        readonly property int _borderWidth: isLaunching ? 1 : (isSelected ? 1 : (belongingStackId !== "" ? 1 : 0))
-
-                        Drag.dragType: Drag.Automatic
-                        Drag.supportedActions: Qt.CopyAction
-
-                        DragHandler {
-                            id: listDragHandler
-                            target: null
-                            acceptedButtons: Qt.LeftButton
-                            grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.ApprovesCancellation
-                            enabled: !listDelegateRoot.isStack && !listDelegateRoot.filePath.startsWith("stack://") && !listDelegateRoot.editing
-                            onActiveChanged: {
-                                if (active) {
-                                    listDelegateRoot.Drag.mimeData = root.dragMimeData(listDelegateRoot.filePath);
-                                    listDelegateRoot.grabToImage(function (result) {
-                                        // grabToImage is async: bail out if the press
-                                        // was already released in the meantime
-                                        if (!listDragHandler.active)
-                                            return;
-                                        listDelegateRoot.Drag.imageSource = result.url;
-                                        listDelegateRoot.Drag.active = true;
-                                    });
-                                } else {
-                                    listDelegateRoot.Drag.active = false;
-                                }
-                            }
-                        }
-
-                        SequentialAnimation {
-                            id: listLaunchPulse
-                            running: false
-                            NumberAnimation { target: listDelegateRoot; property: "scale"; to: 0.98; duration: 100; easing.type: Easing.OutQuad }
-                            NumberAnimation { target: listDelegateRoot; property: "scale"; to: 1.02; duration: 150; easing.type: Easing.OutBack }
-                            NumberAnimation { target: listDelegateRoot; property: "scale"; to: 1.0; duration: 100; easing.type: Easing.OutQuad }
-                        }
-
-                        Timer {
-                            id: listLaunchTimer
-                            interval: 800
-                            repeat: false
-                            onTriggered: listDelegateRoot.isLaunching = false
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.leftMargin: Theme.spacingXS
-                            anchors.rightMargin: Theme.spacingXS
-                            radius: Theme.cornerRadius - 2
-                            color: listDelegateRoot._bgColor
-                            border.color: listDelegateRoot._borderColor
-                            border.width: listDelegateRoot._borderWidth
-
-                            Row {
-                                id: listRow
-                                anchors.fill: parent
-                                anchors.leftMargin: Theme.spacingS
-                                anchors.rightMargin: Theme.spacingS
-                                spacing: Theme.spacingS
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                FolderViewThumbnail {
-                                    width: Math.round(20 * root.sizeScale)
-                                    height: width
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    filePath: listDelegateRoot.filePath
-                                    fileName: listDelegateRoot.fileName
-                                    isDir: listDelegateRoot.fileIsDir
-                                    appIcon: listDelegateRoot.appIcon
-                                    iconName: listDelegateRoot.iconName
-                                    iconColor: listDelegateRoot.iconColor
-                                    itemType: listDelegateRoot.itemType
-                                    sizeScale: root.sizeScale
-                                    hover: listItemHover.containsMouse
-                                }
-
-                                StyledText {
-                                    id: listNameLabel
-                                    font.pixelSize: Theme.fontSizeSmall + 2
-                                    visible: !listDelegateRoot.editing
-                                    width: parent.width - Math.round(20 * root.sizeScale) - (root.pinnedPaths.indexOf(filePath) !== -1 ? 32 : 12)
-                                    text: listDelegateRoot.displayBaseName
-                                    color: listDelegateRoot.isEmpty ? root.emptyColor : Theme.surfaceText
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 1
-                                }
-
-                                // Inline rename editor (replaces the label while editing)
-                                Loader {
-                                    active: listDelegateRoot.editing
-                                    visible: active
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width - Math.round(20 * root.sizeScale) - (root.pinnedPaths.indexOf(listDelegateRoot.filePath) !== -1 ? 32 : 12)
-                                    height: active && item ? item.implicitHeight : 0
-                                    sourceComponent: Component {
-                                        FolderViewInlineRename {
-                                            fontPixelSize: Theme.fontSizeSmall
-                                            targetName: listDelegateRoot.fileName
-                                            targetIsDir: listDelegateRoot.fileIsDir
-                                            onAccepted: newBaseName => {
-                                                root.applyRename(listDelegateRoot.filePath, listDelegateRoot.fileName, listDelegateRoot.fileIsDir, newBaseName);
-                                                root.endInlineRename();
-                                            }
-                                            onCanceled: root.endInlineRename()
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Pin indicator
-                            DankIcon {
-                                name: "push_pin"
-                                size: 14
-                                color: Theme.primary
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.right: parent.right
-                                anchors.rightMargin: Theme.spacingS
-                                visible: root.pinnedPaths.indexOf(filePath) !== -1
-                            }
-
-                            MouseArea {
-                                id: listItemHover
-                                anchors.fill: parent
-                                enabled: !listDelegateRoot.editing
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-
-                                onClicked: mouse => {
-                                    if (mouse.button === Qt.LeftButton) {
-                                        if (listDelegateRoot.filePath.startsWith("stack://")) {
-                                            let stackId = listDelegateRoot.filePath.substring(8);
-                                            root.toggleStackExpanded(stackId);
-                                            return;
-                                        }
-                                        if (mouse.modifiers & Qt.ControlModifier) {
-                                            root.toggleSelection(listDelegateRoot.filePath);
-                                        } else if (mouse.modifiers & Qt.ShiftModifier) {
-                                            root.selectRangeTo(listDelegateRoot.index);
-                                        } else {
-                                            // Clicking the name label of an already-selected item starts
-                                            // an inline rename; a double-click opens instead (see below).
-                                            root.handleItemLabelClick(listItemHover, listNameLabel, mouse.x, mouse.y, listDelegateRoot.filePath);
-                                        }
-                                    } else if (mouse.button === Qt.MiddleButton) {
-                                        inlineRenameArmTimer.stop();
-                                        if (root.selectedFilePaths.indexOf(listDelegateRoot.filePath) === -1) {
-                                            root.selectSingle(listDelegateRoot.filePath);
-                                        }
-
-                                        quickMenu.currentPath = listDelegateRoot.filePath;
-                                        quickMenu.currentName = listDelegateRoot.fileName;
-                                        quickMenu.currentIsDir = listDelegateRoot.fileIsDir;
-                                        
-                                        const globalPos = mapToItem(root, mouse.x, mouse.y);
-                                        quickMenu.parent = root;
-                                        quickMenu.x = Math.max(0, Math.min(root.width - quickMenu.width, globalPos.x));
-                                        quickMenu.y = Math.max(0, Math.min(root.height - quickMenu.height, globalPos.y));
-                                        quickMenu.open();
-                                    }
-                                }
-
-                                onDoubleClicked: mouse => {
-                                    if (mouse.button === Qt.LeftButton) {
-                                        inlineRenameArmTimer.stop();
-                                        if (listDelegateRoot.filePath.startsWith("stack://")) {
-                                            let stackId = listDelegateRoot.filePath.substring(8);
-                                            root.toggleStackExpanded(stackId);
-                                            return;
-                                        }
-                                        listDelegateRoot.isLaunching = true;
-                                        listLaunchPulse.restart();
-                                        // Open file or navigate into folder
-                                        if (listDelegateRoot.fileIsDir) { root.navigateToFolder(listDelegateRoot.filePath); } else if (listDelegateRoot.isDesktop) {
-                                            root.launchDesktopFile(listDelegateRoot.filePath);
-                                        } else {
-                                            Quickshell.execDetached(["gio", "open", root._cleanPath(listDelegateRoot.filePath)]);
-                                        }
-                                        listLaunchTimer.restart();
-                                        root.clearSelection();
-                                    }
-                                }
-                            }
-                        }
+                        folderView: root
+                        viewMode: "list"
+                        layoutMode: true
+                        thumbnailSize: Math.round(20 * root.sizeScale)
+                        launchScale: 0.98
+                        pinIconSize: 14
+                        labelPixelSize: Theme.fontSizeSmall + 2
+                        bgMargin: Theme.spacingXS
+                        bgRadius: Theme.cornerRadius - 2
                     }
                 }
 
                 // Compact View of files (1 or 2 columns list layout)
                 GridView {
                     id: fileCompact
+                    interactive: root.renamingFilePath === ""
                     anchors.fill: parent
                     cellWidth: parent.width / 3
                     cellHeight: Math.round(30 * root.sizeScale)
@@ -2324,241 +2508,34 @@ DesktopPluginComponent {
                         NumberAnimation { property: "opacity"; to: 0; duration: 60 }
                     }
 
-                    delegate: Item {
-                        id: compactDelegateRoot
+                    delegate: FileItemDelegate {
                         width: fileCompact.cellWidth
                         height: Math.round(30 * root.sizeScale)
-
-                        required property string filePath
-                        required property string fileName
-                        required property bool fileIsDir
-                        required property int index
-                        required property string displayBaseName
-                        required property string iconName
-                        required property string iconColor
-                        required property string itemType
-
-                        required property bool isDesktop
-                        required property string appIcon
-                        required property bool isStack
-                        required property string belongingStackId
-                        required property bool isEmpty
-                        readonly property bool isSelected: root.selectedPathsSet[filePath] !== undefined
-                        readonly property bool editing: compactDelegateRoot.filePath !== "" && root.renamingFilePath === compactDelegateRoot.filePath && root.viewMode === "compact"
-                        property bool isLaunching: false
-
-                        // Pre-computed colors
-                        readonly property color _bgNormal: compactItemHover.containsMouse
-                            ? (belongingStackId !== ""
-                                ? (isStack ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(Theme.primary, 0.12))
-                                : Theme.withAlpha(Theme.surfaceText, 0.06))
-                            : (belongingStackId !== ""
-                                ? (isStack ? Theme.withAlpha(Theme.primary, 0.12) : Theme.withAlpha(Theme.primary, 0.05))
-                                : "transparent")
-                        readonly property color _bgColor: isLaunching
-                            ? Theme.withAlpha(Theme.primary, 0.3)
-                            : (isSelected ? Theme.withAlpha(Theme.primary, 0.15) : _bgNormal)
-                        readonly property color _borderColor: isLaunching
-                            ? Theme.primary
-                            : (isSelected ? Theme.primary
-                                : (belongingStackId !== ""
-                                    ? (isStack ? Theme.primary : Theme.withAlpha(Theme.primary, 0.25))
-                                    : "transparent"))
-                        readonly property int _borderWidth: isLaunching ? 1 : (isSelected ? 1 : (belongingStackId !== "" ? 1 : 0))
-
-                        Drag.dragType: Drag.Automatic
-                        Drag.supportedActions: Qt.CopyAction
-
-                        DragHandler {
-                            id: compactDragHandler
-                            target: null
-                            acceptedButtons: Qt.LeftButton
-                            grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.ApprovesCancellation
-                            enabled: !compactDelegateRoot.isStack && !compactDelegateRoot.filePath.startsWith("stack://") && !compactDelegateRoot.editing
-                            onActiveChanged: {
-                                if (active) {
-                                    compactDelegateRoot.Drag.mimeData = root.dragMimeData(compactDelegateRoot.filePath);
-                                    compactDelegateRoot.grabToImage(function (result) {
-                                        // grabToImage is async: bail out if the press
-                                        // was already released in the meantime
-                                        if (!compactDragHandler.active)
-                                            return;
-                                        compactDelegateRoot.Drag.imageSource = result.url;
-                                        compactDelegateRoot.Drag.active = true;
-                                    });
-                                } else {
-                                    compactDelegateRoot.Drag.active = false;
-                                }
-                            }
-                        }
-
-                        SequentialAnimation {
-                            id: compactLaunchPulse
-                            running: false
-                            NumberAnimation { target: compactDelegateRoot; property: "scale"; to: 0.98; duration: 100; easing.type: Easing.OutQuad }
-                            NumberAnimation { target: compactDelegateRoot; property: "scale"; to: 1.02; duration: 150; easing.type: Easing.OutBack }
-                            NumberAnimation { target: compactDelegateRoot; property: "scale"; to: 1.0; duration: 100; easing.type: Easing.OutQuad }
-                        }
-
-                        Timer {
-                            id: compactLaunchTimer
-                            interval: 800
-                            repeat: false
-                            onTriggered: compactDelegateRoot.isLaunching = false
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.leftMargin: Theme.spacingXS
-                            anchors.rightMargin: Theme.spacingXS
-                            radius: Theme.cornerRadius - 2
-                            color: compactDelegateRoot._bgColor
-                            border.color: compactDelegateRoot._borderColor
-                            border.width: compactDelegateRoot._borderWidth
-
-                            Row {
-                                id: compactRow
-                                anchors.fill: parent
-                                anchors.leftMargin: Theme.spacingS
-                                anchors.rightMargin: Theme.spacingS
-                                spacing: Theme.spacingS
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                FolderViewThumbnail {
-                                    width: Math.round(16 * root.sizeScale)
-                                    height: width
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    filePath: compactDelegateRoot.filePath
-                                    fileName: compactDelegateRoot.fileName
-                                    isDir: compactDelegateRoot.fileIsDir
-                                    appIcon: compactDelegateRoot.appIcon
-                                    iconName: compactDelegateRoot.iconName
-                                    iconColor: compactDelegateRoot.iconColor
-                                    itemType: compactDelegateRoot.itemType
-                                    sizeScale: root.sizeScale
-                                    hover: compactItemHover.containsMouse
-                                }
-
-                                StyledText {
-                                    id: compactNameLabel
-                                    font.pixelSize: Theme.fontSizeSmall + 1
-                                    visible: !compactDelegateRoot.editing
-                                    width: parent.width - Math.round(16 * root.sizeScale) - (root.pinnedPaths.indexOf(filePath) !== -1 ? 28 : 12)
-                                    text: compactDelegateRoot.displayBaseName
-                                    color: compactDelegateRoot.isEmpty ? root.emptyColor : Theme.surfaceText
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 1
-                                }
-
-                                // Inline rename editor (replaces the label while editing)
-                                Loader {
-                                    active: compactDelegateRoot.editing
-                                    visible: active
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width - Math.round(16 * root.sizeScale) - (root.pinnedPaths.indexOf(compactDelegateRoot.filePath) !== -1 ? 28 : 12)
-                                    height: active && item ? item.implicitHeight : 0
-                                    sourceComponent: Component {
-                                        FolderViewInlineRename {
-                                            fontPixelSize: Theme.fontSizeSmall - 1
-                                            targetName: compactDelegateRoot.fileName
-                                            targetIsDir: compactDelegateRoot.fileIsDir
-                                            onAccepted: newBaseName => {
-                                                root.applyRename(compactDelegateRoot.filePath, compactDelegateRoot.fileName, compactDelegateRoot.fileIsDir, newBaseName);
-                                                root.endInlineRename();
-                                            }
-                                            onCanceled: root.endInlineRename()
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Pin indicator
-                            DankIcon {
-                                name: "push_pin"
-                                size: 12
-                                color: Theme.primary
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.right: parent.right
-                                anchors.rightMargin: Theme.spacingS
-                                visible: root.pinnedPaths.indexOf(filePath) !== -1
-                            }
-
-                            MouseArea {
-                                id: compactItemHover
-                                anchors.fill: parent
-                                enabled: !compactDelegateRoot.editing
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-
-                                onClicked: mouse => {
-                                    if (mouse.button === Qt.LeftButton) {
-                                        if (compactDelegateRoot.filePath.startsWith("stack://")) {
-                                            let stackId = compactDelegateRoot.filePath.substring(8);
-                                            root.toggleStackExpanded(stackId);
-                                            return;
-                                        }
-                                        if (mouse.modifiers & Qt.ControlModifier) {
-                                            root.toggleSelection(compactDelegateRoot.filePath);
-                                        } else if (mouse.modifiers & Qt.ShiftModifier) {
-                                            root.selectRangeTo(compactDelegateRoot.index);
-                                        } else {
-                                            // Clicking the name label of an already-selected item starts
-                                            // an inline rename; a double-click opens instead (see below).
-                                            root.handleItemLabelClick(compactItemHover, compactNameLabel, mouse.x, mouse.y, compactDelegateRoot.filePath);
-                                        }
-                                    } else if (mouse.button === Qt.MiddleButton) {
-                                        inlineRenameArmTimer.stop();
-                                        if (root.selectedFilePaths.indexOf(compactDelegateRoot.filePath) === -1) {
-                                            root.selectSingle(compactDelegateRoot.filePath);
-                                        }
-
-                                        quickMenu.currentPath = compactDelegateRoot.filePath;
-                                        quickMenu.currentName = compactDelegateRoot.fileName;
-                                        quickMenu.currentIsDir = compactDelegateRoot.fileIsDir;
-                                        
-                                        const globalPos = mapToItem(root, mouse.x, mouse.y);
-                                        quickMenu.parent = root;
-                                        quickMenu.x = Math.max(0, Math.min(root.width - quickMenu.width, globalPos.x));
-                                        quickMenu.y = Math.max(0, Math.min(root.height - quickMenu.height, globalPos.y));
-                                        quickMenu.open();
-                                    }
-                                }
-
-                                onDoubleClicked: mouse => {
-                                    if (mouse.button === Qt.LeftButton) {
-                                        inlineRenameArmTimer.stop();
-                                        if (compactDelegateRoot.filePath.startsWith("stack://")) {
-                                            let stackId = compactDelegateRoot.filePath.substring(8);
-                                            root.toggleStackExpanded(stackId);
-                                            return;
-                                        }
-                                        compactDelegateRoot.isLaunching = true;
-                                        compactLaunchPulse.restart();
-                                        // Open file or navigate into folder
-                                        if (compactDelegateRoot.fileIsDir) { root.navigateToFolder(compactDelegateRoot.filePath); } else if (compactDelegateRoot.isDesktop) {
-                                            root.launchDesktopFile(compactDelegateRoot.filePath);
-                                        } else {
-                                            Quickshell.execDetached(["gio", "open", root._cleanPath(compactDelegateRoot.filePath)]);
-                                        }
-                                        compactLaunchTimer.restart();
-                                        root.clearSelection();
-                                    }
-                                }
-                            }
-                        }
+                        folderView: root
+                        viewMode: "compact"
+                        layoutMode: true
+                        thumbnailSize: Math.round(16 * root.sizeScale)
+                        launchScale: 0.98
+                        pinIconSize: 12
+                        labelPixelSize: Theme.fontSizeSmall + 1
+                        bgMargin: Theme.spacingXS
+                        bgRadius: Theme.cornerRadius - 2
                     }
                 }
 
                 // Background area for middle-click on empty space → new file dialog
                 MouseArea {
                     anchors.fill: parent
-                    acceptedButtons: Qt.MiddleButton
+                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                     z: -1
                     onClicked: mouse => {
-                        if (mouse.button === Qt.MiddleButton)
+                        if (previewPopup.opened) {
+                            previewPopup.close();
+                        } else if (root.renamingFilePath !== "") {
+                            root.endInlineRename();
+                        } else if (mouse.button === Qt.MiddleButton) {
                             createDialog.showFor(false);
+                        }
                     }
                 }
 
@@ -2613,8 +2590,8 @@ DesktopPluginComponent {
 
                     StyledText {
                         text: folderModel.count === 0 
-                            ? root.folderDisplayName + " " + I18n.tr("is empty") 
-                            : I18n.tr("No search results found")
+                            ? root.folderDisplayName + " " + i18n("is empty") 
+                            : i18n("No search results found")
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.surfaceText
                         opacity: 0.4
@@ -2673,7 +2650,7 @@ DesktopPluginComponent {
                             }
 
                             StyledText {
-                                text: I18n.tr("Drop to copy here")
+                                text: i18n("Drop to copy here")
                                 font.pixelSize: Theme.fontSizeMedium
                                 font.bold: true
                                 color: Theme.primary
@@ -2700,7 +2677,6 @@ DesktopPluginComponent {
                 else if (createAppDialog.opened) createAppDialog.close();
                 else if (createStackDialog.opened) createStackDialog.close();
                 else if (quickMenu.opened) quickMenu.close();
-                else if (folderDropdown.opened) folderDropdown.close();
                 else if (createDropdown.opened) createDropdown.close();
                 else if (sortByDropdown.opened) sortByDropdown.close();
                 else if (filterDropdown.opened) filterDropdown.close();
@@ -2759,7 +2735,7 @@ DesktopPluginComponent {
                 Repeater {
                     model: [
                         {
-                            text: I18n.tr("Open"),
+                            text: i18n("Open"),
                             icon: "open_in_new",
                             visible: true,
                             action: function() {
@@ -2776,7 +2752,7 @@ DesktopPluginComponent {
                             }
                         },
                         {
-                            text: I18n.tr("Open with..."),
+                            text: i18n("Open with..."),
                             icon: "app_registration",
                             visible: root.selectedFilePaths.length === 1 && !quickMenu.currentPath.startsWith("stack://") && !quickMenu.currentIsDir,
                             action: function() {
@@ -2787,7 +2763,7 @@ DesktopPluginComponent {
                             }
                         },
                         {
-                            text: I18n.tr("Float File"),
+                            text: i18n("Float File"),
                             icon: "picture_in_picture",
                             visible: root.selectedFilePaths.length === 1 && (root.isImage(quickMenu.currentName) || quickMenu.currentName.toLowerCase().endsWith(".pdf")),
                             action: function() {
@@ -2797,9 +2773,9 @@ DesktopPluginComponent {
                             }
                         },
                         {
-                            text: I18n.tr("Copy"),
+                            text: i18n("Copy"),
                             icon: "content_copy",
-                            visible: true,
+                            visible: false,
                             action: function() {
                                 quickMenu.close();
                                 const paths = root.selectedFilePaths;
@@ -2810,9 +2786,9 @@ DesktopPluginComponent {
                                 if (paths.length === 1 && root.isImage(name)) {
                                     DMSService.sendRequest("clipboard.copyFile", { "filePath": paths[0] }, function(resp) {
                                         if (resp.error) {
-                                            ToastService.showToast(I18n.tr("Copy failed") + ": " + resp.error, ToastService.levelError);
+                                            ToastService.showToast(i18n("Copy failed") + ": " + resp.error, ToastService.levelError);
                                         } else {
-                                            ToastService.showToast(I18n.tr("Image Copied") + ": " + name, ToastService.levelInfo);
+                                            ToastService.showToast(i18n("Image Copied") + ": " + name, ToastService.levelInfo);
                                         }
                                     });
                                     return;
@@ -2830,13 +2806,13 @@ DesktopPluginComponent {
                                 Quickshell.execDetached(["bash", "-c", cmd]);
 
                                 const label = paths.length > 1
-                                    ? I18n.tr("Copied %1 items").arg(paths.length)
-                                    : I18n.tr("File Copied") + ": " + name;
+                                    ? i18n("Copied %1 items").arg(paths.length)
+                                    : i18n("File Copied") + ": " + name;
                                 ToastService.showToast(label, ToastService.levelInfo);
                             }
                         },
                         {
-                            text: I18n.tr("Copy Path"),
+                            text: i18n("Copy Path"),
                             icon: "content_copy",
                             visible: true,
                             action: function() {
@@ -2845,13 +2821,13 @@ DesktopPluginComponent {
                                 Quickshell.execDetached(["dms", "cl", "copy", joinedPaths]);
                                 
                                 let label = root.selectedFilePaths.length > 1
-                                    ? I18n.tr("Copied %1 paths").arg(root.selectedFilePaths.length)
-                                    : I18n.tr("Copied to Clipboard") + ": " + quickMenu.currentName;
+                                    ? i18n("Copied %1 paths").arg(root.selectedFilePaths.length)
+                                    : i18n("Copied to Clipboard") + ": " + quickMenu.currentName;
                                 ToastService.showToast(label, ToastService.levelInfo);
                             }
                         },
                         {
-                            text: I18n.tr("Rename"),
+                            text: i18n("Rename"),
                             icon: "edit",
                             visible: root.selectedFilePaths.length <= 1,
                             action: function() {
@@ -2860,12 +2836,20 @@ DesktopPluginComponent {
                             }
                         },
                         {
-                            text: I18n.tr("Info"),
+                            text: i18n("Info"),
                             icon: "info",
                             visible: root.selectedFilePaths.length <= 1 && !quickMenu.currentPath.startsWith("stack://"),
                             action: function() {
                                 quickMenu.close();
                                 infoDialog.showFor(quickMenu.currentPath, quickMenu.currentName, quickMenu.currentIsDir);
+                            }
+                        },
+                        {
+                            actionName: "favorite",
+                            visible: true,
+                            action: function() {
+                                quickMenu.close();
+                                root.toggleFavorite(quickMenu.currentPath);
                             }
                         },
                         {
@@ -2877,7 +2861,7 @@ DesktopPluginComponent {
                             }
                         },
                         {
-                            text: I18n.tr("Group into Stack"),
+                            text: i18n("Group into Stack"),
                             icon: "layers",
                             visible: root.selectedFilePaths.length > 1 && root.selectedFilePaths.every(p => !p.startsWith("stack://")),
                             action: function() {
@@ -2886,7 +2870,7 @@ DesktopPluginComponent {
                             }
                         },
                         {
-                            text: I18n.tr("Ungroup Stack"),
+                            text: i18n("Ungroup Stack"),
                             icon: "layers_clear",
                             visible: root.selectedFilePaths.length === 1 && quickMenu.currentPath.startsWith("stack://"),
                             action: function() {
@@ -2897,7 +2881,7 @@ DesktopPluginComponent {
                         },
                         { isSeparator: true },
                         {
-                            text: I18n.tr("Move to Trash"),
+                            text: i18n("Move to Trash"),
                             icon: "delete",
                             dangerous: true,
                             visible: root.selectedFilePaths.every(p => !p.startsWith("stack://")),
@@ -2941,9 +2925,11 @@ DesktopPluginComponent {
                             spacing: Theme.spacingS
 
                             DankIcon {
-                                name: modelData.actionName === "pin"
-                                    ? "push_pin"
-                                    : (modelData.icon || "")
+                                name: modelData.actionName === "favorite"
+                                    ? (root.favoritePaths.indexOf(quickMenu.currentPath) !== -1 ? "star" : "star_outline")
+                                    : (modelData.actionName === "pin"
+                                        ? "push_pin"
+                                        : (modelData.icon || ""))
                                 size: 14
                                 color: modelData.dangerous && menuArea.containsMouse ? Theme.error : Theme.surfaceText
                                 anchors.verticalCenter: parent.verticalCenter
@@ -2951,9 +2937,11 @@ DesktopPluginComponent {
                             }
 
                             StyledText {
-                                text: modelData.actionName === "pin"
-                                    ? (root.pinnedPaths.indexOf(quickMenu.currentPath) !== -1 ? I18n.tr("Unpin from Top") : I18n.tr("Pin to Top"))
-                                    : (modelData.text || "")
+                                text: modelData.actionName === "favorite"
+                                    ? (root.favoritePaths.indexOf(quickMenu.currentPath) !== -1 ? i18n("Remove from Favorites") : i18n("Add to Favorites"))
+                                    : (modelData.actionName === "pin"
+                                        ? (root.pinnedPaths.indexOf(quickMenu.currentPath) !== -1 ? i18n("Unpin from Top") : i18n("Pin to Top"))
+                                        : (modelData.text || ""))
                                 font.pixelSize: Theme.fontSizeSmall
                                 color: modelData.dangerous && menuArea.containsMouse ? Theme.error : Theme.surfaceText
                                 anchors.verticalCenter: parent.verticalCenter
@@ -2979,42 +2967,52 @@ DesktopPluginComponent {
     // Rename Dialog
     FolderViewRenameDialog {
         id: renameDialog
+        pluginLanguage: root.pluginLanguage
     }
 
     // Create Stack Dialog
     FolderViewCreateStackDialog {
         id: createStackDialog
+        pluginLanguage: root.pluginLanguage
     }
 
     // Info Dialog
     FolderViewInfoDialog {
         id: infoDialog
+        pluginLanguage: root.pluginLanguage
     }
 
     // Create Folder/File Dialog
     FolderViewCreateDialog {
         id: createDialog
         targetFolderUrl: root.targetFolderUrl
+        pluginLanguage: root.pluginLanguage
     }
 
     // Create App Dialog
     FolderViewCreateAppDialog {
         id: createAppDialog
         targetFolderUrl: root.targetFolderUrl
+        pluginLanguage: root.pluginLanguage
     }
 
+    property bool showFullPath: false
+
     // Folder Switcher Dropdown Popup
+    property bool sidebarPinned: pluginData.sidebarPinned ?? false
+    onSidebarPinnedChanged: { if (pluginService) pluginService.savePluginData(pluginId, "sidebarPinned", sidebarPinned); }
     Popup {
         id: folderDropdown
-        parent: folderSelectorBtn
-        width: 140
-        height: folderDropdownColumn.implicitHeight + Theme.spacingS * 2
+        parent: sidebarPinned ? root : folderSelectorBtn
+        width: sidebarPinned ? Math.min(root.width * 0.17, 250) : 160
+        height: sidebarPinned ? (root.height - 28) : Math.min(folderDropdownColumn.implicitHeight + Theme.spacingS * 2 + 8, root.height * 0.85)
         padding: 0
-        modal: true
+        modal: !sidebarPinned
         dim: false
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        closePolicy: sidebarPinned ? Popup.NoAutoClose : Popup.CloseOnPressOutside
         x: 0
-        y: root.headerPosition === "bottom" ? -height - 4 : folderSelectorBtn.height + 4
+        visible: sidebarPinned || opened
+        y: sidebarPinned ? 14 : (root.headerPosition === "bottom" ? -height - 4 : folderSelectorBtn.height + 4)
 
         background: Rectangle {
             color: "transparent"
@@ -3026,11 +3024,46 @@ DesktopPluginComponent {
             border.color: Theme.withAlpha(Theme.outline, 0.15)
             border.width: 1
 
-            Column {
+            Flickable {
+                id: folderDropdownFlick
+                anchors.fill: parent
+                contentHeight: folderDropdownColumn.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+
+                ScrollBar.vertical: ScrollBar { 
+                    policy: ScrollBar.AlwaysOn
+                    width: 4
+                    topPadding: 8
+                    bottomPadding: 8
+                }
+
+                Column {
                 id: folderDropdownColumn
                 anchors.fill: parent
                 anchors.margins: Theme.spacingS
                 spacing: 2
+
+                // Pin/unpin sidebar toggle
+                Row {
+                    width: parent.width
+                    height: 24
+                    visible: !isSeparator
+                    anchors.right: parent.right
+
+                    StyledText {
+                        text: root.sidebarPinned ? "📌" : "📍"
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: { root.sidebarPinned = !root.sidebarPinned; }
+                        }
+                    }
+                }
 
                 Repeater {
                     model: root.folderDropdownModel
@@ -3080,6 +3113,17 @@ DesktopPluginComponent {
                                 color: isPinned ? Theme.primary : (root.folderType === modelData.value ? Theme.primary : Theme.surfaceText)
                                 anchors.verticalCenter: parent.verticalCenter
                                 elide: Text.ElideRight
+                                width: parent.width - (modelData.value === "favorite" || modelData.value === "bookmark" ? 25 : 0) - 20
+                            }
+
+                            // Delete button (favorites + bookmarks)
+                            StyledText {
+                                text: "✕"
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.error
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.right: parent.right
+                                visible: dropdownItemArea.containsMouse && (modelData.value === "favorite" || modelData.value === "bookmark")
                             }
                         }
 
@@ -3090,9 +3134,20 @@ DesktopPluginComponent {
                             cursorShape: isSeparator ? Qt.ArrowCursor : Qt.PointingHandCursor
                             visible: !isSeparator
 
-                            onClicked: {
-                                folderDropdown.close();
+                            onClicked: mouse => {
+                                // X button on favorites/bookmarks
+                                if ((modelData.value === "favorite" || modelData.value === "bookmark") && mouse.x > parent.width - 25) {
+                                    if (modelData.value === "favorite") {
+                                        root.toggleFavorite(modelData.path);
+                                    } else {
+                                        root.removeBookmark(modelData.path);
+                                    }
+                                    return;
+                                }
+                                if (!root.sidebarPinned) folderDropdown.close();
                                 if (isPinned) {
+                                    root.navigateToFolder(modelData.path);
+                                } else if (modelData.value === "favorite") {
                                     root.navigateToFolder(modelData.path);
                                 } else if (modelData.value === "custom") {
                                     folderPickerDialog.open();
@@ -3112,6 +3167,7 @@ DesktopPluginComponent {
                     }
                 }
             }
+                }
         }
     }
 
@@ -3144,12 +3200,8 @@ DesktopPluginComponent {
                 anchors.margins: Theme.spacingS
                 spacing: 2
 
-                Repeater {
-                    model: [
-                        { label: I18n.tr("New Folder"), value: "folder", icon: "create_new_folder" },
-                        { label: I18n.tr("New Document"), value: "file", icon: "note_add" },
-                        { label: I18n.tr("New App"), value: "app", icon: "add_to_home_screen" }
-                    ]
+                        Repeater {
+                            model: root._createNewOptions
 
                     delegate: Rectangle {
                         width: parent.width
@@ -3233,13 +3285,8 @@ DesktopPluginComponent {
                 anchors.margins: Theme.spacingS
                 spacing: 2
 
-                Repeater {
-                    model: [
-                        { label: I18n.tr("Sort by Name"), value: "name", icon: "sort_by_alpha" },
-                        { label: I18n.tr("Sort by Date"), value: "time", icon: "schedule" },
-                        { label: I18n.tr("Sort by Size"), value: "size", icon: "bar_chart" },
-                        { label: I18n.tr("Sort by Type"), value: "type", icon: "category" }
-                    ]
+                        Repeater {
+                            model: root._sortOptions
 
                     delegate: Rectangle {
                         width: parent.width
@@ -3325,7 +3372,7 @@ DesktopPluginComponent {
  
                 // Section 1: File Type
                 StyledText {
-                    text: I18n.tr("File Type")
+                    text: i18n("File Type")
                     font.pixelSize: Theme.fontSizeSmall - 1
                     font.bold: true
                     color: Theme.surfaceVariantText
@@ -3333,15 +3380,8 @@ DesktopPluginComponent {
                     anchors.leftMargin: Theme.spacingS
                 }
  
-                Repeater {
-                    model: [
-                        { label: I18n.tr("All Files"), value: "all", icon: "menu" },
-                        { label: I18n.tr("Folders Only"), value: "folders", icon: "folder" },
-                        { label: I18n.tr("Files Only"), value: "files", icon: "description" },
-                        { label: I18n.tr("Images Only"), value: "images", icon: "image" },
-                        { label: I18n.tr("Documents Only"), value: "documents", icon: "article" },
-                        { label: I18n.tr("Audio & Video"), value: "audio_video", icon: "movie" }
-                    ]
+                        Repeater {
+                            model: root._fileTypeOptions
  
                     delegate: Rectangle {
                         width: parent.width
@@ -3392,7 +3432,7 @@ DesktopPluginComponent {
  
                 // Section 2: Time
                 StyledText {
-                    text: I18n.tr("Time Modified")
+                    text: i18n("Time Modified")
                     font.pixelSize: Theme.fontSizeSmall - 1
                     font.bold: true
                     color: Theme.surfaceVariantText
@@ -3400,14 +3440,8 @@ DesktopPluginComponent {
                     anchors.leftMargin: Theme.spacingS
                 }
  
-                Repeater {
-                    model: [
-                        { label: I18n.tr("Any Time"), value: "all", icon: "schedule" },
-                        { label: I18n.tr("Last 24 Hours"), value: "today", icon: "today" },
-                        { label: I18n.tr("Last 7 Days"), value: "week", icon: "date_range" },
-                        { label: I18n.tr("Last 30 Days"), value: "month", icon: "calendar_month" },
-                        { label: I18n.tr("Last 365 Days"), value: "year", icon: "history" }
-                    ]
+                        Repeater {
+                            model: root._timeFilterOptions
 
                     delegate: Rectangle {
                         width: parent.width
@@ -3477,7 +3511,7 @@ DesktopPluginComponent {
                         }
 
                         StyledText {
-                            text: I18n.tr("Show Hidden Files")
+                            text: i18n("Show Hidden Files")
                             font.pixelSize: Theme.fontSizeSmall - 1
                             font.bold: root.showHidden
                             color: root.showHidden ? Theme.primary : Theme.surfaceText
@@ -3505,13 +3539,601 @@ DesktopPluginComponent {
     // Native Folder Dialog Selector
     FolderDialog {
         id: folderPickerDialog
-        title: I18n.tr("Select Folder")
+        title: i18n("Select Folder")
         currentFolder: root.targetFolderUrl
         onAccepted: {
             let path = root._cleanPath(selectedFolder);
             if (pluginService) {
                 pluginService.savePluginData(pluginId, "customFolderPath", path);
                 pluginService.savePluginData(pluginId, "folderType", "custom");
+            }
+            root.navigateToFolder(path);
+        }
+    }
+
+    // ── File Preview Popup (Space key) ────────────────────────────────────────
+    Popup {
+        id: previewPopup
+        width: root.width
+        height: root.height
+        modal: true
+        dim: false
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        onClosed: {
+            mediaPlayer.stop();
+            _slideshowRunning = false;
+            slideshowTimer.stop();
+        }
+        onOpened: {
+            contentItem.forceActiveFocus();
+            if (isVideo) {
+                mediaPlayer.source = "";
+                reloadVideo.start();
+            }
+            if (isImage) { _imageNameVisible = true; hideImageNameTimer.restart(); }
+        }
+
+        Timer {
+            id: reloadVideo
+            interval: 50
+            repeat: false
+            onTriggered: {
+                mediaPlayer.source = "file://" + previewPopup.filePath;
+                mediaPlayer.play();
+            }
+        }
+        anchors.centerIn: parent
+        padding: 0
+
+        property string filePath: ""
+        property string fileName: filePath.split("/").pop() || ""
+        property string fileExt: fileName.split(".").pop().toLowerCase() || ""
+        property string _textContent: ""
+        property int _currentIndex: -1
+        property bool _wheelLocked: false
+        property int _selectedSubTrack: -1
+        property bool _imageNameVisible: true
+        property bool _slideshowRunning: false
+        property real _transitionProgress: 0
+        property bool _effectActive: false
+        property string _transitionEffect: "random"
+        property string _effectiveTransition: ""
+        readonly property var _availableEffects: ["none", "fade", "wipe", "disc", "stripes", "iris bloom", "pixelate", "portal", "wave", "mosaic", "diamond", "glitch", "random"]
+
+        Timer {
+            id: slideshowTimer
+            interval: 30000
+            repeat: true
+            onTriggered: {
+                if (!previewPopup._slideshowRunning) return;
+                var step = 1;
+                for (var i = previewPopup._currentIndex + step; i < filteredModel.count; i++) {
+                    var item = filteredModel.get(i);
+                    if (!item.fileIsDir) {
+                        previewPopup._currentIndex = i;
+                        previewPopup.filePath = item.filePath;
+                        return;
+                    }
+                }
+                for (var j = 0; j < previewPopup._currentIndex; j++) {
+                    var item2 = filteredModel.get(j);
+                    if (!item2.fileIsDir) {
+                        previewPopup._currentIndex = j;
+                        previewPopup.filePath = item2.filePath;
+                        return;
+                    }
+                }
+            }
+        }
+
+        Timer {
+            id: hideImageNameTimer
+            interval: 3000
+            repeat: false
+            onTriggered: previewPopup._imageNameVisible = false
+        }
+
+        function _resetImageNameTimer() {
+            _imageNameVisible = true;
+            hideImageNameTimer.restart();
+        }
+        onFilePathChanged: {
+            _textContent = "";
+            if (isText) textFileLoader.path = "file://" + filePath;
+            if (isImage && filePath) imagePreviewContainer._crossFadeTo(filePath);
+        }
+
+        Timer {
+            id: wheelUnlockTimer
+            interval: 100
+            repeat: false
+            onTriggered: previewPopup._wheelLocked = false
+        }
+
+        function _wheelSwitch(delta) {
+            if (previewPopup._wheelLocked) return;
+            previewPopup._wheelLocked = true;
+            wheelUnlockTimer.restart();
+            var step = delta > 0 ? -1 : 1;
+            for (var i = _currentIndex + step; i >= 0 && i < filteredModel.count; i += step) {
+                var item = filteredModel.get(i);
+                if (!item.fileIsDir) {
+                    _currentIndex = i;
+                    filePath = item.filePath;
+                    return;
+                }
+            }
+        }
+
+        function _formatTime(ms) {
+            if (!ms || ms <= 0) return "0:00";
+            var totalSec = Math.floor(ms / 1000);
+            var min = Math.floor(totalSec / 60);
+            var sec = totalSec % 60;
+            return min + ":" + (sec < 10 ? "0" : "") + sec;
+        }
+        readonly property var imageExts: ["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg"]
+        readonly property var textExts: ["txt", "md", "py", "js", "qml", "json", "xml", "html", "css", "cpp", "h", "c", "sh", "yml", "yaml", "ini", "cfg", "conf", "log", "toml", "rs", "go", "ts"]
+        readonly property var videoExts: ["mkv", "mp4", "avi", "mov", "webm", "flv", "wmv", "m4v", "mpg", "mpeg"]
+        readonly property bool isImage: imageExts.indexOf(fileExt) !== -1
+        readonly property bool isText: textExts.indexOf(fileExt) !== -1
+        readonly property bool isVideo: videoExts.indexOf(fileExt) !== -1
+
+        background: Rectangle {
+            color: Theme.surfaceContainer
+            radius: Theme.cornerRadius
+            border.color: Theme.withAlpha(Theme.outline, 0.2)
+            border.width: 1
+        }
+
+        contentItem: Item {
+            focus: true
+            Keys.onPressed: event => {
+                if (event.key === Qt.Key_Space || event.key === Qt.Key_Escape) {
+                    event.accepted = true;
+                    previewPopup.close();
+                } else if (event.key === Qt.Key_S && event.modifiers & Qt.ControlModifier) {
+                    event.accepted = true;
+                    previewPopup._saveTextFile();
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                onWheel: wheel => {
+                    if (previewPopup.isImage) {
+                        previewPopup._wheelSwitch(wheel.angleDelta.y);
+                    }
+                }
+            }
+
+            function _saveTextFile() {
+                if (!previewPopup.isText) return;
+                var content = previewPopup._textContent || "";
+                var filePath = previewPopup.filePath;
+                Quickshell.execDetached(["python3", "-c", 
+                    "open('" + filePath.replace(/'/g, "'\\''") + "','w').write('" + content.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "')"
+                ]);
+            }
+            Column {
+                anchors.fill: parent
+                anchors.margins: Theme.spacingM
+                spacing: Theme.spacingS
+
+                // Image preview: ShaderEffect transitions (DMS-style)
+                Item {
+                    id: imagePreviewContainer
+                    visible: previewPopup.isImage
+                    width: parent.width
+                    height: visible ? previewPopup.height - 36 : 0
+
+                    Image {
+                        id: currentImg
+                        anchors.fill: parent
+                        source: previewPopup.isImage ? "file://" + previewPopup.filePath : ""
+                        fillMode: Image.PreserveAspectCrop
+                        cache: false
+                    }
+
+                    Image {
+                        id: nextImg
+                        anchors.fill: parent
+                        source: ""
+                        fillMode: Image.PreserveAspectCrop
+                        cache: false
+                    }
+
+                    ShaderEffectSource {
+                        id: srcA
+                        sourceItem: previewPopup._effectActive ? currentImg : null
+                        hideSource: previewPopup._effectActive
+                        live: previewPopup._effectActive
+                        anchors.fill: parent
+                    }
+
+                    ShaderEffectSource {
+                        id: srcB
+                        sourceItem: previewPopup._effectActive ? nextImg : null
+                        hideSource: previewPopup._effectActive
+                        live: previewPopup._effectActive
+                        anchors.fill: parent
+                    }
+
+                    // All effects overlaid, only one visible based on _effectiveTransition
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "fade"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_fade.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "wipe"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        property real smoothness: 0.05; property real direction: 0
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_wipe.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "disc"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        property real smoothness: 0.05
+                        property real aspectRatio: width / height
+                        property real centerX: 0.5; property real centerY: 0.5
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_disc.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "stripes"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        property real smoothness: 0.05
+                        property real count: 8; property real angle: 0
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_stripes.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "iris bloom"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_iris_bloom.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "pixelate"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_pixelate.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "portal"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_portal.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "wave"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_wave.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "mosaic"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_mosaic.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "diamond"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_diamond.frag.qsb")
+                    }
+                    ShaderEffect {
+                        visible: previewPopup._effectiveTransition === "glitch"
+                        anchors.fill: parent
+                        property variant source1: srcA; property variant source2: srcB
+                        property real progress: previewPopup._transitionProgress
+                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_glitch.frag.qsb")
+                    }
+
+                    NumberAnimation {
+                        id: crossFadeAnim
+                        target: previewPopup
+                        property: "_transitionProgress"
+                        from: 0.0; to: 1.0
+                        duration: 800
+                        easing.type: Easing.InOutCubic
+                        onFinished: {
+                            currentImg.source = nextImg.source;
+                            nextImg.source = "";
+                            previewPopup._transitionProgress = 0.0;
+                            previewPopup._effectActive = false;
+                            previewPopup._effectiveTransition = "";
+                        }
+                    }
+
+                    function _crossFadeTo(newPath) {
+                        if (!newPath) return;
+                        var effect = previewPopup._transitionEffect;
+                        if (effect === "random") {
+                            var avail = previewPopup._availableEffects.filter(function(e) { return e !== "none" && e !== "random"; });
+                            effect = avail[Math.floor(Math.random() * avail.length)];
+                        }
+                        previewPopup._effectiveTransition = effect;
+                        if (effect === "none") {
+                            currentImg.source = "file://" + newPath;
+                            return;
+                        }
+                        nextImg.source = "file://" + newPath;
+                        previewPopup._effectActive = true;
+                        crossFadeAnim.from = 0;
+                        crossFadeAnim.to = 1;
+                        crossFadeAnim.restart();
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.ArrowCursor
+                        onPositionChanged: previewPopup._resetImageNameTimer()
+                        onEntered: previewPopup._resetImageNameTimer()
+                        onWheel: {
+                            previewPopup._resetImageNameTimer();
+                            previewPopup._wheelSwitch(wheel.angleDelta.y);
+                        }
+                    }
+                }
+
+                // Text preview (editable, Ctrl+S to save)
+                FileView {
+                    id: textFileLoader
+                    onLoaded: previewPopup._textContent = text()
+                    onLoadFailed: previewPopup._textContent = "(error)"
+                }
+
+                ScrollView {
+                    visible: previewPopup.isText
+                    width: parent.width
+                    height: visible ? previewPopup.height - 36 : 0
+                    clip: true
+
+                    TextArea {
+                        id: textPreviewArea
+                        font.pixelSize: Theme.fontSizeSmall + 1
+                        color: Theme.surfaceText
+                        selectionColor: Qt.rgba(0, 0.7, 0, 0.35)
+                        selectedTextColor: Theme.surfaceText
+                        text: previewPopup._textContent || ""
+                        wrapMode: TextEdit.Wrap
+                        onTextChanged: previewPopup._textContent = text
+                        background: Rectangle {
+                            color: "transparent"
+                            border.color: textPreviewArea.activeFocus ? Theme.withAlpha(Theme.surfaceText, 0.3) : "transparent"
+                            border.width: 1
+                            radius: 4
+                        }
+                    }
+                }
+
+                // Video preview — fills preview area
+                Item {
+                    visible: previewPopup.isVideo
+                    width: parent.width
+                    height: visible ? previewPopup.height - 36 : 0
+
+                    MediaPlayer {
+                        id: mediaPlayer
+                        source: "file://" + previewPopup.filePath
+                        videoOutput: videoOutput
+                        audioOutput: AudioOutput { }
+                        autoPlay: true
+                        activeSubtitleTrack: -1
+                    }
+
+                    VideoOutput {
+                        id: videoOutput
+                        anchors.fill: parent
+                        fillMode: VideoOutput.Stretch
+                    }
+
+                    // Hover-only detector (z:2, doesn't consume any events)
+                    MouseArea {
+                        id: videoMA
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.NoButton
+                        z: 2
+                    }
+
+                    // Progress controls — show on hover
+                    Column {
+                        z: 1
+                        anchors.left: parent.left; anchors.leftMargin: 8
+                        anchors.right: parent.right; anchors.rightMargin: 8
+                        anchors.bottom: parent.bottom; anchors.bottomMargin: 4
+                        spacing: 2
+                        opacity: videoMA.containsMouse ? 1.0 : 0.0
+                        Behavior on opacity { NumberAnimation { duration: 200 } }
+
+                        // Subtitle track selector
+                        Row {
+                            visible: mediaPlayer.subtitleTracks.length > 0
+                            anchors.right: parent.right
+                            spacing: 4
+                            Repeater {
+                                model: mediaPlayer.subtitleTracks
+                                 delegate: StyledText {
+                                    text: modelData.label || modelData.language || ("Track " + model.index)
+                            font.pixelSize: Theme.fontSizeSmall - 1
+                                    color: previewPopup._selectedSubTrack === model.index ? "yellow" : "white"
+                                    font.bold: previewPopup._selectedSubTrack === model.index
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            mediaPlayer.activeSubtitleTrack = model.index;
+                                            previewPopup._selectedSubTrack = model.index;
+                                        }
+                                    }
+                                }
+                            }
+                            StyledText {
+                                text: i18n("Off")
+                                font.pixelSize: Theme.fontSizeSmall - 2
+                                color: previewPopup._selectedSubTrack === -1 ? "yellow" : "white"
+                                font.bold: previewPopup._selectedSubTrack === -1
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        mediaPlayer.activeSubtitleTrack = -1;
+                                        previewPopup._selectedSubTrack = -1;
+                                    }
+                                }
+                            }
+                        }
+
+                        Slider {
+                            id: videoSlider
+                            width: parent.width
+                            from: 0
+                            to: mediaPlayer.duration || 1
+                            value: videoSlider.pressed ? videoSlider.value : mediaPlayer.position
+                            live: true
+                            onMoved: mediaPlayer.setPosition(videoSlider.value)
+                        }
+                    }
+
+                    // Click to play/pause (z:0, below hover and controls but still clickable)
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: mediaPlayer.playbackState === MediaPlayer.PlayingState ? mediaPlayer.pause() : mediaPlayer.play()
+                    }
+                }
+
+                // Unsupported file type
+                StyledText {
+                    visible: !previewPopup.isImage && !previewPopup.isText && !previewPopup.isVideo
+                    text: i18n("Preview not available for this file type")
+                    color: Theme.surfaceVariantText
+                    font.pixelSize: Theme.fontSizeSmall
+                    anchors.centerIn: parent
+                }
+            }
+
+            // Bottom bar: filename left, save hint right
+            Item {
+                anchors.left: parent.left
+                anchors.leftMargin: Theme.spacingM
+                anchors.right: parent.right
+                anchors.rightMargin: Theme.spacingM
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 6
+                height: 20
+                opacity: previewPopup.isVideo ? (videoMA.containsMouse ? 1.0 : 0.0)
+                       : (previewPopup.isImage ? (previewPopup._imageNameVisible ? 1.0 : 0.0) : 1.0)
+                Behavior on opacity { NumberAnimation { duration: 300 } }
+
+                StyledText {
+                    anchors.left: parent.left
+                    anchors.right: previewPopup.isVideo ? timeRow.left
+                                : (previewPopup.isImage ? slideshowControls.left : saveHint.left)
+                    text: previewPopup.fileName
+                    font.pixelSize: Theme.fontSizeSmall + 2
+                    font.bold: true
+                    color: Theme.primary
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                }
+
+                // Slideshow controls (bottom-right, for images)
+                Row {
+                    id: slideshowControls
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: previewPopup.isImage
+                    spacing: 2
+
+                    // Effect selector
+                    Repeater {
+                        model: previewPopup._availableEffects
+                        delegate: StyledText {
+                            text: modelData
+                            font.pixelSize: Theme.fontSizeSmall - 1
+                            color: previewPopup._transitionEffect === modelData ? "yellow" : "white"
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: previewPopup._transitionEffect = modelData
+                            }
+                        }
+                    }
+
+                    StyledText { text: "|"; color: Theme.surfaceVariantText; font.pixelSize: Theme.fontSizeSmall - 3 }
+
+                    // Delay time selector
+                    Repeater {
+                        model: [3, 5, 10, 30, 60, 120]
+                        delegate: StyledText {
+                            text: modelData + "s"
+                            font.pixelSize: Theme.fontSizeSmall - 2
+                            color: slideshowTimer.interval === modelData * 1000 ? "yellow" : "white"
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: slideshowTimer.interval = modelData * 1000
+                            }
+                        }
+                    }
+
+                    // Play/Stop button
+                    StyledText {
+                        text: previewPopup._slideshowRunning ? "⏸" : "▶"
+                        font.pixelSize: Theme.fontSizeSmall - 1
+                        color: previewPopup._slideshowRunning ? "yellow" : "white"
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                previewPopup._slideshowRunning = !previewPopup._slideshowRunning;
+                                if (previewPopup._slideshowRunning)
+                                    slideshowTimer.start();
+                                else
+                                    slideshowTimer.stop();
+                            }
+                        }
+                    }
+                }
+
+                // Video time: right side
+                Row {
+                    id: timeRow
+                    anchors.right: parent.right
+                    visible: previewPopup.isVideo
+                    spacing: 2
+                    StyledText { text: previewPopup._formatTime(mediaPlayer.position); font.pixelSize: Theme.fontSizeSmall-1; color: Theme.primary }
+                    StyledText { text: "/"; font.pixelSize: Theme.fontSizeSmall-1; color: Theme.surfaceVariantText }
+                    StyledText { text: previewPopup._formatTime(mediaPlayer.duration); font.pixelSize: Theme.fontSizeSmall-1; color: Theme.primary }
+                }
+
+                // Save hint: right side (for text files)
+                StyledText {
+                    id: saveHint
+                    anchors.right: parent.right
+                    visible: previewPopup.isText
+                    text: i18n("Ctrl+S to save  ·  Esc/Space to close")
+                    font.pixelSize: Theme.fontSizeSmall - 1
+                    color: Theme.primary
+                }
             }
         }
     }

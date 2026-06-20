@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import Quickshell.Io
 import qs.Common
 import qs.Widgets
 import "./dms-common"
@@ -26,6 +27,52 @@ Popup {
     property bool isDir: false
     property var inputField: null
 
+    // ── Plugin I18n ──────────────────────────────────────────────────────────
+    property var _pluginFlatTranslations: ({})
+    property bool _pluginI18nReady: false
+    property int __i18nTick: 1
+    // Set from FolderView.qml to inherit current language
+    property string pluginLanguage: "system"
+    onPluginLanguageChanged: _loadPluginTranslations(pluginLanguage)
+
+    function _loadPluginTranslations(locale) {
+        if (locale === "System Default" || locale === "") locale = "system";
+        if (locale === "system") locale = "en";
+        if (!locale) {
+            renameDialog._pluginFlatTranslations = ({});
+            renameDialog._pluginI18nReady = false;
+            __i18nTick++;
+            return;
+        }
+        pluginI18nLoader.path = Qt.resolvedUrl("translations/i18n/" + locale + ".json");
+    }
+
+    function i18n(term, context) {
+        var _ = __i18nTick;
+        if (_pluginI18nReady && _pluginFlatTranslations[term]) {
+            return _pluginFlatTranslations[term];
+        }
+        return I18n.tr(term, context);
+    }
+
+    FileView {
+        id: pluginI18nLoader
+        onLoaded: {
+            try {
+                renameDialog._pluginFlatTranslations = JSON.parse(text());
+                renameDialog._pluginI18nReady = true;
+                renameDialog.__i18nTick++;
+            } catch (e) {
+                console.warn("RenameDialog I18n: error parsing:", e);
+            }
+        }
+        onLoadFailed: error => {
+            console.warn("RenameDialog I18n: failed to load:", error);
+        }
+    }
+
+    Component.onCompleted: _loadPluginTranslations(pluginLanguage)
+
     onOpened: {
         Qt.callLater(() => {
             if (renameDialog.inputField) {
@@ -51,7 +98,7 @@ Popup {
             spacing: Theme.spacingS
 
             StyledText {
-                text: I18n.tr("Rename")
+                text: i18n("Rename")
                 font.bold: true
                 font.pixelSize: Theme.fontSizeMedium
                 color: Theme.surfaceText
@@ -64,7 +111,7 @@ Popup {
                 DankTextField {
                     id: renameField
                     width: parent.width - (extLabel.visible ? extLabel.implicitWidth + Theme.spacingS : 0)
-                    placeholderText: I18n.tr("Enter new name...")
+                    placeholderText: i18n("Enter new name...")
                     focus: true
                     onAccepted: renameDialog.performRename()
 
@@ -90,14 +137,14 @@ Popup {
                 layoutDirection: Qt.RightToLeft
 
                 DankButton {
-                    text: I18n.tr("Rename")
+                    text: i18n("Rename")
                     backgroundColor: Theme.primary
                     textColor: Theme.primaryText
                     onClicked: renameDialog.performRename()
                 }
 
                 DankButton {
-                    text: I18n.tr("Cancel")
+                    text: i18n("Cancel")
                     backgroundColor: Theme.surfaceContainerHigh
                     textColor: Theme.surfaceText
                     onClicked: renameDialog.close()

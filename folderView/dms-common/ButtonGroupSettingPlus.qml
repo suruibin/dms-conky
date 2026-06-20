@@ -12,6 +12,11 @@ Item {
     property string defaultValue: ""
     property string value: defaultValue
 
+    // ── Dynamic translation support ──
+    // When translateToken changes, optionLabels re-evaluate through translateMap.
+    property var translateMap: ({})
+    property int translateToken: 0
+
     width: parent.width
     implicitHeight: layout.implicitHeight
 
@@ -36,9 +41,13 @@ Item {
     Component.onCompleted: loadValue()
 
     readonly property var optionLabels: {
+        // translateToken is read to create a QML binding dependency —
+        // when it changes (after translations reload), labels pull from translateMap.
+        if (translateToken < 0) {}
         const labels = []
         for (let i = 0; i < options.length; i++) {
-            labels.push(options[i].label || options[i])
+            const key = options[i].label || options[i]
+            labels.push(translateMap[key] || key)
         }
         return labels
     }

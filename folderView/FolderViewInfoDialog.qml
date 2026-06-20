@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell
+import Quickshell.Io
 import qs.Common
 import qs.Widgets
 import qs.Services
@@ -32,6 +33,55 @@ Popup {
     property string fileModified: ""
     property string fileSize: ""
     property string fileOwner: ""
+
+    // ── Plugin I18n ──────────────────────────────────────────────────────────
+    property var _pluginFlatTranslations: ({})
+    property bool _pluginI18nReady: false
+    property int __i18nTick: 1
+    // Set from FolderView.qml to inherit current language
+    property string pluginLanguage: "system"
+    onPluginLanguageChanged: _loadPluginTranslations(pluginLanguage)
+
+    function _loadPluginTranslations(locale) {
+        if (locale === "System Default" || locale === "") locale = "system";
+        if (locale === "system") locale = "en";
+        if (!locale) {
+            infoDialog._pluginFlatTranslations = ({});
+            infoDialog._pluginI18nReady = false;
+            __i18nTick++;
+            return;
+        }
+        // Reset before loading new file so stale translations aren't shown
+        infoDialog._pluginFlatTranslations = ({});
+        infoDialog._pluginI18nReady = false;
+        pluginI18nLoader.path = Qt.resolvedUrl("translations/i18n/" + locale + ".json");
+    }
+
+    function i18n(term, context) {
+        var _ = __i18nTick;
+        if (_pluginI18nReady && _pluginFlatTranslations[term]) {
+            return _pluginFlatTranslations[term];
+        }
+        return I18n.tr(term, context);
+    }
+
+    FileView {
+        id: pluginI18nLoader
+        onLoaded: {
+            try {
+                infoDialog._pluginFlatTranslations = JSON.parse(text());
+                infoDialog._pluginI18nReady = true;
+                infoDialog.__i18nTick++;
+            } catch (e) {
+                console.warn("InfoDialog I18n: error parsing:", e);
+            }
+        }
+        onLoadFailed: error => {
+            console.warn("InfoDialog I18n: failed to load:", error);
+        }
+    }
+
+    Component.onCompleted: _loadPluginTranslations(pluginLanguage)
 
     background: Rectangle {
         color: "transparent"
@@ -114,11 +164,11 @@ Popup {
                     }
                 }
 
-                InfoRow { labelText: I18n.tr("Type:"); valueText: infoDialog.fileType }
-                InfoRow { labelText: I18n.tr("Size:"); valueText: infoDialog.fileSize }
-                InfoRow { labelText: I18n.tr("Modified:"); valueText: infoDialog.fileModified }
-                InfoRow { labelText: I18n.tr("Owner:"); valueText: infoDialog.fileOwner }
-                InfoRow { labelText: I18n.tr("Permissions:"); valueText: infoDialog.filePermissions }
+                InfoRow { labelText: i18n("Type:"); valueText: infoDialog.fileType }
+                InfoRow { labelText: i18n("Size:"); valueText: infoDialog.fileSize }
+                InfoRow { labelText: i18n("Modified:"); valueText: infoDialog.fileModified }
+                InfoRow { labelText: i18n("Owner:"); valueText: infoDialog.fileOwner }
+                InfoRow { labelText: i18n("Permissions:"); valueText: infoDialog.filePermissions }
             }
 
             Rectangle {
@@ -133,7 +183,7 @@ Popup {
                 spacing: 4
                 
                 StyledText {
-                    text: I18n.tr("Location:")
+                    text: i18n("Location:")
                     font.pixelSize: Theme.fontSizeSmall
                     font.bold: true
                     color: Theme.surfaceVariantText
@@ -162,7 +212,7 @@ Popup {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             Quickshell.execDetached(["dms", "cl", "copy", infoDialog.filePath]);
-                            ToastService.showToast(I18n.tr("Path copied to clipboard"), ToastService.levelInfo);
+                            ToastService.showToast(i18n("Path copied to clipboard"), ToastService.levelInfo);
                         }
                     }
                 }
@@ -170,7 +220,7 @@ Popup {
 
             DankButton {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: I18n.tr("Close")
+                text: i18n("Close")
                 backgroundColor: Theme.surfaceContainerHigh
                 textColor: Theme.surfaceText
                 onClicked: infoDialog.close()

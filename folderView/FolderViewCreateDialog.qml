@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell
+import Quickshell.Io
 import qs.Common
 import qs.Widgets
 import qs.Services
@@ -25,6 +26,52 @@ Popup {
     property string targetFolderUrl: ""
     property bool isFolder: true
     property var inputField: null
+
+    // ── Plugin I18n ──────────────────────────────────────────────────────────
+    property var _pluginFlatTranslations: ({})
+    property bool _pluginI18nReady: false
+    property int __i18nTick: 1
+    // Set from FolderView.qml to inherit current language
+    property string pluginLanguage: "system"
+    onPluginLanguageChanged: _loadPluginTranslations(pluginLanguage)
+
+    function _loadPluginTranslations(locale) {
+        if (locale === "System Default" || locale === "") locale = "system";
+        if (locale === "system") locale = "en";
+        if (!locale) {
+            createDialog._pluginFlatTranslations = ({});
+            createDialog._pluginI18nReady = false;
+            __i18nTick++;
+            return;
+        }
+        pluginI18nLoader.path = Qt.resolvedUrl("translations/i18n/" + locale + ".json");
+    }
+
+    function i18n(term, context) {
+        var _ = __i18nTick;
+        if (_pluginI18nReady && _pluginFlatTranslations[term]) {
+            return _pluginFlatTranslations[term];
+        }
+        return I18n.tr(term, context);
+    }
+
+    FileView {
+        id: pluginI18nLoader
+        onLoaded: {
+            try {
+                createDialog._pluginFlatTranslations = JSON.parse(text());
+                createDialog._pluginI18nReady = true;
+                createDialog.__i18nTick++;
+            } catch (e) {
+                console.warn("CreateDialog I18n: error parsing:", e);
+            }
+        }
+        onLoadFailed: error => {
+            console.warn("CreateDialog I18n: failed to load:", error);
+        }
+    }
+
+    Component.onCompleted: _loadPluginTranslations(pluginLanguage)
 
     onOpened: {
         Qt.callLater(() => {
@@ -51,7 +98,7 @@ Popup {
             spacing: Theme.spacingS
 
             StyledText {
-                text: createDialog.isFolder ? I18n.tr("New Folder") : I18n.tr("New Document")
+                text: createDialog.isFolder ? i18n("New Folder") : i18n("New Document")
                 font.bold: true
                 font.pixelSize: Theme.fontSizeMedium
                 color: Theme.surfaceText
@@ -64,7 +111,7 @@ Popup {
                 DankTextField {
                     id: createField
                     width: parent.width
-                    placeholderText: createDialog.isFolder ? I18n.tr("Folder name...") : I18n.tr("File name...")
+                    placeholderText: createDialog.isFolder ? i18n("Folder name...") : i18n("File name...")
                     focus: true
                     onAccepted: createDialog.performCreate()
 
@@ -80,14 +127,14 @@ Popup {
                 layoutDirection: Qt.RightToLeft
 
                 DankButton {
-                    text: I18n.tr("Create")
+                    text: i18n("Create")
                     backgroundColor: Theme.primary
                     textColor: Theme.primaryText
                     onClicked: createDialog.performCreate()
                 }
 
                 DankButton {
-                    text: I18n.tr("Cancel")
+                    text: i18n("Cancel")
                     backgroundColor: Theme.surfaceContainerHigh
                     textColor: Theme.surfaceText
                     onClicked: createDialog.close()
