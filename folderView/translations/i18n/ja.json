@@ -141,5 +141,7 @@
   "Overwrite existing files?": "既存のファイルを上書きしますか？",
   "Overwrite All": "すべて上書き",
   "Skip": "スキップ",
-  "Files with the same name already exist in this folder.": "同じ名前のファイルがこのフォルダーに既に存在します。"
+  "Files with the same name already exist in this folder.": "同じ名前のファイルがこのフォルダーに既に存在します。",
+  "Add to Bookmarks": "ブックマークに追加",
+  "Bookmarked": "ブックマーク済み"
 }

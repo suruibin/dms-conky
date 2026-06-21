@@ -347,6 +347,14 @@ DesktopPluginComponent {
         }
     }
     Shortcut {
+        sequence: "Ctrl+H"
+        onActivated: {
+            root.showHidden = !root.showHidden;
+            if (root.pluginService)
+                root.pluginService.savePluginData(root.pluginId, "showHidden", root.showHidden);
+        }
+    }
+    Shortcut {
         sequence: StandardKey.SelectAll
         onActivated: {
             var arr = [];
@@ -686,6 +694,22 @@ DesktopPluginComponent {
             pins.push(filePath);
         }
         pluginService.savePluginData(pluginId, "pinnedPaths", pins);
+    }
+
+    function addToGtkBookmarks(filePath) {
+        var cleanPath = root._cleanPath(String(filePath));
+        var uri = "file://" + cleanPath;
+        var name = cleanPath.split("/").pop();
+        var line = uri + " " + name;
+
+        var bookmarksFile = "/home/suruibin/.config/gtk-3.0/bookmarks";
+
+        var safeLine = line.replace(/'/g, "'\\''");
+        Proc.runCommand("addBookmark-" + Math.random(), ["sh", "-c",
+            "grep -qxF '" + safeLine + "' " + bookmarksFile + " || echo '" + safeLine + "' >> " + bookmarksFile],
+            function(out, code) {
+                root.buildFolderDropdownModel();
+            });
     }
 
     function pasteFromClipboard() {
@@ -3099,6 +3123,15 @@ DesktopPluginComponent {
                             action: function() {
                                 quickMenu.close();
                                 infoDialog.showFor(quickMenu.currentPath, quickMenu.currentName, quickMenu.currentIsDir);
+                            }
+                        },
+                        {
+                            text: i18n("Add to Bookmarks"),
+                            icon: "bookmark",
+                            visible: root.selectedFilePaths.length === 1 && quickMenu.currentIsDir && !quickMenu.currentPath.startsWith("stack://"),
+                            action: function() {
+                                quickMenu.close();
+                                root.addToGtkBookmarks(quickMenu.currentPath);
                             }
                         },
                         {

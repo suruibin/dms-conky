@@ -141,5 +141,7 @@
   "Overwrite existing files?": "Ghi đè tệp hiện có?",
   "Overwrite All": "Ghi đè tất cả",
   "Skip": "Bỏ qua",
-  "Files with the same name already exist in this folder.": "Tệp trùng tên đã tồn tại trong thư mục này."
+  "Files with the same name already exist in this folder.": "Tệp trùng tên đã tồn tại trong thư mục này.",
+  "Add to Bookmarks": "Thêm vào Dấu trang",
+  "Bookmarked": "Đã đánh dấu"
 }

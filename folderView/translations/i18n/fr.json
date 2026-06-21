@@ -141,5 +141,7 @@
   "Overwrite existing files?": "Remplacer les fichiers existants ?",
   "Overwrite All": "Tout remplacer",
   "Skip": "Ignorer",
-  "Files with the same name already exist in this folder.": "Des fichiers portant le même nom existent déjà dans ce dossier."
+  "Files with the same name already exist in this folder.": "Des fichiers portant le même nom existent déjà dans ce dossier.",
+  "Add to Bookmarks": "Ajouter aux favoris",
+  "Bookmarked": "Ajouté aux favoris"
 }

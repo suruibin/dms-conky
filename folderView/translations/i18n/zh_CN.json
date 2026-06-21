@@ -141,5 +141,7 @@
   "Overwrite existing files?": "覆盖已有文件？",
   "Overwrite All": "全部覆盖",
   "Skip": "跳过",
-  "Files with the same name already exist in this folder.": "同名文件已存在于当前文件夹。"
+  "Files with the same name already exist in this folder.": "同名文件已存在于当前文件夹。",
+  "Add to Bookmarks": "添加到书签",
+  "Bookmarked": "已添加书签"
 }

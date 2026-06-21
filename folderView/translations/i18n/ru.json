@@ -141,5 +141,7 @@
   "Overwrite existing files?": "Перезаписать существующие файлы?",
   "Overwrite All": "Перезаписать все",
   "Skip": "Пропустить",
-  "Files with the same name already exist in this folder.": "Файлы с таким именем уже существуют в этой папке."
+  "Files with the same name already exist in this folder.": "Файлы с таким именем уже существуют в этой папке.",
+  "Add to Bookmarks": "Добавить в закладки",
+  "Bookmarked": "Добавлено в закладки"
 }

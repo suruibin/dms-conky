@@ -135,5 +135,7 @@
   "Overwrite existing files?": "Overwrite existing files?",
   "Overwrite All": "Overwrite All",
   "Skip": "Skip",
-  "Files with the same name already exist in this folder.": "Files with the same name already exist in this folder."
+  "Files with the same name already exist in this folder.": "Files with the same name already exist in this folder.",
+  "Add to Bookmarks": "Add to Bookmarks",
+  "Bookmarked": "Bookmarked"
 }
