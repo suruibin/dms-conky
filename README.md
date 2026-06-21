@@ -22,7 +22,7 @@
 - **悬停排除区**：Storage 和 HardWare 底部区域不触发应用启动器切换，防止误触
 - **粒子消散动画**：整个conky界面背景显示粒子效果
 - **默认界面设置**：可以设置默认的界面是:系统监控/
-- **磁盘信息界面**：双击Stroage可以切换显示folderView(https://github.com/hthienloc/dms-folder-view) 目录下这个是我修改后的，你需要手动把folderView文件夹放在/.config/DankMaterialShell/plugins/ 目录下
+- **磁盘信息界面**：双击Stroage可以切换显示folderView目录下这个是我修改后的，你需要手动把folderView文件夹放在/.config/DankMaterialShell/plugins/ 目录下
 
 ## 安装
 
@@ -44,7 +44,6 @@ Conky可配置项目：
 ## 依赖
 
 - [DankMaterialShell](https://github.com/hthienloc/DankMaterialShell)
-- DgopService、WeatherService、MprisController、BatteryService（DMS 内置服务）
 
 ## 快捷键
 
@@ -61,4 +60,4 @@ Conky可配置项目：
 
 ## 参考项目
 - [conky](https://www.gnome-look.org/p/1869486/)
-- [auncher && folderView](https://github.com/hthienloc/dms-app-launcher)
+- [launcher && folderView](https://github.com/hthienloc/dms-app-launcher)
