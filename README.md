@@ -6,9 +6,6 @@ DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，
 
 ## 截图
 
-## 系统监控                                                        应用启动器
-参考: https://www.gnome-look.org/p/1869486/    参考：https://github.com/hthienloc/dms-app-launcher
-
 ![系统监控](Screenshots/promo.png)
 ![应用启动器](Screenshots/demo.gif)
 
@@ -60,3 +57,8 @@ sudo cp zh_CN.json /usr/share/quickshell/dms/translations/poexports/zh_CN.json
 
 ## 默认播放器 SPlayer
 https://github.com/SPlayer-Dev/SPlayer
+
+## 参考项目
+
+conky: https://www.gnome-look.org/p/1869486/
+launcher && folderView：https://github.com/hthienloc/dms-app-launcher

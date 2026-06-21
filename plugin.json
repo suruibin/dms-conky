@@ -1,8 +1,8 @@
 {
     "id": "dmsconky",
     "name": "DMS Conky",
-    "description": "Classic Conky-style system monitor for your desktop",
-    "version": "1.0.1",
+    "description": "Classic Conky-style system monitor for dms",
+    "version": "1.0.2",
     "author": "Suruibin",
     "type": "desktop",
     "capabilities": ["desktop-widget"],
