@@ -1765,9 +1765,21 @@ DesktopPluginComponent {
                 anchors.bottomMargin: 0
                 width: 20; height: 20
                 z: 1
-                visible: root.showHeader ? root.headerPosition === "bottom" : true
+                visible: root.showHeader ? (root.headerPosition === "bottom" || !root.sidebarPinned) : false
                 cursorShape: Qt.PointingHandCursor
                 onClicked: folderDropdown.visible ? folderDropdown.close() : folderDropdown.open()
+
+                states: [
+                    State {
+                        name: "topHeader"
+                        when: root.headerPosition === "top"
+                        AnchorChanges {
+                            target: sidebarToggleBtn
+                            anchors.top: parent.top
+                            anchors.bottom: undefined
+                        }
+                    }
+                ]
 
                 DankIcon {
                     anchors.centerIn: parent
@@ -1782,12 +1794,24 @@ DesktopPluginComponent {
             MouseArea {
                 id: homeBtn
                 anchors.left: sidebarToggleBtn.right
-                anchors.leftMargin: 6
+                anchors.leftMargin: 8
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 0
                 width: 20; height: 20
+
+                states: [
+                    State {
+                        name: "topHeader"
+                        when: root.headerPosition === "top"
+                        AnchorChanges {
+                            target: homeBtn
+                            anchors.top: parent.top
+                            anchors.bottom: undefined
+                        }
+                    }
+                ]
                 z: 1
-                visible: sidebarToggleBtn.visible
+                visible: root.headerPosition === "top" ? root.showHeader : sidebarToggleBtn.visible
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                     var homeUrl = Platform.StandardPaths.writableLocation(Platform.StandardPaths.HomeLocation).toString();
@@ -1806,10 +1830,24 @@ DesktopPluginComponent {
             // Folder selector — always visible at bottom-left
             MouseArea {
                 id: folderSelectorBtn
-                anchors.left: homeBtn.right
-                anchors.leftMargin: 6
+                visible: root.showHeader
+                anchors.left: root.headerPosition === "top" ? (backBtn.visible ? backBtn.right : (homeBtn.visible ? homeBtn.right : parent.left)) : homeBtn.right
+                anchors.leftMargin: root.headerPosition === "top" ? (backBtn.visible ? 8 : (homeBtn.visible ? 8 : (root.sidebarPinned ? folderDropdown.width + 8 : 0))) : 8
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 0
+
+                states: [
+                    State {
+                        name: "topHeader"
+                        when: root.headerPosition === "top"
+                        AnchorChanges {
+                            target: folderSelectorBtn
+                            anchors.top: parent.top
+                            anchors.bottom: undefined
+                        }
+                    }
+                ]
+
                 width: root.folderPathEditMode ? 200 : folderRow.implicitWidth
                 height: 20
                 z: 1
@@ -1992,8 +2030,8 @@ DesktopPluginComponent {
             // Back button (top-left, visible when in subfolder)
             MouseArea {
                 id: backBtn
-                anchors.left: parent.left
-                anchors.leftMargin: root.sidebarPinned ? Math.min(root.width * 0.16, 250) : 0
+                anchors.left: (root.headerPosition === "top" && homeBtn.visible) ? homeBtn.right : parent.left
+                anchors.leftMargin: (root.headerPosition === "top" && homeBtn.visible) ? 8 : (root.sidebarPinned ? Math.min(root.width * 0.16, 250) : 0)
                 anchors.top: parent.top
                 width: 20
                 height: 24
@@ -2663,7 +2701,7 @@ DesktopPluginComponent {
 
                 // Default anchors: header at top
                 anchors.top: (root.showHeader && root.headerPosition === "top") ? headerContainer.bottom : parent.top
-                anchors.topMargin: (root.showHeader && root.headerPosition === "top") ? Theme.spacingS : 0
+                anchors.topMargin: !root.showHeader ? Theme.spacingS : (root.headerPosition === "top" ? Theme.spacingS : 0)
                 anchors.bottom: parent.bottom
 
                 states: [
