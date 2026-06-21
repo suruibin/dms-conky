@@ -248,6 +248,8 @@ DesktopPluginComponent {
     // Clipboard copy/paste (replaces drag-and-drop)
     property var copiedFilePaths: []
     property bool cutMode: false
+    property var _pastePendingOps: []  // Array of {src, dest, isCut, conflict} pending user confirmation
+    property bool _pasteOverwriteAll: false
 
     function _syncToSystemClipboard() {
         if (root.copiedFilePaths.length === 0) return;
@@ -283,6 +285,7 @@ DesktopPluginComponent {
             if (root.copiedFilePaths.length > 0) {
                 var dest = root._cleanPath(root.targetFolderUrl);
                 var isCut = root.cutMode;
+                var ops = [];
                 for (var i = 0; i < root.copiedFilePaths.length; i++) {
                     var src = root._cleanPath(root.copiedFilePaths[i]);
                     var name = src.split("/").pop();
@@ -294,14 +297,13 @@ DesktopPluginComponent {
                         destPath = dest + "/" + base + " (copy)" + ext;
                     }
                     if (src === destPath) continue;
-                    if (isCut) {
-                        Quickshell.execDetached(["mv", src, destPath]);
-                    } else {
-                        Quickshell.execDetached(["cp", "-a", src, destPath]);
-                    }
+                    ops.push({ src: src, dest: destPath, isCut: isCut, conflict: false });
                 }
-                root.copiedFilePaths = [];
-                root.cutMode = false;
+                if (ops.length === 0) return;
+                root._checkPasteConflicts(ops);
+            } else {
+                // No internally copied files — try reading from system clipboard
+                root.pasteFromClipboard();
             }
         }
     }
@@ -704,6 +706,51 @@ DesktopPluginComponent {
 
         ToastService.showToast(i18n("Copying files..."), ToastService.levelInfo);
         Quickshell.execDetached([scriptPath, "--drop", pathStr].concat(fileUris));
+    }
+
+    function _executePaste(ops, overwrite) {
+        for (var i = 0; i < ops.length; i++) {
+            var op = ops[i];
+            if (!overwrite && op.conflict) continue;
+            if (op.isCut) {
+                Quickshell.execDetached(["mv", op.src, op.dest]);
+            } else {
+                Quickshell.execDetached(["cp", "-a", op.src, op.dest]);
+            }
+        }
+        root.copiedFilePaths = [];
+        root.cutMode = false;
+        root._pastePendingOps = [];
+        root._pasteOverwriteAll = false;
+    }
+
+    function _checkPasteConflicts(ops) {
+        var checks = ops.map(function(o) {
+            var safe = o.dest.replace(/'/g, "'\\''");
+            return "test -e '" + safe + "' && echo 1 || echo 0";
+        }).join("; ");
+        Proc.runCommand("pasteCheck-" + Math.random(), ["sh", "-c", checks], function(out, code) {
+            if (code !== 0 || !out) {
+                // Can't check — proceed without overwrite prompt
+                root._executePaste(ops, true);
+                return;
+            }
+            var lines = String(out).trim().split("\n");
+            var hasConflicts = false;
+            for (var j = 0; j < lines.length && j < ops.length; j++) {
+                if (lines[j].trim() === "1") {
+                    ops[j].conflict = true;
+                    hasConflicts = true;
+                }
+            }
+            if (hasConflicts) {
+                root._pastePendingOps = ops;
+                overwriteDialog.conflictNames = ops.filter(function(o) { return o.conflict; }).map(function(o) { return o.dest.split("/").pop(); });
+                overwriteDialog.open();
+            } else {
+                root._executePaste(ops, false);
+            }
+        });
     }
 
     onSelectedFilePathsChanged: {
@@ -2878,9 +2925,10 @@ DesktopPluginComponent {
         anchors.fill: parent
         focus: true
 
-        Keys.onPressed: event => {
-            if (event.key === Qt.Key_Escape) {
-                if (renameDialog.opened) renameDialog.close();
+            Keys.onPressed: event => {
+                if (event.key === Qt.Key_Escape) {
+                    if (overwriteDialog.opened) { overwriteDialog.close(); root._pastePendingOps = []; root._pasteOverwriteAll = false; }
+                    else if (renameDialog.opened) renameDialog.close();
                 else if (infoDialog.opened) infoDialog.close();
                 else if (createDialog.opened) createDialog.close();
                 else if (createAppDialog.opened) createAppDialog.close();
@@ -3189,6 +3237,111 @@ DesktopPluginComponent {
     FolderViewInfoDialog {
         id: infoDialog
         pluginLanguage: root.pluginLanguage
+    }
+
+    // Overwrite Confirmation Dialog
+    Popup {
+        id: overwriteDialog
+        width: 320
+        height: 200
+        padding: 0
+        modal: false
+        focus: true
+        closePolicy: Popup.CloseOnEscape
+
+        property var conflictNames: []
+
+        x: parent ? Math.round((parent.width - width) / 2) : 0
+        y: parent ? Math.round((parent.height - height) / 2) : 0
+
+        background: Rectangle {
+            color: "transparent"
+        }
+
+        contentItem: Rectangle {
+            color: Theme.withAlpha(Theme.surfaceContainer, 0.95)
+            radius: Theme.cornerRadius
+            border.color: Theme.withAlpha(Theme.outline, 0.15)
+            border.width: 1
+
+            Column {
+                anchors.fill: parent
+                anchors.margins: Theme.spacingM
+                spacing: Theme.spacingS
+
+                StyledText {
+                    text: i18n("Overwrite existing files?")
+                    font.bold: true
+                    font.pixelSize: Theme.fontSizeMedium
+                    color: Theme.surfaceText
+                }
+
+                StyledText {
+                    width: parent.width
+                    text: {
+                        var names = overwriteDialog.conflictNames;
+                        if (names.length <= 2) {
+                            return names.join(", ");
+                        }
+                        return names.slice(0, 2).join(", ") + " +" + (names.length - 2);
+                    }
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceText
+                    opacity: 0.7
+                    wrapMode: Text.WrapAnywhere
+                    elide: Text.ElideRight
+                    maximumLineCount: 2
+                }
+
+                Item { width: 1; height: 8 }
+
+                Row {
+                    width: parent.width
+                    spacing: Theme.spacingS
+                    layoutDirection: Qt.RightToLeft
+
+                    DankButton {
+                        text: i18n("Overwrite All")
+                        backgroundColor: Theme.primary
+                        textColor: Theme.primaryText
+                        onClicked: {
+                            overwriteDialog.close();
+                            root._executePaste(root._pastePendingOps, true);
+                        }
+                    }
+
+                    DankButton {
+                        text: i18n("Skip")
+                        backgroundColor: Theme.surfaceContainerHigh
+                        textColor: Theme.surfaceText
+                        onClicked: {
+                            overwriteDialog.close();
+                            root._executePaste(root._pastePendingOps, false);
+                        }
+                    }
+
+                    DankButton {
+                        text: i18n("Cancel")
+                        backgroundColor: Theme.surfaceContainerHigh
+                        textColor: Theme.surfaceText
+                        onClicked: {
+                            overwriteDialog.close();
+                            root._pastePendingOps = [];
+                            root._pasteOverwriteAll = false;
+                        }
+                    }
+                }
+
+                StyledText {
+                    width: parent.width
+                    text: i18n("Files with the same name already exist in this folder.")
+                    font.pixelSize: 10
+                    color: Theme.surfaceText
+                    opacity: 0.5
+                    wrapMode: Text.WrapAnywhere
+                }
+            }
+        }
     }
 
     // Create Folder/File Dialog

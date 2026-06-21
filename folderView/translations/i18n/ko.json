@@ -137,5 +137,9 @@
   "<b>Middle-click</b> empty space to <b>Paste</b> files or images from clipboard.": "<b>가운데 클릭</b>으로 빈 공간을 클릭하면 클립보드에서 파일이나 이미지를 <b>붙여넣기</b>할 수 있습니다.",
   "Use <b>Ctrl</b> and <b>Shift</b> for multi-selection operations.": "다중 선택에는 <b>Ctrl</b>과 <b>Shift</b>를 사용하세요.",
   "Add to Favorites": "즐겨찾기에 추가",
-  "Remove from Favorites": "즐겨찾기에서 제거"
+  "Remove from Favorites": "즐겨찾기에서 제거",
+  "Overwrite existing files?": "기존 파일을 덮어쓰시겠습니까?",
+  "Overwrite All": "모두 덮어쓰기",
+  "Skip": "건너뛰기",
+  "Files with the same name already exist in this folder.": "같은 이름의 파일이 이미 이 폴더에 있습니다."
 }

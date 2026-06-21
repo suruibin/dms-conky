@@ -137,5 +137,9 @@
   "<b>Middle-click</b> empty space to <b>Paste</b> files or images from clipboard.": "<b>中クリック</b>で空白部分をクリックするとクリップボードからファイルや画像を<b>貼り付け</b>できます。",
   "Use <b>Ctrl</b> and <b>Shift</b> for multi-selection operations.": "複数選択には <b>Ctrl</b> と <b>Shift</b> を使用します。",
   "Add to Favorites": "お気に入りに追加",
-  "Remove from Favorites": "お気に入りから削除"
+  "Remove from Favorites": "お気に入りから削除",
+  "Overwrite existing files?": "既存のファイルを上書きしますか？",
+  "Overwrite All": "すべて上書き",
+  "Skip": "スキップ",
+  "Files with the same name already exist in this folder.": "同じ名前のファイルがこのフォルダーに既に存在します。"
 }

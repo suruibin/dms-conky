@@ -48,6 +48,8 @@ Item {
         ? delegate.folderView.favoritePaths.indexOf(filePath) !== -1 : false
     readonly property bool _isCut: delegate.folderView && delegate.folderView.cutMode
         && delegate.folderView.copiedFilePaths.indexOf(filePath) !== -1
+    readonly property bool _isCopy: delegate.folderView && !delegate.folderView.cutMode
+        && delegate.folderView.copiedFilePaths.indexOf(filePath) !== -1
 
     // Colors matching Theme.primary / Theme.surfaceText (hardcoded since Theme not available)
     readonly property color _primary:     Qt.rgba(0.39, 0.59, 1.0, 1.0)
@@ -260,6 +262,24 @@ Item {
                 text: "✕"
                 color: "white"
                 font.pixelSize: 32
+                font.bold: true
+            }
+        }
+
+        // Copy visual indicator
+        Rectangle {
+            x: 4
+            y: 4
+            width: 18; height: 18
+            radius: 4
+            color: Qt.rgba(0, 0.35, 0.7, 0.85)
+            visible: delegate._isCopy
+            z: 2
+            Text {
+                anchors.centerIn: parent
+                text: "C"
+                color: "white"
+                font.pixelSize: 12
                 font.bold: true
             }
         }

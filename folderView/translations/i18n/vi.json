@@ -137,5 +137,9 @@
   "<b>Middle-click</b> empty space to <b>Paste</b> files or images from clipboard.": "<b>Nhấp giữa</b> vào khoảng trống để <b>Dán</b> tệp hoặc hình ảnh từ bộ nhớ tạm.",
   "Use <b>Ctrl</b> and <b>Shift</b> for multi-selection operations.": "Sử dụng <b>Ctrl</b> và <b>Shift</b> để chọn nhiều mục.",
   "Add to Favorites": "Thêm vào Yêu thích",
-  "Remove from Favorites": "Xóa khỏi Yêu thích"
+  "Remove from Favorites": "Xóa khỏi Yêu thích",
+  "Overwrite existing files?": "Ghi đè tệp hiện có?",
+  "Overwrite All": "Ghi đè tất cả",
+  "Skip": "Bỏ qua",
+  "Files with the same name already exist in this folder.": "Tệp trùng tên đã tồn tại trong thư mục này."
 }

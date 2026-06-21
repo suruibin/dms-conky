@@ -131,5 +131,9 @@
   "<b>Middle-click</b> empty space to <b>Paste</b> files or images from clipboard.": "<b>Middle-click</b> empty space to <b>Paste</b> files or images from clipboard.",
   "Use <b>Ctrl</b> and <b>Shift</b> for multi-selection operations.": "Use <b>Ctrl</b> and <b>Shift</b> for multi-selection operations.",
   "Add to Favorites": "Add to Favorites",
-  "Remove from Favorites": "Remove from Favorites"
+  "Remove from Favorites": "Remove from Favorites",
+  "Overwrite existing files?": "Overwrite existing files?",
+  "Overwrite All": "Overwrite All",
+  "Skip": "Skip",
+  "Files with the same name already exist in this folder.": "Files with the same name already exist in this folder."
 }

@@ -137,5 +137,9 @@
   "<b>Middle-click</b> empty space to <b>Paste</b> files or images from clipboard.": "<b>Средний клик</b> по пустому пространству для <b>Вставки</b> файлов или изображений из буфера обмена.",
   "Use <b>Ctrl</b> and <b>Shift</b> for multi-selection operations.": "Используйте <b>Ctrl</b> и <b>Shift</b> для множественного выбора.",
   "Add to Favorites": "Добавить в избранное",
-  "Remove from Favorites": "Удалить из избранного"
+  "Remove from Favorites": "Удалить из избранного",
+  "Overwrite existing files?": "Перезаписать существующие файлы?",
+  "Overwrite All": "Перезаписать все",
+  "Skip": "Пропустить",
+  "Files with the same name already exist in this folder.": "Файлы с таким именем уже существуют в этой папке."
 }

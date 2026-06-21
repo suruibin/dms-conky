@@ -137,5 +137,9 @@
   "<b>Middle-click</b> empty space to <b>Paste</b> files or images from clipboard.": "<b>Mittelklick</b> auf leeren Bereich zum <b>Einfügen</b> von Dateien oder Bildern aus der Zwischenablage.",
   "Use <b>Ctrl</b> and <b>Shift</b> for multi-selection operations.": "Verwenden Sie <b>Strg</b> und <b>Umschalt</b> für Mehrfachauswahl.",
   "Add to Favorites": "Zu Favoriten hinzufügen",
-  "Remove from Favorites": "Aus Favoriten entfernen"
+  "Remove from Favorites": "Aus Favoriten entfernen",
+  "Overwrite existing files?": "Vorhandene Dateien überschreiben?",
+  "Overwrite All": "Alle überschreiben",
+  "Skip": "Überspringen",
+  "Files with the same name already exist in this folder.": "Dateien mit demselben Namen existieren bereits in diesem Ordner."
 }

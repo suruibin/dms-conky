@@ -137,5 +137,9 @@
   "<b>Middle-click</b> empty space to <b>Paste</b> files or images from clipboard.": "<b>中键单击</b>空白区域可<b>粘贴</b>剪贴板中的文件或图片。",
   "Use <b>Ctrl</b> and <b>Shift</b> for multi-selection operations.": "使用 <b>Ctrl</b> 和 <b>Shift</b> 进行多选操作。",
   "Add to Favorites": "添加到收藏",
-  "Remove from Favorites": "从收藏中移除"
+  "Remove from Favorites": "从收藏中移除",
+  "Overwrite existing files?": "覆盖已有文件？",
+  "Overwrite All": "全部覆盖",
+  "Skip": "跳过",
+  "Files with the same name already exist in this folder.": "同名文件已存在于当前文件夹。"
 }
