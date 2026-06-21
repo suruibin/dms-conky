@@ -1,81 +1,60 @@
 # Folder View
 
-A folder viewer widget that displays and manages files and directories on your screen.
+文件夹查看器小部件，可在屏幕上显示和管理文件与目录。
 
-## Screenshots
+## 截图
 
 ![Screenshots](Screenshots/screenshot.png)
 ![Screenshots](Screenshots/screenshot2.png)
 ![Screenshots](Screenshots/screenshot3.png)
 
-## Install
+## 安装
 
-Use the DMS CLI:
 ```bash
-dms plugins install folderView
+git clone https://github.com/suruibin/dms-conky ~/.config/DankMaterialShell/plugins/conky
 ```
+复制folderView到  ~/.config/DankMaterialShell/plugins/
 
-Or manually:
-```bash
-git clone https://github.com/hthienloc/dms-folder-view ~/.config/DankMaterialShell/plugins/folderView
-```
+## 功能
 
-## Features
+- **多语言切换：** 预设多语言切换。
+- **目录切换：** 在预定义系统文件夹（桌面、下载、主目录等）或任意自定义目录路径间切换。
+- **多种布局：** 在网格视图、列表视图和紧凑视图之间切换（在设置中配置；紧凑视图会根据小部件宽度自动折列）。
+- **快速操作：** 搜索/筛选项目、排序文件（按名称、日期、大小、类型），或从小部件标题栏直接创建项目。
+- **可调节尺寸：** Ctrl + 鼠标滚里滑动 调整文件大小
+- **文件操作：** 创建项目（文件夹/文档）、重命名、复制路径、移到回收站以及系统剪贴板文件复制。
+- **侧边栏操作：** 可以将侧边栏固定 
+- **多选：** 使用 `Ctrl` 和 `Shift` 修饰键多选项目以执行批量操作。
+- **文件预览：** 选中文件 按Tab键 预览普通文件。
+- **图片预览：** 选中图片 按Tab键 图片预览 且可以设置幻灯片模式播放。
+- **图片预览：** 选中视频 按Tab键 播放播放。
 
-- **Directory Switching:** Switch between predefined system folders (Desktop, Downloads, Home, etc.) or any custom directory path.
-- **Multiple Layouts:** Toggle between Grid View, List View, and Compact View (configured in settings; Compact View automatically wraps into columns based on widget width).
-- **Quick Controls:** Search/filter items, sort files (by Name, Date, Size, Type), or trigger item creation directly from widget header controls.
-- **Adjustable Sizing:** Customize item icon sizes (Small, Medium, Large, Extra Large) via the plugin settings panel.
-- **File Operations:** Core file management actions including item creation (Folder/Document), renaming, copying paths, trashing, and system clipboard file copy.
-- **Multi-selection:** Multi-select items using `Ctrl` and `Shift` modifiers for bulk operations.
-- **Visual Previews:** Live image thumbnails and album art extraction for audio files.
+## 用法
 
-## Usage
-
-| Input Action | Result |
+| 操作 | 效果 |
 |---|---|
-| **Left Click Folder Title** | Open directory selection dropdown (Desktop, Downloads, Trash, Home, Custom, etc.) |
-| **Left Click `+` Icon** | Open creation dropdown (New Folder, New Document) |
-| **Left Click Sort Icon** | Open sorting options dropdown (Name, Date, Size, Type) |
-| **Left Click Search Icon** | Expand/collapse search input to filter files instantly by name |
-| **Left Click File/Folder** | Select individual item |
-| **Left Click Label of Selected Item** | Rename the item in place (inline) |
-| **Ctrl + Left Click** | Toggle selection on multiple items |
-| **Shift + Left Click** | Select range of items |
-| **Double Click Item** | Open folder or run file with system default application |
-| **Middle Click Item** | Open context menu (Open, Float File, Copy, Copy Path, Rename, Trash) |
-| **Left Click Empty Space** | Clear current selection |
-| **Middle Click Empty Space** | Paste files, folders, or clipboard screenshots into active folder |
+| **左键单击文件夹标题** | 打开目录选择下拉菜单（桌面、下载、回收站、主目录、自定义等） |
+| **左键单击 `+` 图标** | 打开创建下拉菜单（新建文件夹、新建文档） |
+| **左键单击排序图标** | 打开排序选项下拉菜单（名称、日期、大小、类型） |
+| **左键单击搜索图标** | 展开/收起搜索输入框，按名称即时筛选文件 |
+| **左键单击文件/文件夹** | 选中单个项目 |
+| **左键单击已选项目的标签** | 就地重命名项目（内联编辑） |
+| **Ctrl + 左键单击** | 切换多个项目的选中状态 |
+| **Shift + 左键单击** | 选中连续范围的项目 |
+| **双击项目** | 打开文件夹或使用系统默认应用打开文件 |
+| **中键单击项目** | 打开上下文菜单（打开、浮窗显示、复制、复制路径、重命名、移到回收站） |
+| **左键单击空白区域** | 取消当前选中 |
+| **中键单击空白区域** | 将文件、文件夹或剪贴板截图粘贴到当前文件夹 |
 
-*Note: Layout modes (Grid, List, Compact) and item icon sizing can be customized inside the plugin settings panel.*
 
-### Pin-to-Desktop (Float File)
+## 依赖
 
-To pin your images or PDF files as borderless, floating desktop widgets (always-on-top picture-in-picture windows), you can use the companion [dms-floaty](https://github.com/hthienloc/dms-floaty) plugin. Folder View integrates seamlessly with `dms-floaty` out-of-the-box, allowing you to float any image or PDF file directly from the middle-click context menu.
+- `python3` - 仅用于处理高级剪贴板粘贴操作（例如从剪贴板粘贴图片/截图）。
+- `wl-clipboard` - 用于 `wl-copy`（将非图片文件复制到剪贴板）和 `wl-paste`（粘贴时读取剪贴板）。
+- `glib2`（或 `gio`） - 用于将文件正常移到回收站（`gio trash`）。
 
-## Requirements
-
-- `python3` - Required only for handling advanced clipboard paste operations (e.g., pasting images/screenshots from clipboard).
-- `wl-clipboard` - Required for `wl-copy` (copying non-image files to clipboard) and `wl-paste` (reading clipboard during Paste).
-- `glib2` (or `gio`) - Required for trashing files cleanly (`gio trash`).
-
-## License
+## 许可证
 
 GPL-3.0
 
-## TODO / Roadmap
-
-- [x] **Drag & Drop (Out):** Drag files directly from the widget into external windows.
-- [x] **Drag & Drop (In):** Support dropping files from external windows into the widget.
-- [x] **Inline Rename:** Quick renaming by clicking the label of a selected item.
-- [ ] **Favorite Folders:** Dedicated section for pinned/favorite directories for quicker access.
-- [ ] **Customizable Context Menu:** Allow users to add, remove, or reorder actions in the middle-click menu.
-- [x] **Multi-file operations:** Select multiple items using Ctrl/Shift and perform bulk copies, moves, or trashing.
-- [x] **File Search:** Add a small integrated search field in the header to filter large directories instantly.
-- [x] **Folder & File Creation:** Add a quick action button to create new folders or empty text documents directly within the widget.
-- [x] **Enhanced Info UI:** Improved file/folder details dialog with structured data and copyable path.
-- [x] **Folder Status:** Display item counts and selection status in the header.
-- [x] **Image & Audio Thumbnails:** Show image previews and album art for music files.
-- [x] **PDF Thumbnails:** Show first page preview for PDF documents.
-- [ ] **Terminal Integration:** "Open in Terminal" or "Open in VS Code" shortcuts for the active directory.
-- [ ] **Archive Support:** Basic management (view/extract) for compressed files (.zip, .tar.gz).
+## 待办 / 路线图
