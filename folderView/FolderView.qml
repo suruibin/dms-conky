@@ -134,8 +134,8 @@ DesktopPluginComponent {
         : false
 
     // Resolved Folder Settings & URL
-    readonly property string folderType: pluginData.folderType ?? "desktop"
-    readonly property string customFolderPath: pluginData.customFolderPath ?? ""
+    property string folderType: pluginData.folderType ?? "desktop"
+    property string customFolderPath: pluginData.customFolderPath ?? ""
 
     readonly property string targetFolderUrl: {
         switch (folderType) {
@@ -357,6 +357,13 @@ DesktopPluginComponent {
             }
             root.selectedFilePaths = arr;
             root.selectedPathsSet = set;
+        }
+    }
+    Shortcut {
+        sequence: "Ctrl+F"
+        onActivated: {
+            headerSearchContainer.expanded = true;
+            headerSearchField.forceActiveFocus();
         }
     }
 
@@ -592,6 +599,9 @@ DesktopPluginComponent {
 
     function navigateToFolder(folderPath) {
         let cleanPath = root._cleanPath(String(folderPath));
+        // Strip trailing slash for clean display name
+        if (cleanPath.length > 1 && cleanPath.charAt(cleanPath.length - 1) === '/')
+            cleanPath = cleanPath.substring(0, cleanPath.length - 1);
         let current = root.targetFolderUrl;
         let currentClean = root._cleanPath(String(current));
         if (currentClean !== cleanPath) {
@@ -609,6 +619,8 @@ DesktopPluginComponent {
             pluginService.savePluginData(pluginId, "customFolderPath", cleanPath);
             pluginService.savePluginData(pluginId, "folderType", "custom");
         }
+        root.customFolderPath = cleanPath;
+        root.folderType = "custom";
     }
 
     function goBackFolder() {
@@ -630,6 +642,8 @@ DesktopPluginComponent {
                 pluginService.savePluginData(pluginId, "customFolderPath", prev);
                 pluginService.savePluginData(pluginId, "folderType", "custom");
             }
+            root.customFolderPath = prev;
+            root.folderType = "custom";
         }
     }
 
@@ -652,6 +666,8 @@ DesktopPluginComponent {
                 pluginService.savePluginData(pluginId, "customFolderPath", next);
                 pluginService.savePluginData(pluginId, "folderType", "custom");
             }
+            root.customFolderPath = next;
+            root.folderType = "custom";
         }
     }
 
@@ -864,6 +880,78 @@ DesktopPluginComponent {
         var s = String(loc).trim();
         var dot = s.indexOf(".");
         return dot > 0 ? s.substring(0, dot) : s;
+    }
+
+    // ── Path Editor Autocomplete ──────────────────────────────────────────
+    function _fetchPathCompletions() {
+        if (!pathEditor || !pathEditor.visible) { _pathCompletions = []; return; }
+        var text = pathEditor.text;
+        if (!text || text.length === 0) { _pathCompletions = []; return; }
+
+        var lastSlash = text.lastIndexOf("/");
+        var basePath, prefix;
+        if (lastSlash >= 0) {
+            basePath = text.substring(0, lastSlash);
+            prefix = text.substring(lastSlash + 1);
+        } else {
+            basePath = root._cleanPath(root.targetFolderUrl);
+            prefix = text;
+        }
+
+        if (basePath.length === 0) basePath = "/";
+        if (basePath.length > 1 && basePath.charAt(basePath.length - 1) === '/')
+            basePath = basePath.substring(0, basePath.length - 1);
+
+        var shellSafe = basePath.replace(/'/g, "'\\''");
+        Proc.runCommand("pathComplete-" + Math.random(),
+            ["sh", "-c", "ls -1 -p '" + shellSafe + "' 2>/dev/null"],
+            (out, code) => {
+                if (code !== 0 || !out) { _pathCompletions = []; return; }
+
+                var entries = String(out).trim().split("\n").filter(e => e.length > 0);
+                var results = [];
+                for (var i = 0; i < entries.length; i++) {
+                    var entry = entries[i];
+                    var isDir = entry.charAt(entry.length - 1) === "/";
+                    var name = isDir ? entry.substring(0, entry.length - 1) : entry;
+                    if (name.charAt(0) === "." && prefix.charAt(0) !== ".") continue;
+                    if (name.toLowerCase().indexOf(prefix.toLowerCase()) !== 0) continue;
+                    var fullPath = (basePath === "/" ? "" : basePath) + "/" + name;
+                    if (isDir) fullPath += "/";
+                    results.push({ display: name + (isDir ? "/" : ""), fullPath: fullPath, isDir: isDir });
+                }
+                results.sort((a, b) => {
+                    if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+                    return a.display.toLowerCase().localeCompare(b.display.toLowerCase());
+                });
+
+                _pathCompletions = results;
+                _pathCompletionIndex = -1;
+
+                if (results.length > 0) {
+                    var pos = pathEditor.mapToItem(root, 0, 0);
+                    pathCompletionPopup.x = pos.x;
+                    // Show above editor since it's at bottom
+                    pathCompletionPopup.y = pos.y - Math.min(results.length * 28 + 4, 284);
+                    pathCompletionPopup.width = Math.max(folderSelectorBtn.width, 180);
+                    pathCompletionPopup.open();
+                } else {
+                    pathCompletionPopup.close();
+                }
+            }, 2000);
+    }
+
+    function _selectPathCompletion(idx) {
+        if (idx < 0 || idx >= _pathCompletions.length) return;
+        var item = _pathCompletions[idx];
+        pathEditor.text = item.fullPath;
+        pathEditor.cursorPosition = pathEditor.text.length;
+        if (item.isDir) {
+            Qt.callLater(() => pathCompletionDebounce.restart());
+        } else {
+            pathCompletionPopup.close();
+            _pathCompletions = [];
+        }
     }
 
     function retranslate() {
@@ -1601,9 +1689,11 @@ DesktopPluginComponent {
             MouseArea {
                 id: sidebarToggleBtn
                 anchors.left: parent.left
+                anchors.leftMargin: root.sidebarPinned ? Math.min(root.width * 0.12, 250) : 0
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 0
                 width: 20; height: 20
+                z: 1
                 visible: root.showHeader ? root.headerPosition === "bottom" : true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: folderDropdown.visible ? folderDropdown.close() : folderDropdown.open()
@@ -1617,11 +1707,151 @@ DesktopPluginComponent {
                 }
             }
 
-            // Premium Header (left content: folder name + file status)
+            // Home button — navigate to user home directory
+            MouseArea {
+                id: homeBtn
+                anchors.left: sidebarToggleBtn.right
+                anchors.leftMargin: 6
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                width: 20; height: 20
+                z: 1
+                visible: sidebarToggleBtn.visible
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    var homeUrl = Platform.StandardPaths.writableLocation(Platform.StandardPaths.HomeLocation).toString();
+                    root.navigateToFolder(homeUrl);
+                }
+
+                DankIcon {
+                    anchors.centerIn: parent
+                    name: "home"
+                    size: 16
+                    color: homeBtn.containsMouse ? Theme.primary : Theme.surfaceText
+                    opacity: homeBtn.containsMouse ? 1.0 : 0.7
+                }
+            }
+ 
+            // Folder selector — always visible at bottom-left
+            MouseArea {
+                id: folderSelectorBtn
+                anchors.left: homeBtn.right
+                anchors.leftMargin: 6
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                width: root.folderPathEditMode ? 200 : folderRow.implicitWidth
+                height: 20
+                z: 1
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onDoubleClicked: root.folderPathEditMode = true
+
+                Row {
+                    id: folderRow
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.spacingXS
+                    visible: !root.folderPathEditMode
+                    DankIcon { name: "folder_open"; size: 16; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.8; anchors.verticalCenter: parent.verticalCenter }
+                    StyledText { text: root.showFullPath ? root.targetFolderUrl.replace("file://", "") : root.folderDisplayName; font.pixelSize: Theme.fontSizeSmall; font.bold: true; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.8; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideMiddle }
+                    DankIcon { name: "arrow_drop_down"; size: 12; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.6; anchors.verticalCenter: parent.verticalCenter }
+                }
+
+                TextInput {
+                    id: pathEditor
+                    anchors.fill: parent
+                    anchors.leftMargin: 2
+                    visible: root.folderPathEditMode
+                    text: root._cleanPath(root.targetFolderUrl)
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceText
+                    verticalAlignment: TextInput.AlignVCenter
+                    selectByMouse: true
+                    activeFocusOnTab: false
+
+                    onTextEdited: pathCompletionDebounce.restart()
+
+                    onVisibleChanged: {
+                        if (visible) {
+                            forceActiveFocus();
+                            selectAll();
+                            pathCompletionDebounce.restart();
+                        }
+                    }
+
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Down) {
+                            if (_pathCompletions.length > 0 && pathCompletionPopup.visible) {
+                                _pathCompletionIndex = Math.min(_pathCompletionIndex + 1, _pathCompletions.length - 1);
+                                event.accepted = true;
+                            }
+                        } else if (event.key === Qt.Key_Up) {
+                            if (_pathCompletions.length > 0 && pathCompletionPopup.visible) {
+                                _pathCompletionIndex = Math.max(_pathCompletionIndex - 1, 0);
+                                event.accepted = true;
+                            }
+                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            if (_pathCompletions.length > 0 && _pathCompletionIndex >= 0 && pathCompletionPopup.visible) {
+                                // Navigate directly to the selected completion
+                                var navPath = _pathCompletions[_pathCompletionIndex].fullPath;
+                                pathCompletionPopup.close();
+                                _pathCompletions = [];
+                                root.navigateToFolder(navPath);
+                                root.folderPathEditMode = false;
+                                event.accepted = true;
+                            }
+                        } else if (event.key === Qt.Key_Tab) {
+                            if (_pathCompletions.length > 0 && pathCompletionPopup.visible) {
+                                // Navigate directly to the selected (or first) completion
+                                var tabIdx = _pathCompletionIndex >= 0 ? _pathCompletionIndex : 0;
+                                var tabPath = _pathCompletions[tabIdx].fullPath;
+                                pathCompletionPopup.close();
+                                _pathCompletions = [];
+                                root.navigateToFolder(tabPath);
+                                root.folderPathEditMode = false;
+                                event.accepted = true;
+                            }
+                        } else if (event.key === Qt.Key_Escape) {
+                            if (pathCompletionPopup.visible) {
+                                pathCompletionPopup.close();
+                                _pathCompletions = [];
+                                event.accepted = true;
+                            } else {
+                                root.folderPathEditMode = false;
+                                event.accepted = true;
+                            }
+                        }
+                    }
+
+                    onAccepted: {
+                        pathCompletionPopup.close();
+                        var path = text.trim();
+                        if (path.length > 0) root.navigateToFolder(path);
+                        root.folderPathEditMode = false;
+                    }
+
+                    onActiveFocusChanged: {
+                        if (!activeFocus) {
+                            pathCompletionPopup.close();
+                            _pathCompletions = [];
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.color: Theme.primary
+                        border.width: 1
+                        radius: 4
+                        z: -1
+                    }
+                }
+            }
+
+            // Premium Header (left content: file status)
             Item {
                 id: headerContainer
-                anchors.left: sidebarToggleBtn.right
-                anchors.leftMargin: root.sidebarPinned ? Math.min(root.width * 0.12, 250) : 0
+                anchors.left: folderSelectorBtn.right
+                anchors.leftMargin: 0
                 anchors.right: settingsBox.left
                 height: 24
                 anchors.top: parent.top
@@ -1639,33 +1869,12 @@ DesktopPluginComponent {
                     }
                 ]
 
-                // Left: Folder Selector + File Status
+                // Left: File Status only (folder selector moved to bottom-left)
                 Row {
                     anchors.left: parent.left
-                    anchors.leftMargin: 22
+                    anchors.leftMargin: 4
                     height: parent.height
                     spacing: Theme.spacingS
-
-                    // Folder Selection
-                    MouseArea {
-                        id: folderSelectorBtn
-                        height: parent.height
-                        width: folderRow.implicitWidth
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {}
-                        onPressAndHold: { if (!root.sidebarPinned) root.showFullPath = true; }
-                        onReleased: root.showFullPath = false
-
-                        Row {
-                            id: folderRow
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: Theme.spacingXS
-                            DankIcon { name: "folder_open"; size: 18; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.8; anchors.verticalCenter: parent.verticalCenter }
-                            StyledText { text: root.showFullPath ? root.targetFolderUrl.replace("file://", "") : root.folderDisplayName; font.pixelSize: Theme.fontSizeSmall; font.bold: true; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.8; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideMiddle }
-                            DankIcon { name: "arrow_drop_down"; size: 14; color: folderSelectorBtn.containsMouse ? Theme.primary : Theme.surfaceText; opacity: folderSelectorBtn.containsMouse ? 1.0 : 0.6; anchors.verticalCenter: parent.verticalCenter }
-                        }
-                    }
 
                     // File Status
                     MouseArea {
@@ -1832,7 +2041,7 @@ DesktopPluginComponent {
                         TextInput {
                             id: headerSearchField
                             anchors.left: headerSearchIcon.right
-                            anchors.leftMargin: 4
+                    anchors.leftMargin: 8
                             anchors.right: headerClearBtn.visible ? headerClearBtn.left : parent.right
                             anchors.rightMargin: 4
                             anchors.verticalCenter: parent.verticalCenter
@@ -2318,7 +2527,7 @@ DesktopPluginComponent {
 
                                                     delegate: Rectangle {
                                                         width: parent.width
-                                                        height: 24
+                height: 20
                                                         radius: 2
                                                         color: {
                                                             if (root.pluginLanguage === modelData.code)
@@ -2997,22 +3206,25 @@ DesktopPluginComponent {
     }
 
     property bool showFullPath: false
+    property bool folderPathEditMode: false
+    property var _pathCompletions: []
+    property int _pathCompletionIndex: -1
 
     // Folder Switcher Dropdown Popup
     property bool sidebarPinned: pluginData.sidebarPinned ?? false
     onSidebarPinnedChanged: { if (pluginService) pluginService.savePluginData(pluginId, "sidebarPinned", sidebarPinned); }
     Popup {
         id: folderDropdown
-        parent: sidebarPinned ? root : folderSelectorBtn
-        width: sidebarPinned ? Math.min(root.width * 0.17, 250) : 160
-        height: sidebarPinned ? (root.height - 28) : Math.min(folderDropdownColumn.implicitHeight + Theme.spacingS * 2 + 8, root.height * 0.85)
+        parent: root
+        width: Math.min(root.width * 0.17, 250)
+        height: root.height - 28
         padding: 0
         modal: !sidebarPinned
         dim: false
         closePolicy: sidebarPinned ? Popup.NoAutoClose : Popup.CloseOnPressOutside
         x: 0
         visible: sidebarPinned || opened
-        y: sidebarPinned ? 14 : (root.headerPosition === "bottom" ? -height - 4 : folderSelectorBtn.height + 4)
+        y: 14
 
         background: Rectangle {
             color: "transparent"
@@ -4135,6 +4347,77 @@ DesktopPluginComponent {
                     color: Theme.primary
                 }
             }
+        }
+    }
+
+    // ── Path Editor Autocomplete ──────────────────────────────────────────
+    Timer {
+        id: pathCompletionDebounce
+        interval: 150
+        onTriggered: root._fetchPathCompletions()
+    }
+
+    Popup {
+        id: pathCompletionPopup
+        parent: root
+        padding: 0
+        margins: 0
+        closePolicy: Popup.CloseOnPressOutside
+
+        background: Rectangle {
+            color: Theme.withAlpha(Theme.surfaceContainer, 0.95)
+            radius: Theme.cornerRadius
+            border.color: Theme.withAlpha(Theme.outline, 0.15)
+            border.width: 1
+        }
+
+        contentItem: ListView {
+            id: pathCompletionList
+            implicitHeight: Math.min(contentHeight, 280)
+            clip: true
+            model: _pathCompletions
+            currentIndex: _pathCompletionIndex
+
+            delegate: Rectangle {
+                anchors.left: parent.left
+                anchors.leftMargin: 4
+                anchors.right: parent.right
+                anchors.rightMargin: 4
+                height: 28
+                radius: 4
+                color: pathCompletionList.currentIndex === index
+                    ? Theme.withAlpha(Theme.primary, 0.15)
+                    : (delegateMouse.containsMouse ? Theme.withAlpha(Theme.primary, 0.08) : "transparent")
+
+                Row {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 6
+                    DankIcon {
+                        name: modelData.isDir ? "folder" : "description"
+                        size: 14
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: modelData.isDir ? Theme.primary : Theme.surfaceText
+                    }
+                    StyledText {
+                        text: modelData.display
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: pathCompletionList.currentIndex === index ? Theme.primary : Theme.surfaceText
+                        font.bold: pathCompletionList.currentIndex === index
+                    }
+                }
+
+                MouseArea {
+                    id: delegateMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: root._selectPathCompletion(index)
+                }
+            }
+
+            highlightMoveDuration: 0
+            highlightResizeDuration: 0
         }
     }
 }

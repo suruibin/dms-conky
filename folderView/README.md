@@ -2,7 +2,11 @@
 
 A folder viewer widget that displays and manages files and directories on your screen.
 
-<img src="screenshot.png" width="400" alt="Screenshot">
+## Screenshots
+
+![Screenshots](Screenshots/screenshot.png)
+![Screenshots](Screenshots/screenshot2.png)
+![Screenshots](Screenshots/screenshot3.png)
 
 ## Install
 
