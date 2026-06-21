@@ -1,8 +1,6 @@
-# DMS Conky Plugin
+# DMS Conky Plugin / DMS上实现conky功能
 
-DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，鼠标悬停切换视图。
-
-# DMS上实现conky功能
+- DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，鼠标悬停切换视图。
 
 ## 截图
 
@@ -10,6 +8,7 @@ DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，
 ![应用启动器](Screenshots/demo.gif)
 
 ## 整体显示
+
 ![截图](Screenshots/截图1.png)
 ![截图](Screenshots/截图2.png)
 
@@ -31,7 +30,7 @@ DankMaterialShell 桌面插件 — Conky 风格系统监控 + 应用启动器，
 cp -r conky ~/.config/DankMaterialShell/plugins/
 ```
 
-然后在 DMS 中的设置  → 工作区与部件 → 桌面部件 → 添加部件 → 选择Conky
+- 然后在 DMS 中的设置  → 工作区与部件 → 桌面部件 → 添加部件 → 选择Conky
 
 ## 设置
 
@@ -53,12 +52,13 @@ Conky可配置项目：
 
 ## 中文翻译 
 
-sudo cp zh_CN.json /usr/share/quickshell/dms/translations/poexports/zh_CN.json
+- sudo cp zh_CN.json /usr/share/quickshell/dms/translations/poexports/zh_CN.json
 
 ## 默认播放器 SPlayer
-https://github.com/SPlayer-Dev/SPlayer
+
+- [SPlayer](https://github.com/SPlayer-Dev/SPlayer)
+
 
 ## 参考项目
-
-conky: https://www.gnome-look.org/p/1869486/
-launcher && folderView：https://github.com/hthienloc/dms-app-launcher
+- [conky](https://www.gnome-look.org/p/1869486/)
+- [auncher && folderView](https://github.com/hthienloc/dms-app-launcher)
