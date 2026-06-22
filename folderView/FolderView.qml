@@ -18,6 +18,7 @@ DesktopPluginComponent {
     id: root
 
     property bool acceptsKeyboardFocus: true
+    property bool _previewBusy: false
 
     layer.enabled: true
     layer.effect: OpacityMask {
@@ -327,19 +328,30 @@ DesktopPluginComponent {
             }
         }
     }
-    Shortcut {
-        sequence: "Space"
-        onActivated: {
+    Keys.priority: Keys.BeforeItem
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Space && root.selectedFilePaths.length === 1 && !root._previewBusy) {
+            event.accepted = true;
+            root._previewBusy = true;
             if (previewPopup.opened) {
                 previewPopup.close();
-            } else if (root.selectedFilePaths.length === 1) {
+            } else {
                 var path = root.selectedFilePaths[0];
+                var found = false;
                 for (var i = 0; i < filteredModel.count; i++) {
                     if (filteredModel.get(i).filePath === path) {
-                        if (filteredModel.get(i).fileIsDir) return;
+                        if (filteredModel.get(i).fileIsDir) {
+                            root._previewBusy = false;
+                            return;
+                        }
                         previewPopup._currentIndex = i;
+                        found = true;
                         break;
                     }
+                }
+                if (!found) {
+                    root._previewBusy = false;
+                    return;
                 }
                 previewPopup.filePath = path;
                 previewPopup.open();
@@ -3996,17 +4008,66 @@ DesktopPluginComponent {
         dim: false
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         onClosed: {
+            root._previewBusy = false;
+            keyHandler.forceActiveFocus();
+            crossFadeAnim.stop();
+            _effectActive = false;
+            _effectiveTransition = "";
+            _transitionProgress = 0;
+            nextImg.source = "";
             mediaPlayer.stop();
             _slideshowRunning = false;
             slideshowTimer.stop();
+            // Reset text state. Do NOT clear textFileLoader.path — that
+            // starts an async load from "" whose onLoadFailed can race with
+            // the next onFilePathChanged, corrupting _textContent.
+            _textContent = "";
+            _textLoading = false;
+            textLoadTimer.stop();
+            currentImg.source = "";
+        }
+        onAboutToShow: {
+            // Preload image just before the popup becomes visible — at this
+            // point the Image is in the active scene graph and loading will
+            // actually begin (setting source while the popup is closed is
+            // deferred by Qt).  This gives the image a head start on decoding
+            // while the popup transition completes.
+            if (isImage)
+                currentImg.source = "file://" + filePath;
         }
         onOpened: {
+            root._previewBusy = false;
             contentItem.forceActiveFocus();
             if (isVideo) {
                 mediaPlayer.source = "";
                 reloadVideo.start();
             }
-            if (isImage) { _imageNameVisible = true; hideImageNameTimer.restart(); }
+            if (isImage) {
+                // Load the image for initial popup open. Once loaded, the
+                // crossfade system handles subsequent transitions (wheel,
+                // slideshow) by loading into nextImg and swapping on finish.
+                // There is no source binding on currentImg — the binding
+                // would race with _crossFadeTo, loading the new path into
+                // BOTH currentImg and nextImg simultaneously.
+                crossFadeAnim.stop();
+                previewPopup._effectActive = false;
+                previewPopup._effectiveTransition = "";
+                previewPopup._transitionProgress = 0;
+                nextImg.source = "";
+                currentImg.source = "file://" + filePath;
+                _imageNameVisible = true;
+                hideImageNameTimer.restart();
+            }
+            if (isText) {
+                // Ensure text loads even when onFilePathChanged didn't fire
+                // because filePath was set to the same value (close+reopen
+                // of the same file without navigating elsewhere).
+                if (!_textContent && !_textLoading) {
+                    _textLoading = true;
+                    textFileLoader.path = "file://" + filePath;
+                    textLoadTimer.restart();
+                }
+            }
         }
 
         Timer {
@@ -4025,6 +4086,7 @@ DesktopPluginComponent {
         property string fileName: filePath.split("/").pop() || ""
         property string fileExt: fileName.split(".").pop().toLowerCase() || ""
         property string _textContent: ""
+        property bool _textLoading: false
         property int _currentIndex: -1
         property bool _wheelLocked: false
         property int _selectedSubTrack: -1
@@ -4075,8 +4137,27 @@ DesktopPluginComponent {
         }
         onFilePathChanged: {
             _textContent = "";
-            if (isText) textFileLoader.path = "file://" + filePath;
-            if (isImage && filePath) imagePreviewContainer._crossFadeTo(filePath);
+            _textLoading = false;
+            if (isText) {
+                _textLoading = true;
+                textFileLoader.path = "file://" + filePath;
+                textLoadTimer.restart();
+            }
+            // In-popup wheel/slideshow transitions: use crossfade system.
+            if (isImage && filePath && previewPopup.opened)
+                imagePreviewContainer._crossFadeTo(filePath);
+        }
+
+        Timer {
+            id: textLoadTimer
+            interval: 15000
+            repeat: false
+            onTriggered: {
+                if (previewPopup._textLoading) {
+                    previewPopup._textContent = "(error: timeout)";
+                    previewPopup._textLoading = false;
+                }
+            }
         }
 
         Timer {
@@ -4124,6 +4205,7 @@ DesktopPluginComponent {
 
         contentItem: Item {
             focus: true
+            Keys.priority: Keys.BeforeItem
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Space || event.key === Qt.Key_Escape) {
                     event.accepted = true;
@@ -4152,194 +4234,213 @@ DesktopPluginComponent {
                     "open('" + filePath.replace(/'/g, "'\\''") + "','w').write('" + content.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "')"
                 ]);
             }
-            Column {
+            // FileView — non-visual data loader, sibling of preview pages
+            FileView {
+                id: textFileLoader
+                onLoaded: { previewPopup._textContent = text(); previewPopup._textLoading = false; }
+                onLoadFailed: { previewPopup._textContent = "(error)"; previewPopup._textLoading = false; }
+            }
+
+            // ====== Image preview page ======
+            // Independent overlapping pages — no Column! Each fills the full
+            // content area with its own layout. Only one page is visible at
+            // a time. This completely decouples the three preview types.
+            Item {
+                id: imagePreviewContainer
+                visible: previewPopup.isImage
                 anchors.fill: parent
                 anchors.margins: Theme.spacingM
-                spacing: Theme.spacingS
 
-                // Image preview: ShaderEffect transitions (DMS-style)
-                Item {
-                    id: imagePreviewContainer
-                    visible: previewPopup.isImage
-                    width: parent.width
-                    height: visible ? previewPopup.height - 36 : 0
-
-                    Image {
-                        id: currentImg
-                        anchors.fill: parent
-                        source: previewPopup.isImage ? "file://" + previewPopup.filePath : ""
-                        fillMode: Image.PreserveAspectCrop
-                        cache: false
-                    }
-
-                    Image {
-                        id: nextImg
-                        anchors.fill: parent
-                        source: ""
-                        fillMode: Image.PreserveAspectCrop
-                        cache: false
-                    }
-
-                    ShaderEffectSource {
-                        id: srcA
-                        sourceItem: previewPopup._effectActive ? currentImg : null
-                        hideSource: previewPopup._effectActive
-                        live: previewPopup._effectActive
-                        anchors.fill: parent
-                    }
-
-                    ShaderEffectSource {
-                        id: srcB
-                        sourceItem: previewPopup._effectActive ? nextImg : null
-                        hideSource: previewPopup._effectActive
-                        live: previewPopup._effectActive
-                        anchors.fill: parent
-                    }
-
-                    // All effects overlaid, only one visible based on _effectiveTransition
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "fade"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_fade.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "wipe"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        property real smoothness: 0.05; property real direction: 0
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_wipe.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "disc"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        property real smoothness: 0.05
-                        property real aspectRatio: width / height
-                        property real centerX: 0.5; property real centerY: 0.5
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_disc.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "stripes"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        property real smoothness: 0.05
-                        property real count: 8; property real angle: 0
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_stripes.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "iris bloom"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_iris_bloom.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "pixelate"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_pixelate.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "portal"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_portal.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "wave"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_wave.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "mosaic"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_mosaic.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "diamond"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_diamond.frag.qsb")
-                    }
-                    ShaderEffect {
-                        visible: previewPopup._effectiveTransition === "glitch"
-                        anchors.fill: parent
-                        property variant source1: srcA; property variant source2: srcB
-                        property real progress: previewPopup._transitionProgress
-                        fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_glitch.frag.qsb")
-                    }
-
-                    NumberAnimation {
-                        id: crossFadeAnim
-                        target: previewPopup
-                        property: "_transitionProgress"
-                        from: 0.0; to: 1.0
-                        duration: 800
-                        easing.type: Easing.InOutCubic
-                        onFinished: {
-                            currentImg.source = nextImg.source;
-                            nextImg.source = "";
-                            previewPopup._transitionProgress = 0.0;
-                            previewPopup._effectActive = false;
-                            previewPopup._effectiveTransition = "";
-                        }
-                    }
-
-                    function _crossFadeTo(newPath) {
-                        if (!newPath) return;
-                        var effect = previewPopup._transitionEffect;
-                        if (effect === "random") {
-                            var avail = previewPopup._availableEffects.filter(function(e) { return e !== "none" && e !== "random"; });
-                            effect = avail[Math.floor(Math.random() * avail.length)];
-                        }
-                        previewPopup._effectiveTransition = effect;
-                        if (effect === "none") {
-                            currentImg.source = "file://" + newPath;
-                            return;
-                        }
-                        nextImg.source = "file://" + newPath;
-                        previewPopup._effectActive = true;
-                        crossFadeAnim.from = 0;
-                        crossFadeAnim.to = 1;
-                        crossFadeAnim.restart();
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.ArrowCursor
-                        onPositionChanged: previewPopup._resetImageNameTimer()
-                        onEntered: previewPopup._resetImageNameTimer()
-                        onWheel: {
-                            previewPopup._resetImageNameTimer();
-                            previewPopup._wheelSwitch(wheel.angleDelta.y);
-                        }
+                Image {
+                    id: currentImg
+                    anchors.fill: parent
+                    source: ""
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    sourceSize.width: parent.width
+                    sourceSize.height: parent.height
+                    onStatusChanged: {
+                        if (status === Image.Error && source !== "")
+                            console.debug("previewPopup: Image load error for", source);
                     }
                 }
 
-                // Text preview (editable, Ctrl+S to save)
-                FileView {
-                    id: textFileLoader
-                    onLoaded: previewPopup._textContent = text()
-                    onLoadFailed: previewPopup._textContent = "(error)"
+                Image {
+                    id: nextImg
+                    anchors.fill: parent
+                    source: ""
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    sourceSize.width: parent.width
+                    sourceSize.height: parent.height
                 }
 
-                ScrollView {
-                    visible: previewPopup.isText
-                    width: parent.width
-                    height: visible ? previewPopup.height - 36 : 0
+                ShaderEffectSource {
+                    id: srcA
+                    sourceItem: previewPopup._effectActive ? currentImg : null
+                    hideSource: previewPopup._effectActive
+                    live: previewPopup._effectActive
+                    anchors.fill: parent
+                }
+
+                ShaderEffectSource {
+                    id: srcB
+                    sourceItem: previewPopup._effectActive ? nextImg : null
+                    hideSource: previewPopup._effectActive
+                    live: previewPopup._effectActive
+                    anchors.fill: parent
+                }
+
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "fade"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_fade.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "wipe"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    property real smoothness: 0.05; property real direction: 0
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_wipe.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "disc"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    property real smoothness: 0.05
+                    property real aspectRatio: width / height
+                    property real centerX: 0.5; property real centerY: 0.5
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_disc.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "stripes"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    property real smoothness: 0.05
+                    property real count: 8; property real angle: 0
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_stripes.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "iris bloom"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_iris_bloom.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "pixelate"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_pixelate.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "portal"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/wp_portal.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "wave"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_wave.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "mosaic"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_mosaic.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "diamond"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_diamond.frag.qsb")
+                }
+                ShaderEffect {
+                    visible: previewPopup._effectiveTransition === "glitch"
+                    anchors.fill: parent
+                    property variant source1: srcA; property variant source2: srcB
+                    property real progress: previewPopup._transitionProgress
+                    fragmentShader: Qt.resolvedUrl("Shaders/qsb/custom_glitch.frag.qsb")
+                }
+
+                NumberAnimation {
+                    id: crossFadeAnim
+                    target: previewPopup
+                    property: "_transitionProgress"
+                    from: 0.0; to: 1.0
+                    duration: 800
+                    easing.type: Easing.InOutCubic
+                    onFinished: {
+                        currentImg.source = nextImg.source;
+                        nextImg.source = "";
+                        previewPopup._transitionProgress = 0.0;
+                        previewPopup._effectActive = false;
+                        previewPopup._effectiveTransition = "";
+                    }
+                }
+
+                function _crossFadeTo(newPath) {
+                    if (!newPath) return;
+                    crossFadeAnim.stop();
+                    previewPopup._effectActive = false;
+                    previewPopup._effectiveTransition = "";
+                    previewPopup._transitionProgress = 0;
+                    nextImg.source = "";
+
+                    var effect = previewPopup._transitionEffect;
+                    if (effect === "random") {
+                        var avail = previewPopup._availableEffects.filter(function(e) { return e !== "none" && e !== "random"; });
+                        effect = avail[Math.floor(Math.random() * avail.length)];
+                    }
+                    if (effect === "none") {
+                        currentImg.source = "file://" + newPath;
+                        return;
+                    }
+                    previewPopup._effectiveTransition = effect;
+                    nextImg.source = "file://" + newPath;
+                    previewPopup._effectActive = true;
+                    crossFadeAnim.from = 0;
+                    crossFadeAnim.to = 1;
+                    crossFadeAnim.restart();
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.ArrowCursor
+                    onPositionChanged: previewPopup._resetImageNameTimer()
+                    onEntered: previewPopup._resetImageNameTimer()
+                    onWheel: {
+                        previewPopup._resetImageNameTimer();
+                        previewPopup._wheelSwitch(wheel.angleDelta.y);
+                    }
+                }
+            }
+
+            // ====== Text preview page ======
+            // Use Loader to destroy the TextArea when not viewing text.
+            // This frees all text-layout memory so image decoding has no
+            // competition for main-thread / heap resources.
+            Loader {
+                id: textPreviewLoader
+                active: previewPopup.isText
+                visible: active
+                anchors.fill: parent
+                anchors.margins: Theme.spacingM
+                sourceComponent: ScrollView {
+                    anchors.fill: parent
                     clip: true
 
                     TextArea {
@@ -4349,6 +4450,8 @@ DesktopPluginComponent {
                         selectionColor: Qt.rgba(0, 0.7, 0, 0.35)
                         selectedTextColor: Theme.surfaceText
                         text: previewPopup._textContent || ""
+                        placeholderText: previewPopup._textLoading ? i18n("Loading\u2026") : ""
+                        placeholderTextColor: Theme.surfaceVariantText
                         wrapMode: TextEdit.Wrap
                         onTextChanged: previewPopup._textContent = text
                         background: Rectangle {
@@ -4359,111 +4462,107 @@ DesktopPluginComponent {
                         }
                     }
                 }
+            }
 
-                // Video preview — fills preview area
-                Item {
-                    visible: previewPopup.isVideo
-                    width: parent.width
-                    height: visible ? previewPopup.height - 36 : 0
+            // ====== Video preview page ======
+            Item {
+                visible: previewPopup.isVideo
+                anchors.fill: parent
+                anchors.margins: Theme.spacingM
 
-                    MediaPlayer {
-                        id: mediaPlayer
-                        source: "file://" + previewPopup.filePath
-                        videoOutput: videoOutput
-                        audioOutput: AudioOutput { }
-                        autoPlay: true
-                        activeSubtitleTrack: -1
-                    }
+                MediaPlayer {
+                    id: mediaPlayer
+                    source: "file://" + previewPopup.filePath
+                    videoOutput: videoOutput
+                    audioOutput: AudioOutput { }
+                    autoPlay: true
+                    activeSubtitleTrack: -1
+                }
 
-                    VideoOutput {
-                        id: videoOutput
-                        anchors.fill: parent
-                        fillMode: VideoOutput.Stretch
-                    }
+                VideoOutput {
+                    id: videoOutput
+                    anchors.fill: parent
+                    fillMode: VideoOutput.Stretch
+                }
 
-                    // Hover-only detector (z:2, doesn't consume any events)
-                    MouseArea {
-                        id: videoMA
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        acceptedButtons: Qt.NoButton
-                        z: 2
-                    }
+                MouseArea {
+                    id: videoMA
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
+                    z: 2
+                }
 
-                    // Progress controls — show on hover
-                    Column {
-                        z: 1
-                        anchors.left: parent.left; anchors.leftMargin: 8
-                        anchors.right: parent.right; anchors.rightMargin: 8
-                        anchors.bottom: parent.bottom; anchors.bottomMargin: 4
-                        spacing: 2
-                        opacity: videoMA.containsMouse ? 1.0 : 0.0
-                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                Column {
+                    z: 1
+                    anchors.left: parent.left; anchors.leftMargin: 8
+                    anchors.right: parent.right; anchors.rightMargin: 8
+                    anchors.bottom: parent.bottom; anchors.bottomMargin: 4
+                    spacing: 2
+                    opacity: videoMA.containsMouse ? 1.0 : 0.0
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
 
-                        // Subtitle track selector
-                        Row {
-                            visible: mediaPlayer.subtitleTracks.length > 0
-                            anchors.right: parent.right
-                            spacing: 4
-                            Repeater {
-                                model: mediaPlayer.subtitleTracks
-                                 delegate: StyledText {
-                                    text: modelData.label || modelData.language || ("Track " + model.index)
+                    Row {
+                        visible: mediaPlayer.subtitleTracks.length > 0
+                        anchors.right: parent.right
+                        spacing: 4
+                        Repeater {
+                            model: mediaPlayer.subtitleTracks
+                             delegate: StyledText {
+                                text: modelData.label || modelData.language || ("Track " + model.index)
                             font.pixelSize: Theme.fontSizeSmall - 1
-                                    color: previewPopup._selectedSubTrack === model.index ? "yellow" : "white"
-                                    font.bold: previewPopup._selectedSubTrack === model.index
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            mediaPlayer.activeSubtitleTrack = model.index;
-                                            previewPopup._selectedSubTrack = model.index;
-                                        }
-                                    }
-                                }
-                            }
-                            StyledText {
-                                text: i18n("Off")
-                                font.pixelSize: Theme.fontSizeSmall - 2
-                                color: previewPopup._selectedSubTrack === -1 ? "yellow" : "white"
-                                font.bold: previewPopup._selectedSubTrack === -1
+                                color: previewPopup._selectedSubTrack === model.index ? "yellow" : "white"
+                                font.bold: previewPopup._selectedSubTrack === model.index
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        mediaPlayer.activeSubtitleTrack = -1;
-                                        previewPopup._selectedSubTrack = -1;
+                                        mediaPlayer.activeSubtitleTrack = model.index;
+                                        previewPopup._selectedSubTrack = model.index;
                                     }
                                 }
                             }
                         }
-
-                        Slider {
-                            id: videoSlider
-                            width: parent.width
-                            from: 0
-                            to: mediaPlayer.duration || 1
-                            value: videoSlider.pressed ? videoSlider.value : mediaPlayer.position
-                            live: true
-                            onMoved: mediaPlayer.setPosition(videoSlider.value)
+                        StyledText {
+                            text: i18n("Off")
+                            font.pixelSize: Theme.fontSizeSmall - 2
+                            color: previewPopup._selectedSubTrack === -1 ? "yellow" : "white"
+                            font.bold: previewPopup._selectedSubTrack === -1
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    mediaPlayer.activeSubtitleTrack = -1;
+                                    previewPopup._selectedSubTrack = -1;
+                                }
+                            }
                         }
                     }
 
-                    // Click to play/pause (z:0, below hover and controls but still clickable)
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: mediaPlayer.playbackState === MediaPlayer.PlayingState ? mediaPlayer.pause() : mediaPlayer.play()
+                    Slider {
+                        id: videoSlider
+                        width: parent.width
+                        from: 0
+                        to: mediaPlayer.duration || 1
+                        value: videoSlider.pressed ? videoSlider.value : mediaPlayer.position
+                        live: true
+                        onMoved: mediaPlayer.setPosition(videoSlider.value)
                     }
                 }
 
-                // Unsupported file type
-                StyledText {
-                    visible: !previewPopup.isImage && !previewPopup.isText && !previewPopup.isVideo
-                    text: i18n("Preview not available for this file type")
-                    color: Theme.surfaceVariantText
-                    font.pixelSize: Theme.fontSizeSmall
-                    anchors.centerIn: parent
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: mediaPlayer.playbackState === MediaPlayer.PlayingState ? mediaPlayer.pause() : mediaPlayer.play()
                 }
+            }
+
+            // ====== Unsupported file type ======
+            StyledText {
+                visible: !previewPopup.isImage && !previewPopup.isText && !previewPopup.isVideo
+                text: i18n("Preview not available for this file type")
+                color: Theme.surfaceVariantText
+                font.pixelSize: Theme.fontSizeSmall
+                anchors.centerIn: parent
             }
 
             // Bottom bar: filename left, save hint right
