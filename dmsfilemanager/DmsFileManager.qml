@@ -1592,7 +1592,7 @@ DesktopPluginComponent {
             }
         }
 
-        // Add pinnedPaths (folderView's own pin-to-top items)
+        // Add pinnedPaths (dmsFileManager's own pin-to-top items)
         var pins = root.pinnedPaths || [];
         var hasPins = false;
         for (var pi = 0; pi < pins.length; pi++) {
@@ -2839,7 +2839,7 @@ DesktopPluginComponent {
                     delegate: FileItemDelegate {
                         width: fileGrid.cellWidth
                         height: fileGrid.cellHeight
-                        folderView: root
+                        dmsFileManager: root
                         viewMode: "grid"
                         layoutMode: false
                         thumbnailSize: 20
@@ -2876,7 +2876,7 @@ DesktopPluginComponent {
                     delegate: FileItemDelegate {
                         width: fileList.width
                         height: Math.round(36 * root.sizeScale)
-                        folderView: root
+                        dmsFileManager: root
                         viewMode: "list"
                         layoutMode: true
                         thumbnailSize: Math.round(20 * root.sizeScale)
@@ -2912,7 +2912,7 @@ DesktopPluginComponent {
                     delegate: FileItemDelegate {
                         width: fileCompact.cellWidth
                         height: Math.round(30 * root.sizeScale)
-                        folderView: root
+                        dmsFileManager: root
                         viewMode: "compact"
                         layoutMode: true
                         thumbnailSize: Math.round(16 * root.sizeScale)
@@ -3376,19 +3376,19 @@ DesktopPluginComponent {
     }
 
     // Rename Dialog
-    FolderViewRenameDialog {
+    DmsFileManagerRenameDialog {
         id: renameDialog
         pluginLanguage: root.pluginLanguage
     }
 
     // Create Stack Dialog
-    FolderViewCreateStackDialog {
+    DmsFileManagerCreateStackDialog {
         id: createStackDialog
         pluginLanguage: root.pluginLanguage
     }
 
     // Info Dialog
-    FolderViewInfoDialog {
+    DmsFileManagerInfoDialog {
         id: infoDialog
         pluginLanguage: root.pluginLanguage
     }
@@ -3499,14 +3499,14 @@ DesktopPluginComponent {
     }
 
     // Create Folder/File Dialog
-    FolderViewCreateDialog {
+    DmsFileManagerCreateDialog {
         id: createDialog
         targetFolderUrl: root.targetFolderUrl
         pluginLanguage: root.pluginLanguage
     }
 
     // Create App Dialog
-    FolderViewCreateAppDialog {
+    DmsFileManagerCreateAppDialog {
         id: createAppDialog
         targetFolderUrl: root.targetFolderUrl
         pluginLanguage: root.pluginLanguage

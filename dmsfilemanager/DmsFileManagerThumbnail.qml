@@ -99,7 +99,7 @@ Item {
             if (isDir || artSource !== "" || filePath === "") return;
             
             const rawPath = _cleanPath(filePath);
-            const cacheDir = Paths.strip(Paths.cache) + "/folderView/thumbs";
+            const cacheDir = Paths.strip(Paths.cache) + "/dmsfilemanager/thumbs";
             const hash = djb2Hash(rawPath);
             const cachePath = cacheDir + "/" + hash + ".jpg";
             

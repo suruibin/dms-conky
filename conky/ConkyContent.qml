@@ -240,7 +240,7 @@ Item {
                 }
 
                 // ============================================
-                // Storage (double-click to toggle FolderView)
+                // Storage (double-click to toggle DMS File Manager)
                 // ============================================
                 Item {
                     visible: host.showStorage
@@ -249,7 +249,7 @@ Item {
                         Text { anchors.centerIn: parent
                             text: "Storage"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg }
                         MouseArea { anchors.fill: parent; acceptedButtons: Qt.LeftButton
-                            onDoubleClicked: host.toggleFolderView() }
+                            onDoubleClicked: host.toggleDmsFileManager() }
                     }
                     Text {
                         x: host.leftX; y: host.yBase + 390

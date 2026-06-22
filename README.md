@@ -22,13 +22,13 @@
 - **悬停排除区**：Storage 和 HardWare 底部区域不触发应用启动器切换，防止误触
 - **粒子消散动画**：整个conky界面背景显示粒子效果
 - **默认界面设置**：可以设置默认的界面是:系统监控/
-- **folderView界面**：双击Stroage可以切换显示folderView，目录下这个是我修改后的，你需要手动把folderView文件夹放在/.config/DankMaterialShell/plugins/ 目录下
+- **dmsfilemanager界面**：双击Storage可以切换显示文件管理器
 
 ## 安装
 ```bash
 dms plugins install dmsconky
 ```
-然后手动将folderView 复制到 ~/.config/DankMaterialShell/plugins
+然后手动将dmsfilemanager 复制到 ~/.config/DankMaterialShell/plugins
 
 
 - 然后在 DMS 中的设置  → 工作区与部件 → 桌面部件 → 添加部件 → 选择Conky
@@ -61,4 +61,4 @@ Conky可配置项目：
 
 ## 参考项目
 - [conky](https://www.gnome-look.org/p/1869486/)
-- [launcher && folderView](https://github.com/hthienloc/dms-app-launcher)
+- [launcher && dmsfilemanager](https://github.com/hthienloc/dms-app-launcher)

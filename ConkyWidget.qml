@@ -9,7 +9,7 @@ import qs.Widgets
 import qs.Modules.Plugins
 import "conky"
 import "launcher"
-import "folderView"
+import "dmsfilemanager"
 
 DesktopPluginComponent {
     id: root
@@ -17,23 +17,23 @@ DesktopPluginComponent {
     // Accept keyboard focus for text input (search boxes)
     property bool acceptsKeyboardFocus: true
 
-    // FolderView toggle
-    property string _fvId: ""
-    function toggleFolderView() {
-        if (!_fvId) {
+    // DmsFileManager toggle
+    property string _dfmId: ""
+    function toggleDmsFileManager() {
+        if (!_dfmId) {
             var instances = SettingsData.desktopWidgetInstances || []
             for (var i = 0; i < instances.length; i++) {
-                if (instances[i].widgetType === "folderView") {
-                    _fvId = instances[i].id
+                if (instances[i].widgetType === "dmsfilemanager") {
+                    _dfmId = instances[i].id
                     break
                 }
             }
         }
-        if (_fvId) {
+        if (_dfmId) {
             var insts = SettingsData.desktopWidgetInstances || []
             for (var i = 0; i < insts.length; i++) {
-                if (insts[i].id === _fvId) {
-                    SettingsData.updateDesktopWidgetInstance(_fvId, { enabled: !insts[i].enabled })
+                if (insts[i].id === _dfmId) {
+                    SettingsData.updateDesktopWidgetInstance(_dfmId, { enabled: !insts[i].enabled })
                     break
                 }
             }
@@ -329,60 +329,60 @@ DesktopPluginComponent {
     }
 
     // ============================================
-    // FOLDER VIEW
+    // DMS FILE MANAGER
     // ============================================
     QtObject {
-        id: folderPluginService
+        id: dmsFilePluginService
         signal pluginDataChanged(string pluginId)
         function loadPluginData(pluginId, key, defaultValue) {
-            return SettingsData.getPluginSetting("folderView", key, defaultValue)
+            return SettingsData.getPluginSetting("dmsfilemanager", key, defaultValue)
         }
         function savePluginData(pluginId, key, value) {
-            SettingsData.setPluginSetting("folderView", key, value)
+            SettingsData.setPluginSetting("dmsfilemanager", key, value)
             SettingsData.savePluginSettings()
-            Qt.callLater(function() { folderPluginService.pluginDataChanged("folderView") })
+            Qt.callLater(function() { dmsFilePluginService.pluginDataChanged("dmsfilemanager") })
         }
     }
 
     Loader {
-        id: folderViewLoader
-        active: root.showFolderView
+        id: dmsFileLoader
+        active: root.showDmsFileManager
         sourceComponent: Component {
             PanelWindow {
-                id: folderViewWindow
+                id: dmsFileWindow
                 color: "transparent"
                 property real _left: 200
                 property real _top: 100
 
-                WlrLayershell.namespace: "dms:folderView"
+                WlrLayershell.namespace: "dms:dmsfilemanager"
                 WlrLayershell.layer: WlrLayer.Top
                 WlrLayershell.exclusionMode: ExclusionMode.Ignore
                 WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
                 anchors { left: true; top: true; right: false; bottom: false }
-                WlrLayershell.margins { left: folderViewWindow._left; top: folderViewWindow._top }
+                WlrLayershell.margins { left: dmsFileWindow._left; top: dmsFileWindow._top }
                 implicitWidth: 640; implicitHeight: 500
 
-                FloatingWindowControls { targetWindow: folderViewWindow }
+                FloatingWindowControls { targetWindow: dmsFileWindow }
 
-                FolderView {
-                    id: folderViewInstance
+                DmsFileManager {
+                    id: dmsFileInstance
                     anchors.fill: parent; anchors.margins: 0
-                    pluginService: folderPluginService; pluginId: "folderView"
+                    pluginService: dmsFilePluginService; pluginId: "dmsfilemanager"
                 }
 
                 MouseArea {
                     anchors.top: parent.top; anchors.left: parent.left
                     anchors.right: parent.right; height: 20
                     cursorShape: Qt.SizeAllCursor; z: 10
-                    onPressed: { folderViewWindow.startSystemMove() }
+                    onPressed: { dmsFileWindow.startSystemMove() }
                 }
 
                 Shortcut {
                     sequence: "Escape"
-                    onActivated: root.showFolderView = false
+                    onActivated: root.showDmsFileManager = false
                 }
-                onVisibleChanged: { if (!visible) root.showFolderView = false }
+                onVisibleChanged: { if (!visible) root.showDmsFileManager = false }
             }
         }
     }
@@ -457,8 +457,8 @@ DesktopPluginComponent {
     readonly property string musicPlayerPath: getData("musicPlayerPath", "/usr/local/bin/splayer")
     readonly property bool showRotatingAlbum: getData("showRotatingAlbum", true)
 
-    // FolderView overlay
-    property bool showFolderView: false
+    // DmsFileManager overlay
+    property bool showDmsFileManager: false
 
     function triggerSplayerOrResume() {
         var p = MprisController.activePlayer

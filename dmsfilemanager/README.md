@@ -1,4 +1,4 @@
-# Folder View
+# DMS File Manager
 
 文件夹查看器小部件，可在屏幕上显示和管理文件与目录。
 
@@ -13,7 +13,7 @@
 ```bash
 git clone https://github.com/suruibin/dms-conky ~/.config/DankMaterialShell/plugins/conky
 ```
-复制folderView到  ~/.config/DankMaterialShell/plugins/
+复制dmsfilemanager到  ~/.config/DankMaterialShell/plugins/
 
 ## 功能
 

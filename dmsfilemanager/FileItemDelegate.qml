@@ -2,7 +2,7 @@ import QtQuick
 
 // FileItemDelegate — shared delegate for grid/list/compact views.
 // IMPORTANT: Do NOT import Quickshell or qs modules here.
-// All external function calls go through delegate.folderView wrapper functions.
+// All external function calls go through delegate.dmsFileManager wrapper functions.
 Item {
     id: delegate
 
@@ -20,7 +20,7 @@ Item {
     required property bool   isStack
     required property bool   isEmpty
     required property string belongingStackId
-    required property var    folderView
+    required property var    dmsFileManager
 
     // ── View-mode parameters (set by FolderView.qml) ───────────────────────────
     property string viewMode:       "list"
@@ -37,19 +37,19 @@ Item {
     // ── Computed visuals ───────────────────────────────────────────────────────
     property bool isLaunching: false
 
-    readonly property bool isSelected: delegate.folderView
-        ? delegate.folderView.selectedPathsSet[filePath] !== undefined : false
-    readonly property bool editing: delegate.folderView && delegate.filePath !== ""
-        && delegate.folderView.renamingFilePath === delegate.filePath
-        && delegate.folderView.viewMode === delegate.viewMode
-    readonly property bool _pinned: delegate.folderView
-        ? delegate.folderView.pinnedPaths.indexOf(filePath) !== -1 : false
-    readonly property bool _isFavorite: delegate.folderView
-        ? delegate.folderView.favoritePaths.indexOf(filePath) !== -1 : false
-    readonly property bool _isCut: delegate.folderView && delegate.folderView.cutMode
-        && delegate.folderView.copiedFilePaths.indexOf(filePath) !== -1
-    readonly property bool _isCopy: delegate.folderView && !delegate.folderView.cutMode
-        && delegate.folderView.copiedFilePaths.indexOf(filePath) !== -1
+    readonly property bool isSelected: delegate.dmsFileManager
+        ? delegate.dmsFileManager.selectedPathsSet[filePath] !== undefined : false
+    readonly property bool editing: delegate.dmsFileManager && delegate.filePath !== ""
+        && delegate.dmsFileManager.renamingFilePath === delegate.filePath
+        && delegate.dmsFileManager.viewMode === delegate.viewMode
+    readonly property bool _pinned: delegate.dmsFileManager
+        ? delegate.dmsFileManager.pinnedPaths.indexOf(filePath) !== -1 : false
+    readonly property bool _isFavorite: delegate.dmsFileManager
+        ? delegate.dmsFileManager.favoritePaths.indexOf(filePath) !== -1 : false
+    readonly property bool _isCut: delegate.dmsFileManager && delegate.dmsFileManager.cutMode
+        && delegate.dmsFileManager.copiedFilePaths.indexOf(filePath) !== -1
+    readonly property bool _isCopy: delegate.dmsFileManager && !delegate.dmsFileManager.cutMode
+        && delegate.dmsFileManager.copiedFilePaths.indexOf(filePath) !== -1
 
     // Colors matching Theme.primary / Theme.surfaceText (hardcoded since Theme not available)
     readonly property color _primary:     Qt.rgba(0.39, 0.59, 1.0, 1.0)
@@ -111,20 +111,20 @@ Item {
             Item {
                 width: parent.width
                 height: parent.height - 28
-                FolderViewThumbnail {
+                DmsFileManagerThumbnail {
                     anchors.fill: parent
                     filePath: delegate.filePath; fileName: delegate.fileName
                     isDir: delegate.fileIsDir; appIcon: delegate.appIcon
                     iconName: delegate.iconName; iconColor: delegate.iconColor
                     itemType: delegate.itemType
-                    sizeScale: delegate.folderView ? delegate.folderView.sizeScale : 1
+                    sizeScale: delegate.dmsFileManager ? delegate.dmsFileManager.sizeScale : 1
                     hover: ma.containsMouse
                 }
                 // Empty indicator dot for grid view
                 Rectangle {
                     anchors.centerIn: parent
                     width: 8; height: 8; radius: 4
-                    color: delegate.folderView ? delegate.folderView.emptyColor : "red"
+                    color: delegate.dmsFileManager ? delegate.dmsFileManager.emptyColor : "red"
                     visible: delegate.isEmpty && delegate.fileIsDir
                 }
                 // Favorite star on icon center - click to remove, show X on hover
@@ -147,7 +147,7 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (delegate.folderView) delegate.folderView.toggleFavorite(delegate.filePath);
+                            if (delegate.dmsFileManager) delegate.dmsFileManager.toggleFavorite(delegate.filePath);
                         }
                     }
                 }
@@ -173,14 +173,14 @@ Item {
             spacing: 6
             visible: delegate.layoutMode
 
-            FolderViewThumbnail {
+            DmsFileManagerThumbnail {
                 width: delegate.thumbnailSize; height: width
                 anchors.verticalCenter: parent.verticalCenter
                 filePath: delegate.filePath; fileName: delegate.fileName
                 isDir: delegate.fileIsDir; appIcon: delegate.appIcon
                 iconName: delegate.iconName; iconColor: delegate.iconColor
                 itemType: delegate.itemType
-                sizeScale: delegate.folderView ? delegate.folderView.sizeScale : 1
+                sizeScale: delegate.dmsFileManager ? delegate.dmsFileManager.sizeScale : 1
                 hover: ma.containsMouse
             }
 
@@ -198,7 +198,7 @@ Item {
             // Indicators after name: empty dot + favorite star
             Text {
                 text: delegate.isEmpty && delegate.fileIsDir ? "●" : ""
-                color: delegate.folderView ? delegate.folderView.emptyColor : "red"
+                color: delegate.dmsFileManager ? delegate.dmsFileManager.emptyColor : "red"
                 font.pixelSize: delegate.labelPixelSize - 2
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -214,7 +214,7 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (delegate.folderView) delegate.folderView.toggleFavorite(delegate.filePath);
+                        if (delegate.dmsFileManager) delegate.dmsFileManager.toggleFavorite(delegate.filePath);
                     }
                 }
             }
@@ -228,15 +228,15 @@ Item {
             anchors.bottomMargin: 2
             height: active && item ? item.implicitHeight : 0
             sourceComponent: Component {
-                FolderViewInlineRename {
+                DmsFileManagerInlineRename {
                     fontPixelSize: delegate.labelPixelSize
                     targetName: delegate.fileName
                     targetIsDir: delegate.fileIsDir
                     onAccepted: newBaseName => {
-                        delegate.folderView.applyRename(delegate.filePath, delegate.fileName, delegate.fileIsDir, newBaseName);
-                        delegate.folderView.endInlineRename();
+                        delegate.dmsFileManager.applyRename(delegate.filePath, delegate.fileName, delegate.fileIsDir, newBaseName);
+                        delegate.dmsFileManager.endInlineRename();
                     }
-                    onCanceled: delegate.folderView.endInlineRename()
+                    onCanceled: delegate.dmsFileManager.endInlineRename()
                 }
             }
         }
@@ -294,7 +294,7 @@ Item {
             acceptedButtons: Qt.LeftButton | Qt.MiddleButton
 
             onClicked: mouse => {
-                var fv = delegate.folderView; if (!fv) return;
+                var fv = delegate.dmsFileManager; if (!fv) return;
                 // Dismiss rename when clicking any other file
                 if (fv.renamingFilePath !== "" && fv.renamingFilePath !== delegate.filePath)
                     fv.endInlineRename();
@@ -316,7 +316,7 @@ Item {
             }
 
             onDoubleClicked: mouse => {
-                var fv = delegate.folderView; if (!fv) return;
+                var fv = delegate.dmsFileManager; if (!fv) return;
                 if (mouse.button === Qt.LeftButton) {
                     fv.stopRenameArmTimer();
                     if (delegate.filePath.startsWith("stack://")) {

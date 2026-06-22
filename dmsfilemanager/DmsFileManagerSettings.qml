@@ -9,7 +9,7 @@ import "./dms-common"
 
 PluginSettings {
     id: root
-    pluginId: "folderView"
+    pluginId: "dmsfilemanager"
 
     // ── Reactive i18n from instance config ──
     // Reads translation map published by FolderView.qml when language changes.
@@ -149,7 +149,7 @@ PluginSettings {
 
             function resetToDefault() {
                 if (pluginService)
-                    pluginService.savePluginData("folderView", "emptyColor", "#FF1744");
+                    pluginService.savePluginData("dmsfilemanager", "emptyColor", "#FF1744");
             }
 
             StyledText {
@@ -180,7 +180,7 @@ PluginSettings {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 if (pluginService)
-                                    pluginService.savePluginData("folderView", "emptyColor", modelData);
+                                    pluginService.savePluginData("dmsfilemanager", "emptyColor", modelData);
                             }
                         }
                     }
@@ -213,7 +213,7 @@ PluginSettings {
                     title: i18n("Empty File Color")
                     selectedColor: emptyColor.value
                     onAccepted: {
-                        if (pluginService) pluginService.savePluginData("folderView", "emptyColor", selectedColor.toString());
+                        if (pluginService) pluginService.savePluginData("dmsfilemanager", "emptyColor", selectedColor.toString());
                     }
                 }
             }
@@ -231,7 +231,7 @@ PluginSettings {
 
             function resetToDefault() {
                 if (pluginService)
-                    pluginService.savePluginData("folderView", "folderColor", "");
+                    pluginService.savePluginData("dmsfilemanager", "folderColor", "");
             }
 
             StyledText {
@@ -262,7 +262,7 @@ PluginSettings {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 if (pluginService)
-                                    pluginService.savePluginData("folderView", "folderColor", modelData);
+                                    pluginService.savePluginData("dmsfilemanager", "folderColor", modelData);
                             }
                         }
                     }
@@ -295,7 +295,7 @@ PluginSettings {
                     title: i18n("Folder Icon Color")
                     selectedColor: folderColor.value || Theme.primary
                     onAccepted: {
-                        if (pluginService) pluginService.savePluginData("folderView", "folderColor", selectedColor.toString());
+                        if (pluginService) pluginService.savePluginData("dmsfilemanager", "folderColor", selectedColor.toString());
                     }
                 }
             }

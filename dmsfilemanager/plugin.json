@@ -1,14 +1,14 @@
 {
-  "id": "folderView",
-  "name": "Folder View",
+  "id": "dmsfilemanager",
+  "name": "DMS File Manager",
   "description": "File Manager For DMS",
   "version": "1.0.2",
   "author": "Suruibin",
   "type": "desktop",
   "capabilities": ["desktop-widget"],
-  "component": "./FolderView.qml",
+  "component": "./DmsFileManager.qml",
   "icon": "folder",
-  "settings": "./FolderViewSettings.qml",
+  "settings": "./DmsFileManagerSettings.qml",
   "requires_dms": ">=1.2.0",
   "permissions": ["settings_read", "settings_write", "shell_execute"]
 }
