@@ -10,7 +10,7 @@ import "./dms-common"
 Popup {
     id: createDialog
     width: 260
-    height: 156
+    height: 140
     padding: 0
     modal: false
     focus: true
@@ -97,11 +97,72 @@ Popup {
             anchors.margins: Theme.spacingM
             spacing: Theme.spacingS
 
-            StyledText {
-                text: createDialog.isFolder ? i18n("New Folder") : i18n("New Document")
-                font.bold: true
-                font.pixelSize: Theme.fontSizeMedium
-                color: Theme.surfaceText
+            // File/Folder toggle
+            Row {
+                width: parent.width
+                spacing: 0
+
+                Rectangle {
+                    width: parent.width / 2
+                    height: 28
+                    radius: Theme.cornerRadius
+                    color: !createDialog.isFolder ? Theme.primary : "transparent"
+                    border.color: Theme.withAlpha(Theme.outline, 0.2)
+                    border.width: 1
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: i18n("New Document")
+                        font.bold: !createDialog.isFolder
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: !createDialog.isFolder ? Theme.primaryText : Theme.surfaceText
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            createDialog.isFolder = false;
+                            if (createDialog.inputField) {
+                                createDialog.inputField.text = "New Document.txt";
+                                createDialog.inputField.placeholderText = i18n("File name...");
+                                createDialog.inputField.forceActiveFocus();
+                                createDialog.inputField.selectAll();
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width / 2
+                    height: 28
+                    radius: Theme.cornerRadius
+                    color: createDialog.isFolder ? Theme.primary : "transparent"
+                    border.color: Theme.withAlpha(Theme.outline, 0.2)
+                    border.width: 1
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: i18n("New Folder")
+                        font.bold: createDialog.isFolder
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: createDialog.isFolder ? Theme.primaryText : Theme.surfaceText
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            createDialog.isFolder = true;
+                            if (createDialog.inputField) {
+                                createDialog.inputField.text = "New Folder";
+                                createDialog.inputField.placeholderText = i18n("Folder name...");
+                                createDialog.inputField.forceActiveFocus();
+                                createDialog.inputField.selectAll();
+                            }
+                        }
+                    }
+                }
             }
 
             Row {
@@ -128,6 +189,7 @@ Popup {
 
                 DankButton {
                     text: i18n("Create")
+                    buttonHeight: 28
                     backgroundColor: Theme.primary
                     textColor: Theme.primaryText
                     onClicked: createDialog.performCreate()
@@ -135,6 +197,7 @@ Popup {
 
                 DankButton {
                     text: i18n("Cancel")
+                    buttonHeight: 28
                     backgroundColor: Theme.surfaceContainerHigh
                     textColor: Theme.surfaceText
                     onClicked: createDialog.close()

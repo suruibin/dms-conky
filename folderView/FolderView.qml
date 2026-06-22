@@ -330,32 +330,36 @@ DesktopPluginComponent {
     }
     Keys.priority: Keys.BeforeItem
     Keys.onPressed: event => {
-        if (event.key === Qt.Key_Space && root.selectedFilePaths.length === 1 && !root._previewBusy) {
+        if (event.key === Qt.Key_Space && root.selectedFilePaths.length === 1) {
             event.accepted = true;
-            root._previewBusy = true;
+            if (root._previewBusy) {
+                // Stuck from previous failed open → clear and retry
+                root._previewBusy = false;
+            }
             if (previewPopup.opened) {
                 previewPopup.close();
-            } else {
-                var path = root.selectedFilePaths[0];
-                var found = false;
-                for (var i = 0; i < filteredModel.count; i++) {
-                    if (filteredModel.get(i).filePath === path) {
-                        if (filteredModel.get(i).fileIsDir) {
-                            root._previewBusy = false;
-                            return;
-                        }
-                        previewPopup._currentIndex = i;
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    root._previewBusy = false;
-                    return;
-                }
-                previewPopup.filePath = path;
-                previewPopup.open();
+                return;
             }
+            root._previewBusy = true;
+            var path = root.selectedFilePaths[0];
+            var found = false;
+            for (var i = 0; i < filteredModel.count; i++) {
+                if (filteredModel.get(i).filePath === path) {
+                    if (filteredModel.get(i).fileIsDir) {
+                        root._previewBusy = false;
+                        return;
+                    }
+                    previewPopup._currentIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                root._previewBusy = false;
+                return;
+            }
+            previewPopup.filePath = path;
+            previewPopup.open();
         }
     }
     Shortcut {
@@ -1772,12 +1776,12 @@ DesktopPluginComponent {
             MouseArea {
                 id: sidebarToggleBtn
                 anchors.left: parent.left
-                anchors.leftMargin: root.sidebarPinned ? Math.min(root.width * 0.12, 250) : 0
+                anchors.leftMargin: root.sidebarPinned ? folderDropdown.width : 0
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 0
                 width: 20; height: 20
                 z: 1
-                visible: root.showHeader ? (root.headerPosition === "bottom" || !root.sidebarPinned) : false
+                visible: root.showHeader ? !root.sidebarPinned : false
                 cursorShape: Qt.PointingHandCursor
                 onClicked: folderDropdown.visible ? folderDropdown.close() : folderDropdown.open()
 
@@ -1805,8 +1809,12 @@ DesktopPluginComponent {
             // Home button — navigate to user home directory
             MouseArea {
                 id: homeBtn
-                anchors.left: sidebarToggleBtn.right
-                anchors.leftMargin: 8
+                anchors.left: root.headerPosition === "top"
+                    ? (backBtn.visible ? backBtn.right : (sidebarToggleBtn.visible ? sidebarToggleBtn.right : parent.left))
+                    : (sidebarToggleBtn.visible ? sidebarToggleBtn.right : parent.left)
+                anchors.leftMargin: root.headerPosition === "top"
+                    ? (backBtn.visible ? 8 : (sidebarToggleBtn.visible ? 8 : (root.sidebarPinned ? folderDropdown.width - 15 - Theme.spacingM + 8 : 8)))
+                    : (sidebarToggleBtn.visible ? 8 : (root.sidebarPinned ? folderDropdown.width - 15 - Theme.spacingM + 8 : 8))
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 0
                 width: 20; height: 20
@@ -1823,7 +1831,7 @@ DesktopPluginComponent {
                     }
                 ]
                 z: 1
-                visible: root.headerPosition === "top" ? root.showHeader : sidebarToggleBtn.visible
+                visible: root.showHeader
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                     var homeUrl = Platform.StandardPaths.writableLocation(Platform.StandardPaths.HomeLocation).toString();
@@ -1843,8 +1851,8 @@ DesktopPluginComponent {
             MouseArea {
                 id: folderSelectorBtn
                 visible: root.showHeader
-                anchors.left: root.headerPosition === "top" ? (backBtn.visible ? backBtn.right : (homeBtn.visible ? homeBtn.right : parent.left)) : homeBtn.right
-                anchors.leftMargin: root.headerPosition === "top" ? (backBtn.visible ? 8 : (homeBtn.visible ? 8 : (root.sidebarPinned ? folderDropdown.width + 8 : 0))) : 8
+                anchors.left: homeBtn.right
+                anchors.leftMargin: 8
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 0
 
@@ -2042,8 +2050,8 @@ DesktopPluginComponent {
             // Back button (top-left, visible when in subfolder)
             MouseArea {
                 id: backBtn
-                anchors.left: (root.headerPosition === "top" && homeBtn.visible) ? homeBtn.right : parent.left
-                anchors.leftMargin: (root.headerPosition === "top" && homeBtn.visible) ? 8 : (root.sidebarPinned ? Math.min(root.width * 0.16, 250) : 0)
+                anchors.left: sidebarToggleBtn.visible ? sidebarToggleBtn.right : parent.left
+                anchors.leftMargin: sidebarToggleBtn.visible ? 8 : (root.sidebarPinned ? folderDropdown.width - 15 - Theme.spacingM + 8 : 8)
                 anchors.top: parent.top
                 width: 20
                 height: 24
@@ -2707,7 +2715,7 @@ DesktopPluginComponent {
             Item {
                 id: filesContainer
                 anchors.left: parent.left
-                anchors.leftMargin: root.sidebarPinned ? Math.min(root.width * 0.14, 250) : 0
+                anchors.leftMargin: root.sidebarPinned ? folderDropdown.width : 0
                 anchors.right: parent.right
                 clip: true
 
@@ -4032,6 +4040,7 @@ DesktopPluginComponent {
             // actually begin (setting source while the popup is closed is
             // deferred by Qt).  This gives the image a head start on decoding
             // while the popup transition completes.
+            root._previewBusy = false; // Safety: unstick if previous open failed
             if (isImage)
                 currentImg.source = "file://" + filePath;
         }
