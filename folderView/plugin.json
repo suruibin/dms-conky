@@ -1,9 +1,9 @@
 {
   "id": "folderView",
   "name": "Folder View",
-  "description": "Displays and opens files/folders located in a selected directory.",
-  "version": "2.2.0",
-  "author": "Loc Huynh",
+  "description": "File Manager For DMS",
+  "version": "1.0.2",
+  "author": "Suruibin",
   "type": "desktop",
   "capabilities": ["desktop-widget"],
   "component": "./FolderView.qml",
