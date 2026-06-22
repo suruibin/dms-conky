@@ -26,7 +26,7 @@
 
 ## 安装
 ```bash
-cdms plugins install dmsconky
+dms plugins install dmsconky
 ```
 然后手动将folderView 复制到 ~/.config/DankMaterialShell/plugins
 
