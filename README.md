@@ -28,10 +28,9 @@
 ```bash
 dms plugins install dmsconky
 ```
-然后手动将dmsfilemanager 复制到 ~/.config/DankMaterialShell/plugins
-
-
-- 然后在 DMS 中的设置  → 工作区与部件 → 桌面部件 → 添加部件 → 选择Conky
+- 然后手动将dmsfilemanager 复制到 ~/.config/DankMaterialShell/plugins
+- 步骤一: 在 DMS 中的设置 -> 插件 -> 可用插件 使能 DMS Conky / DMS File Manager
+- 步骤二: 在 DMS 中的设置 -> 工作区与部件 -> 桌面部件 -> 添加部件 -> 选择DMS Conky / DMS File Manager
 
 ## 设置
 
@@ -63,4 +62,3 @@ Conky可配置项目：
 - [conky](https://www.gnome-look.org/p/1869486/)
 - [launcher](https://github.com/hthienloc/dms-app-launcher)
 - [folderView](https://github.com/hthienloc/dms-folder-view)
-- 
