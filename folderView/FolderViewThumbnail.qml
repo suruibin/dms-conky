@@ -41,7 +41,10 @@ Item {
         width: parent.width - 4
         height: parent.height - 4
         source: {
-            if (root.appIcon !== "") return Quickshell.iconPath(root.appIcon);
+            if (root.appIcon !== "") {
+                if (root.appIcon.startsWith("file://")) return root.appIcon;
+                return Quickshell.iconPath(root.appIcon);
+            }
             if (root.artSource.startsWith("file://")) return root.artSource;
             if (root.isImage && root.filePath !== "") {
                 return root.filePath.startsWith("file://") ? root.filePath : "file://" + root.filePath;

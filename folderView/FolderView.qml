@@ -566,7 +566,12 @@ DesktopPluginComponent {
 
     // Wrapper for file execution — avoids needing Quickshell import in delegates
     function execFile(filePath) {
-        Quickshell.execDetached(["gio", "open", root._cleanPath(filePath)]);
+        let clean = root._cleanPath(filePath);
+        if (clean.endsWith(".AppImage") || clean.endsWith(".appimage")) {
+            Quickshell.execDetached([clean]);
+        } else {
+            Quickshell.execDetached(["gio", "open", clean]);
+        }
     }
 
     // Wrapper for rename timer — avoids direct property access from delegates
@@ -1406,6 +1411,38 @@ DesktopPluginComponent {
         // 6. Unpinned Files
         unpinnedFiles.forEach(function(item) { filteredModel.append(item); });
 
+        // ── AppImage icon matching via AppIcon/ folder ────────────────────
+        let _iconDir = root._cleanPath(String(root.targetFolderUrl)) + "/AppIcon";
+        let _safeIconDir = _iconDir.replace(/'/g, "'\\''");
+        Proc.runCommand("scanAppIcon-" + Math.random(), ["sh", "-c", "ls -1 '" + _safeIconDir + "' 2>/dev/null | head -100"], (out, code) => {
+            if (code !== 0 || !out || String(out).trim() === "") return;
+            let iconFiles = String(out).trim().split('\n').filter(f => {
+                let lower = f.toLowerCase();
+                return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+                    || lower.endsWith(".svg") || lower.endsWith(".webp");
+            });
+            if (iconFiles.length === 0) return;
+            // Build icon stem → file:// URI map (lowercased stems)
+            let _iMap = {};
+            for (let _f of iconFiles) {
+                let _dot = _f.lastIndexOf('.');
+                if (_dot > 0) _iMap[_f.substring(0, _dot).toLowerCase()] = "file://" + _iconDir + "/" + _f;
+            }
+            // Match each non-dir AppImage in the model
+            for (let _k = 0; _k < filteredModel.count; _k++) {
+                let _name = filteredModel.get(_k).fileName;
+                let _isDir = filteredModel.get(_k).fileIsDir;
+                if (_isDir || (!_name.endsWith(".AppImage") && !_name.endsWith(".appimage"))) continue;
+                let _matchBase = _name.substring(0, _name.length - 9).toLowerCase(); // strip .AppImage/.appimage
+                for (let _stem in _iMap) {
+                    if (_matchBase.includes(_stem)) {
+                        filteredModel.setProperty(_k, "appIcon", _iMap[_stem]);
+                        break;
+                    }
+                }
+            }
+        });
+
         // Release the inline-rename lock if the edited item is no longer present
         // after this refresh (e.g. it was trashed/moved while being renamed),
         // otherwise renamingFilePath stays stuck and selectionClearTimer never
@@ -1841,7 +1878,7 @@ DesktopPluginComponent {
                 DankIcon {
                     anchors.centerIn: parent
                     name: "home"
-                    size: 16
+                    size: 18
                     color: homeBtn.containsMouse ? Theme.primary : Theme.surfaceText
                     opacity: homeBtn.containsMouse ? 1.0 : 0.7
                 }
@@ -2074,6 +2111,7 @@ DesktopPluginComponent {
             Item {
                 id: headerControls
                 anchors.right: settingsBox.left
+                anchors.rightMargin: Theme.spacingS
                 anchors.top: parent.top
                 width: Math.max(childrenRect.width, 60)
                 height: 24
@@ -2230,6 +2268,31 @@ DesktopPluginComponent {
                                 headerSearchField.focus = false;
                                 headerSearchContainer.expanded = false;
                             }
+                        }
+                    }
+
+                    // Open terminal in current directory
+                    MouseArea {
+                        id: terminalBtn
+                        width: 20
+                        height: 20
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var dir = String(root.targetFolderUrl);
+                            if (dir.startsWith("file://"))
+                                dir = dir.substring(7);
+                            if (dir.startsWith("localhost/"))
+                                dir = dir.substring(9);
+                            Quickshell.execDetached(["xdg-terminal-exec", "--dir=" + dir]);
+                        }
+
+                        DankIcon {
+                            anchors.centerIn: parent
+                            name: "terminal"
+                            size: 16
+                            color: terminalBtn.containsMouse ? Theme.primary : Theme.surfaceText
+                            opacity: terminalBtn.containsMouse ? 1.0 : 0.7
                         }
                     }
 
@@ -3084,7 +3147,7 @@ DesktopPluginComponent {
                                     if (clean.endsWith(".desktop")) {
                                         root.launchDesktopFile(path);
                                     } else {
-                                        Quickshell.execDetached(["gio", "open", clean]);
+                                        root.execFile(clean);
                                     }
                                 }
                                 root.clearSelection();
