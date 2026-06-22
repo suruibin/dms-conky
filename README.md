@@ -61,4 +61,6 @@ Conky可配置项目：
 
 ## 参考项目
 - [conky](https://www.gnome-look.org/p/1869486/)
-- [launcher && dmsfilemanager](https://github.com/hthienloc/dms-app-launcher)
+- [launcher](https://github.com/hthienloc/dms-app-launcher)
+- [folderView](https://github.com/hthienloc/dms-folder-view)
+- 
