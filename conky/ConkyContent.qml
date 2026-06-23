@@ -105,17 +105,17 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: sysClock.date?.toLocaleDateString(Qt.locale(), "dddd") ?? ""
+                        text: sysClock.date?.toLocaleDateString(host.dateLocale, "dddd") ?? ""
                         font.bold: true; font.family: abelFont.name; font.pixelSize: 15
                         color: host.dateWeekdayColor
                     }
                     Text {
-                        text: sysClock.date?.toLocaleDateString(Qt.locale(), "d") ?? ""
+                        text: sysClock.date?.toLocaleDateString(host.dateLocale, "d") ?? ""
                         font.bold: true; font.family: abelFont.name; font.pixelSize: 15
                         color: host.dateDayColor
                     }
                     Text {
-                        text: sysClock.date?.toLocaleDateString(Qt.locale(), "MMMM") ?? ""
+                        text: sysClock.date?.toLocaleDateString(host.dateLocale, "MMMM") ?? ""
                         font.bold: true; font.family: abelFont.name; font.pixelSize: 15
                         color: host.dateMonthColor
                     }
@@ -127,10 +127,10 @@ Item {
                 Item { visible: host.showWeather
                     Text { x: host.leftX; y: host.yBase + 60; text: host.weatherIcon(content._w.wCode, content._w.isDay); font.pixelSize: 25; color: host.fg }
                     Text { x: 95; y: host.yBase + 65; text: content._w.available ? content._w.temp + "°C" : "--°C"; font.family: bebasFont.name; font.pixelSize: 22; color: host.fg }
-                    Text { x: host.leftX; y: host.yBase + 95; text: content._w.available ? content._w.city : "Offline"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.accent2Color; width: 155; elide: Text.ElideRight }
+                    Text { x: host.leftX; y: host.yBase + 95; text: content._w.available ? content._w.city : host._i18nOffline; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.accent2Color; width: 155; elide: Text.ElideRight }
                     Text { x: host.leftX; y: host.yBase + 115; text: content._w.available ? WeatherService.getWeatherCondition(content._w.wCode) : ""; font.family: abelFont.name; font.pixelSize: 15; color: host.fg; width: 155; elide: Text.ElideRight }
-                    Text { x: host.leftX; y: host.yBase + 135; text: "Wind : " + (content._w.available ? content._w.wind + "km/h" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.fg; width: 155; elide: Text.ElideRight }
-                    Text { x: host.leftX; y: host.yBase + 155; text: "Humidity : " + (content._w.available ? content._w.humidity + "%" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.fg; width: 155; elide: Text.ElideRight }
+                    Text { x: host.leftX; y: host.yBase + 135; text: host._i18nWind + " : " + (content._w.available ? content._w.wind + "km/h" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.fg; width: 155; elide: Text.ElideRight }
+                    Text { x: host.leftX; y: host.yBase + 155; text: host._i18nHumidity + " : " + (content._w.available ? content._w.humidity + "%" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.fg; width: 155; elide: Text.ElideRight }
                 }
 
                 // ============================================
@@ -147,7 +147,7 @@ Item {
                 Text {
                     visible: host.showNetwork
                     x: host.rightX + 25; y: host.yBase + 70
-                    text: DMSNetworkService.currentWifiSSID || "Network"
+                    text: DMSNetworkService.currentWifiSSID || host._i18nNetwork
                     font.family: abelFont.name
                     font.bold: true
                     font.pixelSize: 15
@@ -157,7 +157,7 @@ Item {
                 Text {
                     visible: host.showNetwork
                     x: host.rightX; y: host.yBase + 90
-                    text: "Down : " + host.fmtBytes(DgopService.networkRxRate) + "/s"
+                    text: host._i18nDown + " : " + host.fmtBytes(DgopService.networkRxRate) + "/s"
                     font.family: abelFont.name
                     font.pixelSize: 15
                     color: host.fg
@@ -174,7 +174,7 @@ Item {
                 Text {
                     visible: host.showNetwork
                     x: host.rightX; y: host.yBase + 140
-                    text: "Up : " + host.fmtBytes(DgopService.networkTxRate) + "/s"
+                    text: host._i18nUp + " : " + host.fmtBytes(DgopService.networkTxRate) + "/s"
                     font.family: abelFont.name
                     font.pixelSize: 15
                     color: host.fg
@@ -247,13 +247,13 @@ Item {
                     Item {
                         width: 111; height: 20; x: host.leftX; y: host.yBase + 365
                         Text { anchors.centerIn: parent
-                            text: "Storage"; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg }
+                            text: host._i18nStorage; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg }
                         MouseArea { anchors.fill: parent; acceptedButtons: Qt.LeftButton
                             onDoubleClicked: host.toggleDmsFileManager() }
                     }
                     Text {
                         x: host.leftX; y: host.yBase + 390
-                        text: "Root :"; font.family: abelFont.name; font.pixelSize: 15; color: host.fg
+                        text: host._i18nRoot + " :"; font.family: abelFont.name; font.pixelSize: 15; color: host.fg
                     }
                     Rectangle {
                         x: host.leftX; y: host.yBase + 415
@@ -270,7 +270,7 @@ Item {
                     }
                     Text {
                         x: host.leftX; y: host.yBase + 433
-                        text: "Home :"; font.family: abelFont.name; font.pixelSize: 15; color: host.fg
+                        text: host._i18nHome + " :"; font.family: abelFont.name; font.pixelSize: 15; color: host.fg
                     }
                     Rectangle {
                         x: host.leftX; y: host.yBase + 455
@@ -326,7 +326,7 @@ Item {
                     x: host.rightX - 20; y: host.yBase + 365
                     width: 145
                     horizontalAlignment: Text.AlignHCenter
-                    text: "HardWare"
+                    text: host._i18nHardWare
                     font.family: abelFont.name
                     font.bold: true
                     font.pixelSize: 18
@@ -335,7 +335,7 @@ Item {
                 Text {
                     visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 392
-                    text: "CPU:"
+                    text: host._i18nCPU + ":"
                     font.family: abelFont.name
                     font.pixelSize: 15
                     color: host.fg
@@ -343,7 +343,7 @@ Item {
                 Text {
                     visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX + 4; y: host.yBase + 413
-                    text: host.cpuModel || "Detecting..."
+                    text: host.cpuModel || host._i18nDetecting + "..."
                     font.family: abelFont.name
                     font.pixelSize: 12
                     color: host.cpuInfoColor
@@ -353,7 +353,7 @@ Item {
                 Text {
                     visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 435
-                    text: "GPU:"
+                    text: host._i18nGPU + ":"
                     font.family: abelFont.name
                     font.pixelSize: 15
                     color: host.fg
@@ -361,7 +361,7 @@ Item {
                 Text {
                     visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX + 4; y: host.yBase + 456
-                    text: host.gpuModel || "Detecting..."
+                    text: host.gpuModel || host._i18nDetecting + "..."
                     font.family: abelFont.name
                     font.pixelSize: 12
                     color: host.gpuInfoColor

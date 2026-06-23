@@ -86,6 +86,148 @@ DesktopPluginComponent {
 
     readonly property var activeModules: ["cpu", "memory", "network", "disk", "diskmounts", "system"]
 
+    // ── Plugin I18n ──────────────────────────────────────────────────────────
+    // Translation data embedded in QML (reliable, no FileView/JSON loading issues)
+    property var _i18nData: ({
+        "zh_CN": {
+            "Wind": "风速", "Humidity": "湿度", "Network": "网络",
+            "Down": "下载", "Up": "上传", "Storage": "存储",
+            "Root": "系统", "Home": "家目录", "HardWare": "硬件",
+            "CPU": "CPU", "GPU": "GPU",
+            "Detecting": "检测中", "Offline": "离线", "Playing": "播放中"
+        },
+        "en": {
+            "Wind": "Wind", "Humidity": "Humidity", "Network": "Network",
+            "Down": "Down", "Up": "Up", "Storage": "Storage",
+            "Root": "Root", "Home": "Home", "HardWare": "HardWare",
+            "CPU": "CPU", "GPU": "GPU",
+            "Detecting": "Detecting", "Offline": "Offline", "Playing": "Playing"
+        },
+        "de": {
+            "Wind": "Wind", "Humidity": "Luftfeuchtigkeit", "Network": "Netzwerk",
+            "Down": "Download", "Up": "Upload", "Storage": "Speicher",
+            "Root": "Root", "Home": "Home", "HardWare": "Hardware",
+            "CPU": "CPU", "GPU": "GPU",
+            "Detecting": "Erkennung", "Offline": "Offline", "Playing": "Wiedergabe"
+        },
+        "es": {
+            "Wind": "Viento", "Humidity": "Humedad", "Network": "Red",
+            "Down": "Descarga", "Up": "Subida", "Storage": "Almacenamiento",
+            "Root": "Raíz", "Home": "Inicio", "HardWare": "HardWare",
+            "CPU": "CPU", "GPU": "GPU",
+            "Detecting": "Detectando", "Offline": "Desconectado", "Playing": "Reproduciendo"
+        },
+        "fr": {
+            "Wind": "Vent", "Humidity": "Humidité", "Network": "Réseau",
+            "Down": "Réception", "Up": "Envoi", "Storage": "Stockage",
+            "Root": "Racine", "Home": "Accueil", "HardWare": "Matériel",
+            "CPU": "CPU", "GPU": "GPU",
+            "Detecting": "Détection", "Offline": "Hors ligne", "Playing": "En lecture"
+        },
+        "ja": {
+            "Wind": "風", "Humidity": "湿度", "Network": "ネットワーク",
+            "Down": "ダウンロード", "Up": "アップロード", "Storage": "ストレージ",
+            "Root": "ルート", "Home": "ホーム", "HardWare": "ハードウェア",
+            "CPU": "CPU", "GPU": "GPU",
+            "Detecting": "検出中", "Offline": "オフライン", "Playing": "再生中"
+        },
+        "ko": {
+            "Wind": "바람", "Humidity": "습도", "Network": "네트워크",
+            "Down": "다운", "Up": "업", "Storage": "저장 공간",
+            "Root": "루트", "Home": "홈", "HardWare": "하드웨어",
+            "CPU": "CPU", "GPU": "GPU",
+            "Detecting": "감지 중", "Offline": "오프라인", "Playing": "재생 중"
+        },
+        "ru": {
+            "Wind": "Ветер", "Humidity": "Влажность", "Network": "Сеть",
+            "Down": "Вход", "Up": "Выход", "Storage": "Диски",
+            "Root": "Корень", "Home": "Дом", "HardWare": "Оборудование",
+            "CPU": "CPU", "GPU": "GPU",
+            "Detecting": "Обнаружение", "Offline": "Офлайн", "Playing": "Играет"
+        },
+        "vi": {
+            "Wind": "Gió", "Humidity": "Độ ẩm", "Network": "Mạng",
+            "Down": "Tải xuống", "Up": "Tải lên", "Storage": "Lưu trữ",
+            "Root": "Gốc", "Home": "Trang chủ", "HardWare": "Phần cứng",
+            "CPU": "CPU", "GPU": "GPU",
+            "Detecting": "Đang phát hiện", "Offline": "Ngoại tuyến", "Playing": "Đang phát"
+        }
+    })
+
+    property string pluginLanguage: getData("pluginLanguage", "system")
+    onPluginLanguageChanged: _applyPluginLanguage(pluginLanguage)
+    readonly property var dateLocale: pluginLanguage === "zh_CN" ? Qt.locale("zh_CN")
+        : pluginLanguage === "en" ? Qt.locale("en_US")
+        : Qt.locale()
+    property var _pluginFlatTranslations: ({})
+    property bool _pluginI18nReady: false
+    // Toggled to force re-evaluation of all i18n bindings on ConkyContent
+    property int _i18nToken: 0
+
+    // Poll pluginData for language changes (settings panel writes via savePluginData)
+    Timer {
+        id: languageSyncTimer
+        interval: 800
+        repeat: true
+        running: true
+        onTriggered: {
+            var lang = root.getData("pluginLanguage", "system")
+            // Also check the SettingsData store (where ConkySettings.saveAndPersist writes)
+            if (typeof SettingsData !== "undefined") {
+                try {
+                    var sl = typeof pluginService !== "undefined" && pluginService
+                        ? pluginService.loadPluginData(root.pluginId, "pluginLanguage", "system")
+                        : SettingsData.getPluginSetting ? SettingsData.getPluginSetting(root.pluginId, "pluginLanguage", "system") : null
+                    if (sl != null && sl !== "system") lang = sl
+                } catch(e) {}
+            }
+            if (lang !== root.pluginLanguage)
+                root.pluginLanguage = lang
+        }
+    }
+
+    // Apply translations immediately (synchronous, no async FileView loading)
+    function _applyPluginLanguage(locale) {
+        if (locale === "System Default" || locale === "") locale = "system"
+        if (!locale) return
+        var map = locale === "system" ? _i18nData["en"] : _i18nData[locale]
+        if (!map) map = _i18nData["en"]
+        root._pluginFlatTranslations = map
+        root._pluginI18nReady = true
+        root._i18nToken++
+        // Publish to plugin data so ConkySettings can read it
+        if (typeof pluginService !== "undefined" && pluginService) {
+            try {
+                pluginService.savePluginData(root.pluginId, "i18nMap", map)
+                pluginService.savePluginData(root.pluginId, "i18nToken", Date.now())
+            } catch(e) {}
+        }
+    }
+
+    // i18n lookup — call from ConkyContent via host.i18n("key")
+    function i18n(term, context) {
+        if (_i18nToken < 0) {}
+        if (_pluginI18nReady && _pluginFlatTranslations[term] !== undefined)
+            return _pluginFlatTranslations[term]
+        return I18n.tr(term, context)
+    }
+
+    // ── Exposed translated properties (for reliable binding re-evaluation) ──
+    readonly property string _i18nWind:    { _i18nToken; return _pluginFlatTranslations["Wind"]    || I18n.tr("Wind") }
+    readonly property string _i18nHumidity:{ _i18nToken; return _pluginFlatTranslations["Humidity"]|| I18n.tr("Humidity") }
+    readonly property string _i18nNetwork: { _i18nToken; return _pluginFlatTranslations["Network"] || I18n.tr("Network") }
+    readonly property string _i18nDown:    { _i18nToken; return _pluginFlatTranslations["Down"]    || I18n.tr("Down") }
+    readonly property string _i18nUp:      { _i18nToken; return _pluginFlatTranslations["Up"]      || I18n.tr("Up") }
+    readonly property string _i18nStorage: { _i18nToken; return _pluginFlatTranslations["Storage"] || I18n.tr("Storage") }
+    readonly property string _i18nRoot:    { _i18nToken; return _pluginFlatTranslations["Root"]    || I18n.tr("Root") }
+    readonly property string _i18nHome:    { _i18nToken; return _pluginFlatTranslations["Home"]    || I18n.tr("Home") }
+    readonly property string _i18nHardWare:{ _i18nToken; return _pluginFlatTranslations["HardWare"]|| I18n.tr("HardWare") }
+    readonly property string _i18nCPU:     { _i18nToken; return _pluginFlatTranslations["CPU"]     || I18n.tr("CPU") }
+    readonly property string _i18nGPU:     { _i18nToken; return _pluginFlatTranslations["GPU"]     || I18n.tr("GPU") }
+    readonly property string _i18nDetecting:{_i18nToken; return _pluginFlatTranslations["Detecting"]|| I18n.tr("Detecting") }
+    readonly property string _i18nOffline: { _i18nToken; return _pluginFlatTranslations["Offline"] || I18n.tr("Offline") }
+    readonly property string _i18nPlaying: { _i18nToken; return _pluginFlatTranslations["Playing"] || I18n.tr("Playing") }
+
     // Mouse hover detection — switches between Conky and AppLauncher views
     property bool mouseHovered: false
     property real hoverMouseX: 0
@@ -227,6 +369,15 @@ DesktopPluginComponent {
     Component.onCompleted: {
         DgopService.addRef(activeModules)
         WeatherService.addRef()
+
+        // Initial i18n load — pull language from correct store
+        var initialLang = "system"
+        if (typeof pluginService !== "undefined" && pluginService)
+            initialLang = pluginService.loadPluginData(root.pluginId, "pluginLanguage", "system")
+        else if (typeof SettingsData !== "undefined" && SettingsData.getPluginSetting)
+            initialLang = SettingsData.getPluginSetting(root.pluginId, "pluginLanguage", "system")
+        root.pluginLanguage = initialLang
+        root._applyPluginLanguage(initialLang)
 
         // Random colors for CPU / GPU info + hover highlight
         root.cpuInfoColor = randomVibrantColor()

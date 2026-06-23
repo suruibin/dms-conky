@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
 import Quickshell
+import Quickshell.Io
 import qs.Common
 import qs.Services
 import qs.Widgets
@@ -11,6 +12,84 @@ import "../common"
 Item {
     id: content
     property Item host
+
+    // ── Plugin I18n (language switching, following dmsfilemanager pattern) ──
+    property string _launcherLang: host && host.pluginLanguage ? host.pluginLanguage : "system"
+    property var _launcherI18nMap: ({})
+    property bool _launcherI18nReady: false
+
+    function _tr(key) {
+        if (_launcherI18nMap && _launcherI18nMap[key] !== undefined)
+            return _launcherI18nMap[key];
+        return I18n.tr(key);
+    }
+
+    function _applyLauncherLanguage(locale) {
+        if (locale === "System Default" || locale === "") locale = "system";
+        if (!locale) { _launcherI18nMap = {}; return; }
+        if (locale === "system") {
+            var sys = Qt.locale().name;
+            var parts = sys.split("_");
+            sys = parts.length > 0 ? parts[0] : "en";
+            launcherI18nLoader.path = Qt.resolvedUrl("../translations/i18n/" + sys + ".json");
+        } else {
+            launcherI18nLoader.path = Qt.resolvedUrl("../translations/i18n/" + locale + ".json");
+        }
+    }
+
+    // Language sync timer — polls pluginLanguage from settings
+    Timer {
+        id: launcherLangSyncTimer
+        interval: 800
+        repeat: true
+        running: true
+        onTriggered: {
+            if (!content.host || !content.host.pluginService) return;
+            var lang = content.host.pluginService.loadPluginData(content.host.pluginId, "pluginLanguage", "system");
+            if (lang !== content._launcherLang) {
+                content._launcherLang = lang;
+                content._applyLauncherLanguage(lang);
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        _applyLauncherLanguage(_launcherLang);
+    }
+
+    // Async FileView to load JSON translation files from translations/i18n/
+    FileView {
+        id: launcherI18nLoader
+        onLoaded: {
+            try {
+                content._launcherI18nMap = JSON.parse(text());
+                content._launcherI18nReady = true;
+                console.info("Launcher I18n: loaded translations for", content._launcherLang);
+            } catch (e) {
+                console.warn("Launcher I18n: error parsing:", e);
+            }
+        }
+        onLoadFailed: error => {
+            console.warn("Launcher I18n: failed to load:", error);
+            if (content._launcherLang !== "en") {
+                launcherI18nLoader.path = Qt.resolvedUrl("../translations/i18n/en.json");
+            }
+        }
+    }
+
+    // Language model for the language selector
+    readonly property var _launcherLangModel: [
+        { label: "System Default", code: "system" },
+        { label: "中文", code: "zh_CN" },
+        { label: "English", code: "en" },
+        { label: "Deutsch", code: "de" },
+        { label: "Español", code: "es" },
+        { label: "Français", code: "fr" },
+        { label: "日本語", code: "ja" },
+        { label: "한국어", code: "ko" },
+        { label: "Русский", code: "ru" },
+        { label: "Tiếng Việt", code: "vi" }
+    ]
 
     // Reusable header tool button
     component ToolButton: MouseArea {
@@ -234,7 +313,7 @@ Item {
                 height: 24
 
                 StyledText {
-                    text: I18n.tr("Applications")
+                    text: content._tr("Applications")
                     font.bold: true
                     font.pixelSize: Theme.fontSizeMedium
                     color: Theme.surfaceText
@@ -267,7 +346,7 @@ Item {
                         font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; selectByMouse: true
                         onTextChanged: host.appSearchQuery = text
                         Text {
-                            text: I18n.tr("Search...")
+                            text: content._tr("Search...")
                             font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; opacity: 0.35
                             visible: headerOffSearchField.text === "" && !headerOffSearchField.activeFocus
                             anchors.verticalCenter: parent.verticalCenter
@@ -404,7 +483,7 @@ Item {
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                             onTextChanged: host.appSearchQuery = text
                             Text {
-                                text: I18n.tr("Search...")
+                                text: content._tr("Search...")
                                 font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; opacity: 0.35
                                 visible: searchField.text === "" && !searchField.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
@@ -684,7 +763,7 @@ Item {
 
         // Empty placeholder
         StyledText {
-            text: I18n.tr("Click + to add applications")
+            text: content._tr("Click + to add applications")
             font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; opacity: 0.4
             anchors.centerIn: parent
             visible: filteredModel.count === 0 && host.appSearchQuery === ""
@@ -804,7 +883,7 @@ Item {
                     Item {
                         width: parent.width; height: 24
                         StyledText {
-                            text: I18n.tr("Manage")
+                            text: content._tr("Manage")
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
@@ -840,7 +919,7 @@ Item {
                                     anchors.fill: parent; radius: 14
                                     color: addAppDialog.activeTab === "add" ? Theme.primary : "transparent"
                                     StyledText {
-                                        anchors.centerIn: parent; text: I18n.tr("Add")
+                                        anchors.centerIn: parent; text: content._tr("Add")
                                         font.bold: addAppDialog.activeTab === "add"; font.pixelSize: Theme.fontSizeSmall
                                         color: addAppDialog.activeTab === "add" ? Theme.onPrimary : Theme.surfaceText
                                         opacity: addAppDialog.activeTab === "add" ? 1.0 : (tabAddBtn.containsMouse ? 0.9 : 0.6)
@@ -854,7 +933,7 @@ Item {
                                     anchors.fill: parent; radius: 14
                                     color: addAppDialog.activeTab === "manage" ? Theme.primary : "transparent"
                                     StyledText {
-                                        anchors.centerIn: parent; text: I18n.tr("Layout")
+                                        anchors.centerIn: parent; text: content._tr("Layout")
                                         font.bold: addAppDialog.activeTab === "manage"; font.pixelSize: Theme.fontSizeSmall
                                         color: addAppDialog.activeTab === "manage" ? Theme.onPrimary : Theme.surfaceText
                                         opacity: addAppDialog.activeTab === "manage" ? 1.0 : (tabManageBtn.containsMouse ? 0.9 : 0.6)
@@ -878,7 +957,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; selectByMouse: true
                             onTextChanged: addAppDialog.systemAppsSearch = text
-                            Text { text: I18n.tr("Search system apps..."); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; opacity: 0.35; visible: systemSearchField.text === "" && !systemSearchField.activeFocus; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: content._tr("Search system apps..."); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; opacity: 0.35; visible: systemSearchField.text === "" && !systemSearchField.activeFocus; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
 
@@ -1122,22 +1201,23 @@ Item {
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
                 Column {
-                    anchors.fill: parent; anchors.margins: Theme.spacingS; anchors.topMargin: Theme.spacingS; anchors.bottomMargin: Theme.spacingS + 30; spacing: 8
+                    anchors.fill: parent; anchors.margins: Theme.spacingS; anchors.topMargin: Theme.spacingS; anchors.bottomMargin: Theme.spacingS; spacing: 20
 
+                    // ── Title ──
                     Item {
-                        width: parent.width; height: 20
+                        width: parent.width; height: 24
                         StyledText {
-                            text: I18n.tr("Settings")
+                            text: content._tr("Settings")
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
-                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.centerIn: parent
                         }
                         Item {
-                            width: 28; height: 28
-                            anchors.right: parent.right; anchors.rightMargin: -2; anchors.verticalCenter: parent.verticalCenter
+                            width: 24; height: 24
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             DankIcon {
                                 anchors.centerIn: parent
                                 name: "close"; size: 16; color: Theme.surfaceText
-                                opacity: closeSettingsBtn.containsMouse ? 1.0 : 0.6
+                                opacity: closeSettingsBtn.containsMouse ? 1.0 : 0.5
                             }
                             MouseArea {
                                 id: closeSettingsBtn
@@ -1148,33 +1228,47 @@ Item {
                         }
                     }
 
-                    StyledText { text: I18n.tr("Default View"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
-                    Row {
-                        spacing: 6
-                        Repeater {
-                            model: [{ label: I18n.tr("Conky"), value: "conky" }, { label: I18n.tr("Apps"), value: "apps" }]
-                            Rectangle {
-                                required property var modelData; width: 70; height: 28; radius: 6
-                                color: host.defaultView === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.defaultView === modelData.value ? Theme.onPrimary : Theme.surfaceText }
-                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "defaultView", modelData.value) } }
+                    // ── Default View ──
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Default View"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        Row { spacing: 6; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            Repeater {
+                                model: [{ label: content._tr("Conky"), value: "conky" }, { label: content._tr("Apps"), value: "apps" }]
+                                Rectangle {
+                                    required property var modelData; width: 64; height: 28; radius: 6
+                                    color: host.defaultView === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                                    StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.defaultView === modelData.value ? Theme.onPrimary : Theme.surfaceText }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "defaultView", modelData.value) } }
+                                }
                             }
                         }
                     }
 
-                    StyledText { text: I18n.tr("Transparency") + ": " + Math.round(host.appLauncherBgOpacity * 100) + "%"; font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
-                    Slider { width: parent.width; from: 0; to: 100; stepSize: 1; value: Math.round(host.appLauncherBgOpacity * 100); onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) } }
+                    // ── Transparency ──
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Transparency"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        Row { spacing: 4; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            Slider { width: 120; from: 0; to: 100; stepSize: 1; anchors.verticalCenter: parent.verticalCenter; value: Math.round(host.appLauncherBgOpacity * 100); onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) } }
+                            StyledText { text: Math.round(host.appLauncherBgOpacity * 100) + "%"; font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; anchors.verticalCenter: parent.verticalCenter; width: 28; horizontalAlignment: Text.AlignRight }
+                        }
+                    }
 
-                    StyledText { text: I18n.tr("Icon Size") + ": " + host.appSize + "px"; font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
-                    Slider { width: parent.width; from: 48; to: 128; stepSize: 4; value: host.appSize; onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "appSize", value) } }
+                    // ── Icon Size ──
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Icon Size"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        Row { spacing: 4; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            Slider { width: 120; from: 48; to: 128; stepSize: 4; anchors.verticalCenter: parent.verticalCenter; value: host.appSize; onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "appSize", value) } }
+                            StyledText { text: host.appSize + "px"; font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; anchors.verticalCenter: parent.verticalCenter; width: 28; horizontalAlignment: Text.AlignRight }
+                        }
+                    }
 
-                    StyledText { text: I18n.tr("View Mode"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
-                    Row {
-                        spacing: 6
+                    // ── View Mode ──
+                    StyledText { text: content._tr("View Mode"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
+                    Row { spacing: 6
                         Repeater {
-                            model: [{ label: I18n.tr("Grid"), value: "grid" }, { label: I18n.tr("List"), value: "list" }, { label: I18n.tr("Compact"), value: "compact" }]
+                            model: [{ label: content._tr("Grid"), value: "grid" }, { label: content._tr("List"), value: "list" }, { label: content._tr("Compact"), value: "compact" }]
                             Rectangle {
-                                required property var modelData; width: 70; height: 28; radius: 6
+                                required property var modelData; width: 60; height: 28; radius: 6
                                 color: host.appViewMode === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
                                 StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.appViewMode === modelData.value ? Theme.onPrimary : Theme.surfaceText }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "viewMode", modelData.value) } }
@@ -1182,37 +1276,135 @@ Item {
                         }
                     }
 
-                    StyledText { text: I18n.tr("Show Header"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
-                    Row {
-                        spacing: 6
-                        Repeater {
-                            model: [{ label: I18n.tr("On"), value: true }, { label: I18n.tr("Off"), value: false }]
-                            Rectangle {
-                                required property var modelData; width: 50; height: 28; radius: 6
-                                color: host.appShowHeader === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.appShowHeader === modelData.value ? Theme.onPrimary : Theme.surfaceText }
-                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", modelData.value) } }
+                    // ── Show Header ──
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Show Header"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        Row { spacing: 6; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            Rectangle { width: 28; height: 24; radius: 5
+                                color: host.appShowHeader ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                                StyledText { anchors.centerIn: parent; text: content._tr("On"); font.pixelSize: 10; color: host.appShowHeader ? Theme.onPrimary : Theme.surfaceText }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", true) } }
+                            }
+                            Rectangle { width: 28; height: 24; radius: 5
+                                color: !host.appShowHeader ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                                StyledText { anchors.centerIn: parent; text: content._tr("Off"); font.pixelSize: 10; color: !host.appShowHeader ? Theme.onPrimary : Theme.surfaceText }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", false) } }
                             }
                         }
                     }
 
-                    StyledText { text: I18n.tr("Particles"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
-                    Row {
-                        spacing: 6
-                        Repeater {
-                            model: [{ label: I18n.tr("On"), value: true }, { label: I18n.tr("Off"), value: false }]
-                            Rectangle {
-                                required property var modelData; width: 50; height: 28; radius: 6
-                                color: host.showLauncherParticles === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.showLauncherParticles === modelData.value ? Theme.onPrimary : Theme.surfaceText }
-                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", modelData.value) } }
+                    // ── Particles ──
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Particles"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        Row { spacing: 6; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            Rectangle { width: 28; height: 24; radius: 5
+                                color: host.showLauncherParticles ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                                StyledText { anchors.centerIn: parent; text: content._tr("On"); font.pixelSize: 10; color: host.showLauncherParticles ? Theme.onPrimary : Theme.surfaceText }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", true) } }
+                            }
+                            Rectangle { width: 28; height: 24; radius: 5
+                                color: !host.showLauncherParticles ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                                StyledText { anchors.centerIn: parent; text: content._tr("Off"); font.pixelSize: 10; color: !host.showLauncherParticles ? Theme.onPrimary : Theme.surfaceText }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", false) } }
                             }
                         }
                     }
 
+                    // ── Language selector ──
+                    Item {
+                        id: langSelector
+                        width: parent.width
+                        height: langDropBtn.height + 2
+                        z: 10
+
+                        property bool _langListOpen: false
+                        readonly property string _currentLangLabel: {
+                            for (var i = 0; i < content._launcherLangModel.length; i++) {
+                                if (content._launcherLangModel[i].code === content._launcherLang)
+                                    return content._launcherLangModel[i].label;
+                            }
+                            return content._launcherLang;
+                        }
+
+                        Rectangle {
+                            id: langDropBtn
+                            anchors.bottom: parent.bottom
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            height: 28; radius: 6
+                            color: langDropArea.containsMouse ? Theme.withAlpha(Theme.primary, 0.1) : Theme.withAlpha(Theme.outline, 0.08)
+                            border.color: Theme.withAlpha(Theme.outline, 0.2); border.width: 1
+                            Row {
+                                anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; spacing: 4
+                                StyledText {
+                                    text: langSelector._currentLangLabel
+                                    font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - 24; elide: Text.ElideRight
+                                }
+                                DankIcon {
+                                    name: langSelector._langListOpen ? "expand_less" : "expand_more"
+                                    size: 16; color: Theme.surfaceVariantText; anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+                            MouseArea {
+                                id: langDropArea
+                                anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: langSelector._langListOpen = !langSelector._langListOpen
+                            }
+                        }
+
+                        Rectangle {
+                            visible: langSelector._langListOpen
+                            height: Math.min(148, langListView.implicitHeight + 4)
+                            anchors.bottom: langDropBtn.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            radius: 6; clip: true
+                            color: Theme.withAlpha(Theme.surfaceContainer, 0.98)
+                            border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1
+                            Flickable {
+                                anchors.fill: parent; anchors.margins: 2
+                                contentHeight: langListView.implicitHeight
+                                boundsBehavior: Flickable.StopAtBounds
+                                interactive: contentHeight > height
+                                clip: false
+                                Column {
+                                    id: langListView
+                                    width: parent.width
+                                    Repeater {
+                                        model: content._launcherLangModel
+                                        delegate: Rectangle {
+                                            width: parent.width; height: 24; radius: 3
+                                            color: content._launcherLang === modelData.code ? Theme.withAlpha(Theme.primary, 0.15) : langItemArea.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.06) : "transparent"
+                                            StyledText {
+                                                text: modelData.label
+                                                font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
+                                                anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 8
+                                            }
+                                            MouseArea {
+                                                id: langItemArea
+                                                anchors.fill: parent; hoverEnabled: true;                                                     cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    if (content.host && content.host.pluginService) {
+                                                        content.host.pluginService.savePluginData(content.host.pluginId, "pluginLanguage", modelData.code);
+                                                        content._launcherLang = modelData.code;
+                                                        content._applyLauncherLanguage(modelData.code);
+                                                    }
+                                                    langSelector._langListOpen = false;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Desktop Widgets button ──
                     DankButton {
                         width: parent.width; height: 28
-                        text: I18n.tr("Desktop Widgets")
+                        text: content._tr("Desktop Widgets")
                         transform: Translate { y: -3 }
                         iconName: "widgets"
                         iconSize: 14
