@@ -40,6 +40,7 @@ Conky可配置项目：
 - 时钟颜色/环形仪表颜色
 - 背景不透明度
 - 应用启动器：图标大小、视图模式、背景不透明度
+- 显示AppImage程序图标: 在Appimage程序目录下创建一个名为AppIcon的文件夹，存放对应程序的图标即可 例如 bilibili.png 匹配Bilibili-1.17.5-x86_64.AppImage的图标
 
 ## 依赖
 
