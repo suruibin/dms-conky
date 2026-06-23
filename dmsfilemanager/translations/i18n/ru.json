@@ -11,6 +11,7 @@
   "Bg Opacity": "City BG Opacity",
   "Border Op": "Прозрачность границы",
   "Border Opacity": "Border Opacity",
+  "SideBar Opacity": "Непрозрачность боковой панели",
   "Bottom": "Внизу",
   "Cancel": "Отмена",
   "Choose how files and folders are displayed.": "Выберите способ отображения файлов и папок.",
@@ -26,7 +27,8 @@
   "Copied to Clipboard": "Скопировано в буфер обмена",
   "Copy": "Копировать",
   "Copy failed": "Не удалось скопировать",
-  "Copy Path": "Копировать путь",
+  "Copy File Path": "Копировать путь файла",
+  "Copy Dir Path": "Копировать путь папки",
   "Copying files...": "Копирование файлов...",
   "Create": "Создавать",
   "Create Stack": "Создать стек",
@@ -59,7 +61,7 @@
   "Header": "Заголовок",
   "Header Position": "Положение шапки сайта",
   "Help us improve": "Помогите нам улучшить",
-  "Home": "Дом",
+  "Home": "Главная",
   "Icon (optional)...": "Иконка",
   "Icon Size": "Размер значка",
   "Image Copied": "Изображение скопировано",
@@ -143,5 +145,6 @@
   "Skip": "Пропустить",
   "Files with the same name already exist in this folder.": "Файлы с таким именем уже существуют в этой папке.",
   "Add to Bookmarks": "Добавить в закладки",
-  "Bookmarked": "Добавлено в закладки"
+  "Bookmarked": "Добавлено в закладки",
+  "Desktop Widgets": "Виджеты рабочего стола"
 }

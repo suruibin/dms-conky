@@ -11,6 +11,7 @@
   "Bg Opacity": "背景透明度",
   "Border Op": "边框透明度",
   "Border Opacity": "边框透明度",
+  "SideBar Opacity": "侧边栏不透明度",
   "Bottom": "底部",
   "Cancel": "取消",
   "Choose how files and folders are displayed.": "选择文件和文件夹的显示方式",
@@ -26,7 +27,8 @@
   "Copied to Clipboard": "已复制到剪贴板",
   "Copy": "复制",
   "Copy failed": "复制失败",
-  "Copy Path": "复制路径",
+  "Copy File Path": "复制文件路径",
+  "Copy Dir Path": "复制文件夹路径",
   "Copying files...": "正在复制文件...",
   "Create": "创建",
   "Create Stack": "创建堆叠",
@@ -59,7 +61,7 @@
   "Header": "标题",
   "Header Position": "标题位置",
   "Help us improve": "帮助我们改进",
-  "Home": "家",
+  "Home": "主目录",
   "Icon (optional)...": "图标（可选）...",
   "Icon Size": "图标大小",
   "Image Copied": "图像已复制",
@@ -143,5 +145,6 @@
   "Skip": "跳过",
   "Files with the same name already exist in this folder.": "同名文件已存在于当前文件夹。",
   "Add to Bookmarks": "添加到书签",
-  "Bookmarked": "已添加书签"
+  "Bookmarked": "已添加书签",
+  "Desktop Widgets": "桌面组件"
 }

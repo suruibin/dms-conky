@@ -11,6 +11,7 @@
   "Bg Opacity": "Bg Opacity",
   "Border Op": "Border Op",
   "Border Opacity": "Border Opacity",
+  "SideBar Opacity": "SideBar Opacity",
   "Bottom": "Bottom",
   "Cancel": "Cancel",
   "Choose icon": "Choose icon",
@@ -24,7 +25,8 @@
   "Copied to Clipboard": "Copied to Clipboard",
   "Copy": "Copy",
   "Copy failed": "Copy failed",
-  "Copy Path": "Copy Path",
+  "Copy File Path": "Copy File Path",
+  "Copy Dir Path": "Copy Dir Path",
   "Copying files...": "Copying files...",
   "Create": "Create",
   "Create Stack": "Create Stack",
@@ -137,5 +139,6 @@
   "Skip": "Skip",
   "Files with the same name already exist in this folder.": "Files with the same name already exist in this folder.",
   "Add to Bookmarks": "Add to Bookmarks",
-  "Bookmarked": "Bookmarked"
+  "Bookmarked": "Bookmarked",
+  "Desktop Widgets": "Desktop Widgets"
 }
