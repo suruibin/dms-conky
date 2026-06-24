@@ -22,15 +22,20 @@
 - **悬停排除区**：Storage 和 HardWare 底部区域不触发应用启动器切换，防止误触
 - **粒子消散动画**：整个conky界面背景显示粒子效果
 - **默认界面设置**：可以设置默认的界面是:系统监控/
+- **多语言切换**：支持多语言切换
 - **dmsfilemanager界面**：双击Storage可以切换显示文件管理器
 
 ## 安装
 ```bash
 dms plugins install dmsconky
+dms plugins install dmsfilemanager
+或者
+git clone https://github.com/suruibin/dms-conky ~/.config/DankMaterialShell/plugins/dms-conky
+git clone https://github.com/suruibin/dms-filemanager ~/.config/DankMaterialShell/plugins/dms-filemanager
 ```
-- 然后手动将dmsfilemanager 复制到 ~/.config/DankMaterialShell/plugins
 - 步骤一: 在 DMS 中的设置 -> 插件 -> 可用插件 使能 DMS Conky / DMS File Manager
 - 步骤二: 在 DMS 中的设置 -> 工作区与部件 -> 桌面部件 -> 添加部件 -> 选择DMS Conky / DMS File Manager
+- DMS File Manager [dmsfilemanager](https://github.com/suruibin/dms-filemanager)
 
 ## 设置
 
@@ -50,9 +55,6 @@ Conky可配置项目：
 
 - `ESC`：在应用启动器中退出弹窗/返回监控视图
 
-## 中文翻译 
-
-- sudo cp zh_CN.json /usr/share/quickshell/dms/translations/poexports/zh_CN.json
 
 ## 默认播放器 SPlayer
 
