@@ -23,12 +23,12 @@ DesktopPluginComponent {
     // Runtime check: does DmsFileManager.qml exist?
     Process {
         id: dmsFmCheck
-        command: ["test", "-f", root.dmsFileManagerPath]
+        command: ["sh", "-c", "test -f '" + root.dmsFileManagerPath + "' && echo 1 || echo 0"]
         running: true
-        stdout: StdioIgnore
-        stderr: StdioIgnore
-        onExit: {
-            root.dmsFileManagerExists = exitCode === 0
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.dmsFileManagerExists = text.trim() === "1"
+            }
         }
     }
 
@@ -480,6 +480,19 @@ DesktopPluginComponent {
     // ============================================
     // DMS FILE MANAGER (conditional — only if plugin directory exists)
     // ============================================
+    QtObject {
+        id: dmsFilePluginService
+        signal pluginDataChanged(string pluginId)
+        function loadPluginData(pluginId, key, defaultValue) {
+            return SettingsData.getPluginSetting("dmsfilemanager", key, defaultValue)
+        }
+        function savePluginData(pluginId, key, value) {
+            SettingsData.setPluginSetting("dmsfilemanager", key, value)
+            SettingsData.savePluginSettings()
+            Qt.callLater(function() { dmsFilePluginService.pluginDataChanged("dmsfilemanager") })
+        }
+    }
+
     Loader {
         id: dmsFileLoader
         active: root.dmsFileManagerExists && root.showDmsFileManager
@@ -504,7 +517,11 @@ DesktopPluginComponent {
                 Loader {
                     id: dmsFileInstance
                     anchors.fill: parent; anchors.margins: 0
-                    source: Qt.resolvedUrl(root.dmsFileManagerPath)
+                    source: root.dmsFileManagerPath
+                    onLoaded: {
+                        item.pluginService = dmsFilePluginService
+                        item.pluginId = "dmsfilemanager"
+                    }
                 }
 
                 MouseArea {
