@@ -10,7 +10,7 @@ PluginSettings {
     pluginId: "dmsconky"
 
     // ── Settings I18n (loaded from translations/i18n/*.json via FileView) ─────
-    property string _settingsLang: root.loadValue("pluginLanguage", "system")
+    property string _settingsLang: root.loadValue("pluginLanguage", "en")
     on_SettingsLangChanged: _applySettingsI18n(_settingsLang)
     property var _settingsI18nMap: ({})
     property int _settingsI18nToken: 0
@@ -53,7 +53,7 @@ PluginSettings {
         repeat: true
         interval: 800
         onTriggered: {
-            var lang = root.loadValue("pluginLanguage", "system")
+            var lang = root.loadValue("pluginLanguage", "en")
             if (lang !== root._settingsLang)
                 root._settingsLang = lang
         }
@@ -659,7 +659,7 @@ PluginSettings {
                             ]
                             delegate: Rectangle {
                                 width: parent.width; height: 26; radius: 4
-                                color: root.loadValue("pluginLanguage", "system") === modelData.code ? Theme.withAlpha(Theme.primary, 0.15) : langItemMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.06) : "transparent"
+                                color: root.loadValue("pluginLanguage", "en") === modelData.code ? Theme.withAlpha(Theme.primary, 0.15) : langItemMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.06) : "transparent"
                                 StyledText {
                                     text: modelData.label
                                     font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText

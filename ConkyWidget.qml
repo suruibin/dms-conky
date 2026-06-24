@@ -62,7 +62,7 @@ DesktopPluginComponent {
     widgetHeight: getData("widgetHeight", 522)
 
     readonly property color accentColor: getData("accentColor", "#7C3AED")
-    readonly property color accent2Color: getData("accent2Color", "#D97706")
+    readonly property color accent2Color: getData("accent2Color", "#EC4899")
     readonly property real bgOpacity: getData("bgOpacity", 0.0)
     readonly property bool showClock: getData("showClock", true)
     readonly property bool showNetwork: getData("showNetwork", true)
@@ -81,14 +81,14 @@ DesktopPluginComponent {
 
     // Ring gauge colors
     readonly property color ringBgColor: getData("ringBgColor", "#94A3B8")
-    readonly property color cpuGaugeColor: getData("cpuGaugeColor", "#DC2626")
+    readonly property color cpuGaugeColor: getData("cpuGaugeColor", "#EA580C")
     readonly property color memGaugeColor: getData("memGaugeColor", "#EAB308")
     readonly property color batteryGaugeColor: getData("batteryGaugeColor", "#22C55E")
     readonly property color batteryAcGaugeColor: getData("batteryAcGaugeColor", "#22C55E")
     readonly property color tempGaugeColor: getData("tempGaugeColor", "#EF4444")
 
     // Clock / Date per-part colors
-    readonly property color clockHourColor: getData("clockHourColor", "#6366F1")
+    readonly property color clockHourColor: getData("clockHourColor", "#8B5CF6")
     readonly property color clockMinuteColor: getData("clockMinuteColor", "#F97316")
     readonly property color clockSecondColor: getData("clockSecondColor", "#EC4899")
     readonly property color clockColonColor: getData("clockColonColor", "#3B82F6")
@@ -170,7 +170,7 @@ DesktopPluginComponent {
         }
     })
 
-    property string pluginLanguage: getData("pluginLanguage", "system")
+    property string pluginLanguage: getData("pluginLanguage", "en")
     onPluginLanguageChanged: _applyPluginLanguage(pluginLanguage)
     readonly property var dateLocale: pluginLanguage === "zh_CN" ? Qt.locale("zh_CN")
         : pluginLanguage === "en" ? Qt.locale("en_US")
@@ -270,13 +270,33 @@ DesktopPluginComponent {
     // --- App Launcher properties ---
     property string appSearchQuery: ""
     property bool appEditMode: false
-    readonly property real appSize: getData("appSize", 80)
+    readonly property real appSize: getData("appSize", 76)
     readonly property string appViewMode: getData("viewMode", "grid")
     readonly property bool appShowHeader: getData("showHeader", false)
     readonly property bool showLauncherParticles: getData("showLauncherParticles", true)
-    readonly property real appLauncherBgOpacity: (getData("backgroundOpacity", 80)) / 100
+    readonly property real appLauncherBgOpacity: (getData("backgroundOpacity", 0)) / 100
     readonly property real appIconSize: Math.max(28, Math.round(appSize * 0.58))
-    property var addedApps: getData("addedApps", [])
+    property var addedApps: getData("addedApps", [
+        {"exec": "env DESKTOPINTEGRATION=false /usr/bin/wechat", "icon": "/usr/share/icons/wechat.png", "name": "wechat"},
+        {"exec": "steam steam://rungameid/620", "icon": "steam_icon_620", "name": "Portal 2"},
+        {"exec": "env DESKTOPINTEGRATION=false /usr/bin/linuxqq --no-sandbox", "icon": "qq", "name": "QQ"},
+        {"exec": "apm run com.eastmoney.emdesk.spark \"/opt/apps/com.eastmoney.emdesk.spark/files/run.sh\" --uri --uri", "icon": "/var/lib/apm/apm/files/ace-env/var/lib/apm/com.eastmoney.emdesk.spark/files/core/opt/apps/com.eastmoney.emdesk.spark/entries/icons/hicolor/scalable/apps/com.eastmoney.emdesk.spark.png", "name": "东方财富终端"},
+        {"exec": "apm run com.tdx.tdxcfv /opt/apps/com.tdx.tdxcfv/files/bin/tdxw.sh", "icon": "com.tdx.tdxcfv", "name": "tdxcfv"},
+        {"exec": "waydroid app launch com.aiyu.kaipanla", "icon": "/home/suruibin/.local/share/waydroid/data/icons/com.aiyu.kaipanla.png", "name": "开盘啦"},
+        {"exec": "/home/suruibin/.local/bin/reasonix-desktop", "icon": "reasonix-desktop", "name": "Reasonix Desktop"},
+        {"exec": "/home/suruibin/.local/bin/claude-desktop", "icon": "/home/suruibin/.local/share/icons/hicolor/256x256/apps/claudecode.png", "name": "Claude"},
+        {"exec": "flclash", "icon": "flclash", "name": "FlClash"},
+        {"exec": "apm run bcompare bcompare", "icon": "bcompare", "name": "Beyond Compare"},
+        {"exec": "waydroid", "icon": "waydroid", "name": "Waydroid"},
+        {"exec": "/usr/bin/steam", "icon": "steam", "name": "Steam"},
+        {"exec": "/home/suruibin/splayer-native/launch-splayer.sh", "icon": "SPlayer", "name": "SPlayer (Native)"},
+        {"exec": "piliplus", "icon": "piliplus", "name": "PiliPlus"},
+        {"exec": "peek", "icon": "com.uploadedlobster.peek", "name": "Peek"},
+        {"exec": "apm run netease-cloud-music /opt/apps/com.electron/files/Electron/electron /opt/netease-cloud-music/resources/app", "icon": "/var/lib/apm/apm/files/ace-env/var/lib/apm/netease-cloud-music/files/core/opt/netease-cloud-music/assets/icons/icon.png", "name": "Netease Cloud Music"},
+        {"exec": "kate -b", "icon": "kate", "name": "Kate"},
+        {"exec": "filelight", "icon": "filelight", "name": "Filelight"},
+        {"exec": "kitty", "icon": "kitty", "name": "kitty"}
+    ])
 
     readonly property bool hasActivePlayer: MprisController.activePlayer !== null && MprisController.activePlayer !== undefined
     property int musicTick: 0
