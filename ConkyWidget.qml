@@ -18,7 +18,6 @@ DesktopPluginComponent {
     // DMS File Manager — loads from ~/.config/DankMaterialShell/plugins/dmsfilemanager if present
     readonly property string dmsFileManagerPath: "/home/suruibin/.config/DankMaterialShell/plugins/dmsfilemanager/DmsFileManager.qml"
     property bool dmsFileManagerExists: false
-    property bool showDmsFileManager: false
 
     // Runtime check: does DmsFileManager.qml exist?
     Process {
@@ -33,10 +32,29 @@ DesktopPluginComponent {
     }
 
     function toggleDmsFileManager() {
-        if (root.dmsFileManagerExists) {
-            root.showDmsFileManager = !root.showDmsFileManager
+        if (!root.dmsFileManagerExists) return
+        if (!root._dfmId) {
+            var instances = SettingsData.desktopWidgetInstances || []
+            for (var i = 0; i < instances.length; i++) {
+                if (instances[i].widgetType === "dmsfilemanager") {
+                    root._dfmId = instances[i].id
+                    break
+                }
+            }
+        }
+        if (root._dfmId) {
+            var insts = SettingsData.desktopWidgetInstances || []
+            for (var i = 0; i < insts.length; i++) {
+                if (insts[i].id === root._dfmId) {
+                    SettingsData.updateDesktopWidgetInstance(root._dfmId, { enabled: !insts[i].enabled })
+                    break
+                }
+            }
         }
     }
+
+    // dmsfilemanager instance ID cache
+    property string _dfmId: ""
 
     minWidth: 280
     minHeight: 500
@@ -475,69 +493,6 @@ DesktopPluginComponent {
         visible: (root.defaultView === "apps" ? !root.mouseHovered : root.mouseHovered) || launcherContent._keepVisible
         anchors.fill: parent
         host: root
-    }
-
-    // ============================================
-    // DMS FILE MANAGER (conditional — only if plugin directory exists)
-    // ============================================
-    QtObject {
-        id: dmsFilePluginService
-        signal pluginDataChanged(string pluginId)
-        function loadPluginData(pluginId, key, defaultValue) {
-            return SettingsData.getPluginSetting("dmsfilemanager", key, defaultValue)
-        }
-        function savePluginData(pluginId, key, value) {
-            SettingsData.setPluginSetting("dmsfilemanager", key, value)
-            SettingsData.savePluginSettings()
-            Qt.callLater(function() { dmsFilePluginService.pluginDataChanged("dmsfilemanager") })
-        }
-    }
-
-    Loader {
-        id: dmsFileLoader
-        active: root.dmsFileManagerExists && root.showDmsFileManager
-        sourceComponent: Component {
-            PanelWindow {
-                id: dmsFileWindow
-                color: "transparent"
-                property real _left: 200
-                property real _top: 100
-
-                WlrLayershell.namespace: "dms:dmsfilemanager"
-                WlrLayershell.layer: WlrLayer.Top
-                WlrLayershell.exclusionMode: ExclusionMode.Ignore
-                WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-
-                anchors { left: true; top: true; right: false; bottom: false }
-                WlrLayershell.margins { left: dmsFileWindow._left; top: dmsFileWindow._top }
-                implicitWidth: 640; implicitHeight: 500
-
-                FloatingWindowControls { targetWindow: dmsFileWindow }
-
-                Loader {
-                    id: dmsFileInstance
-                    anchors.fill: parent; anchors.margins: 0
-                    source: root.dmsFileManagerPath
-                    onLoaded: {
-                        item.pluginService = dmsFilePluginService
-                        item.pluginId = "dmsfilemanager"
-                    }
-                }
-
-                MouseArea {
-                    anchors.top: parent.top; anchors.left: parent.left
-                    anchors.right: parent.right; height: 20
-                    cursorShape: Qt.SizeAllCursor; z: 10
-                    onPressed: { dmsFileWindow.startSystemMove() }
-                }
-
-                Shortcut {
-                    sequence: "Escape"
-                    onActivated: root.showDmsFileManager = false
-                }
-                onVisibleChanged: { if (!visible) root.showDmsFileManager = false }
-            }
-        }
     }
 
     // --- Global hover (widget switching + position for delegate effects) ---
