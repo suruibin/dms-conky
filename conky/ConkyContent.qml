@@ -212,7 +212,7 @@ Item {
                     x: 16; y: host.yBase + 290; width: 58
                     horizontalAlignment: Text.AlignHCenter
                     text: DgopService.cpuUsage.toFixed(0) + "%"
-                    font.family: bebasFont.name; font.pixelSize: 14; color: host.fg
+                    font.family: bebasFont.name; font.bold: true; font.pixelSize: 18; color: host.fg
                 }
 
                 RingGauge { id: memRing; x: 88; y: host.yBase + 234; pct: DgopService.memoryUsage / 100; gaugeColor: host.memGaugeColor; bgColor: host.ringBgColor }
@@ -220,7 +220,7 @@ Item {
                     x: 88; y: host.yBase + 290; width: 58
                     horizontalAlignment: Text.AlignHCenter
                     text: DgopService.memoryUsage.toFixed(0) + "%"
-                    font.family: bebasFont.name; font.pixelSize: 14; color: host.fg
+                    font.family: bebasFont.name; font.bold: true; font.pixelSize: 18; color: host.fg
                 }
 
                 RingGauge { id: batteryRing; x: 158; y: host.yBase + 234; pct: BatteryService.batteryAvailable ? BatteryService.batteryLevel / 100 : 1.0; gaugeColor: BatteryService.batteryAvailable ? host.batteryGaugeColor : host.batteryAcGaugeColor; bgColor: host.ringBgColor }
@@ -228,7 +228,7 @@ Item {
                     x: 155; y: host.yBase + 290; width: 58
                     horizontalAlignment: Text.AlignHCenter
                     text: BatteryService.batteryAvailable ? BatteryService.batteryLevel.toFixed(0) + "%" : "AC"
-                    font.family: bebasFont.name; font.pixelSize: 14; color: host.fg
+                    font.family: bebasFont.name; font.bold: true; font.pixelSize: 18; color: host.fg
                 }
 
                 RingGauge { id: tempRing; x: 228; y: host.yBase + 234; pct: DgopService.cpuTemperature > 0 ? Math.min(100, DgopService.cpuTemperature) / 100 : 0; gaugeColor: host.tempGaugeColor; bgColor: host.ringBgColor }
@@ -236,7 +236,7 @@ Item {
                     x: 228; y: host.yBase + 290; width: 58
                     horizontalAlignment: Text.AlignHCenter
                     text: DgopService.cpuTemperature > 0 ? DgopService.cpuTemperature.toFixed(0) + "°C" : "--°C"
-                    font.family: bebasFont.name; font.pixelSize: 14; color: host.fg
+                    font.family: bebasFont.name; font.bold: true; font.pixelSize: 18; color: host.fg
                 }
 
                 // ============================================
@@ -253,10 +253,10 @@ Item {
                     }
                     Text {
                         x: host.leftX; y: host.yBase + 390
-                        text: host._i18nRoot + " :"; font.family: abelFont.name; font.pixelSize: 15; color: host.fg
+                        text: host._i18nRoot + ": " + host.sysDiskInfo; font.family: abelFont.name; font.pixelSize: 13; color: host.fg
                     }
                     Rectangle {
-                        x: host.leftX; y: host.yBase + 415
+                        x: host.leftX; y: host.yBase + 410
                         width: 111; height: 15; radius: 2; color: "#18ffffff"
                         Rectangle {
                             width: parent.width * host.sysDiskPct; height: 15; radius: 2
@@ -265,25 +265,17 @@ Item {
                         }
                     }
                     Text {
-                        x: host.leftX + 4; y: host.yBase + 416
-                        text: host.sysDiskInfo; font.family: abelFont.name; font.pixelSize: 12; color: host.fg
-                    }
-                    Text {
-                        x: host.leftX; y: host.yBase + 433
-                        text: host._i18nHome + " :"; font.family: abelFont.name; font.pixelSize: 15; color: host.fg
+                        x: host.leftX; y: host.yBase + 436
+                        text: host._i18nHome + ": " + host.homeDiskInfo; font.family: abelFont.name; font.pixelSize: 13; color: host.fg
                     }
                     Rectangle {
-                        x: host.leftX; y: host.yBase + 455
+                        x: host.leftX; y: host.yBase + 456
                         width: 111; height: 15; radius: 2; color: "#18ffffff"
                         Rectangle {
                             width: parent.width * host.homeDiskPct; height: 15; radius: 2
                             color: host.homeDiskPct > 0.9 ? "#EF4444" : (host.homeDiskPct > 0.5 ? "#F59E0B" : "#22C55E")
                             Behavior on color { ColorAnimation { duration: 600 } }
                         }
-                    }
-                    Text {
-                        x: host.leftX + 4; y: host.yBase + 456
-                        text: host.homeDiskInfo; font.family: abelFont.name; font.pixelSize: 12; color: host.fg
                     }
                 }
 

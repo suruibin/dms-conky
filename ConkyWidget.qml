@@ -331,8 +331,8 @@ DesktopPluginComponent {
         var m = DgopService.diskMounts
         var c = { sysPct: 0, sysInfo: "-- / --", homePct: 0, homeInfo: "-- / --" }
         for (var i = 0; i < m.length; i++) {
-            if (m[i].mount === "/") { c.sysPct = parseFloat(m[i].percent) / 100; c.sysInfo = m[i].percent + "%(" + m[i].size + ")" }
-            else if (m[i].mount === "/home") { c.homePct = parseFloat(m[i].percent) / 100; c.homeInfo = m[i].percent + "%(" + m[i].size + ")" }
+            if (m[i].mount === "/") { c.sysPct = parseFloat(m[i].percent) / 100; c.sysInfo = m[i].percent + "(" + m[i].size + ")" }
+            else if (m[i].mount === "/home") { c.homePct = parseFloat(m[i].percent) / 100; c.homeInfo = m[i].percent + "(" + m[i].size + ")" }
             if (c.sysPct > 0 && c.homePct > 0) break
         }
         // Fallback: no separate /home mount → reuse root data
