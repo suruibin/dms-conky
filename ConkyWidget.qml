@@ -9,34 +9,32 @@ import qs.Widgets
 import qs.Modules.Plugins
 import "conky"
 import "launcher"
-import "dmsfilemanager"
-
 DesktopPluginComponent {
     id: root
 
     // Accept keyboard focus for text input (search boxes)
     property bool acceptsKeyboardFocus: true
 
-    // DmsFileManager toggle
-    property string _dfmId: ""
-    function toggleDmsFileManager() {
-        if (!_dfmId) {
-            var instances = SettingsData.desktopWidgetInstances || []
-            for (var i = 0; i < instances.length; i++) {
-                if (instances[i].widgetType === "dmsfilemanager") {
-                    _dfmId = instances[i].id
-                    break
-                }
-            }
+    // DMS File Manager — loads from ~/.config/DankMaterialShell/plugins/dmsfilemanager if present
+    readonly property string dmsFileManagerPath: "/home/suruibin/.config/DankMaterialShell/plugins/dmsfilemanager/DmsFileManager.qml"
+    property bool dmsFileManagerExists: false
+    property bool showDmsFileManager: false
+
+    // Runtime check: does DmsFileManager.qml exist?
+    Process {
+        id: dmsFmCheck
+        command: ["test", "-f", root.dmsFileManagerPath]
+        running: true
+        stdout: StdioIgnore
+        stderr: StdioIgnore
+        onExit: {
+            root.dmsFileManagerExists = exitCode === 0
         }
-        if (_dfmId) {
-            var insts = SettingsData.desktopWidgetInstances || []
-            for (var i = 0; i < insts.length; i++) {
-                if (insts[i].id === _dfmId) {
-                    SettingsData.updateDesktopWidgetInstance(_dfmId, { enabled: !insts[i].enabled })
-                    break
-                }
-            }
+    }
+
+    function toggleDmsFileManager() {
+        if (root.dmsFileManagerExists) {
+            root.showDmsFileManager = !root.showDmsFileManager
         }
     }
 
@@ -480,24 +478,11 @@ DesktopPluginComponent {
     }
 
     // ============================================
-    // DMS FILE MANAGER
+    // DMS FILE MANAGER (conditional — only if plugin directory exists)
     // ============================================
-    QtObject {
-        id: dmsFilePluginService
-        signal pluginDataChanged(string pluginId)
-        function loadPluginData(pluginId, key, defaultValue) {
-            return SettingsData.getPluginSetting("dmsfilemanager", key, defaultValue)
-        }
-        function savePluginData(pluginId, key, value) {
-            SettingsData.setPluginSetting("dmsfilemanager", key, value)
-            SettingsData.savePluginSettings()
-            Qt.callLater(function() { dmsFilePluginService.pluginDataChanged("dmsfilemanager") })
-        }
-    }
-
     Loader {
         id: dmsFileLoader
-        active: root.showDmsFileManager
+        active: root.dmsFileManagerExists && root.showDmsFileManager
         sourceComponent: Component {
             PanelWindow {
                 id: dmsFileWindow
@@ -516,10 +501,10 @@ DesktopPluginComponent {
 
                 FloatingWindowControls { targetWindow: dmsFileWindow }
 
-                DmsFileManager {
+                Loader {
                     id: dmsFileInstance
                     anchors.fill: parent; anchors.margins: 0
-                    pluginService: dmsFilePluginService; pluginId: "dmsfilemanager"
+                    source: Qt.resolvedUrl(root.dmsFileManagerPath)
                 }
 
                 MouseArea {
@@ -607,9 +592,6 @@ DesktopPluginComponent {
 
     readonly property string musicPlayerPath: getData("musicPlayerPath", "/usr/local/bin/splayer")
     readonly property bool showRotatingAlbum: getData("showRotatingAlbum", true)
-
-    // DmsFileManager overlay
-    property bool showDmsFileManager: false
 
     function triggerSplayerOrResume() {
         var p = MprisController.activePlayer
