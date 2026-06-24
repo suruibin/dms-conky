@@ -276,27 +276,7 @@ DesktopPluginComponent {
     readonly property bool showLauncherParticles: getData("showLauncherParticles", true)
     readonly property real appLauncherBgOpacity: (getData("backgroundOpacity", 0)) / 100
     readonly property real appIconSize: Math.max(28, Math.round(appSize * 0.58))
-    property var addedApps: getData("addedApps", [
-        {"exec": "env DESKTOPINTEGRATION=false /usr/bin/wechat", "icon": "/usr/share/icons/wechat.png", "name": "wechat"},
-        {"exec": "steam steam://rungameid/620", "icon": "steam_icon_620", "name": "Portal 2"},
-        {"exec": "env DESKTOPINTEGRATION=false /usr/bin/linuxqq --no-sandbox", "icon": "qq", "name": "QQ"},
-        {"exec": "apm run com.eastmoney.emdesk.spark \"/opt/apps/com.eastmoney.emdesk.spark/files/run.sh\" --uri --uri", "icon": "/var/lib/apm/apm/files/ace-env/var/lib/apm/com.eastmoney.emdesk.spark/files/core/opt/apps/com.eastmoney.emdesk.spark/entries/icons/hicolor/scalable/apps/com.eastmoney.emdesk.spark.png", "name": "东方财富终端"},
-        {"exec": "apm run com.tdx.tdxcfv /opt/apps/com.tdx.tdxcfv/files/bin/tdxw.sh", "icon": "com.tdx.tdxcfv", "name": "tdxcfv"},
-        {"exec": "waydroid app launch com.aiyu.kaipanla", "icon": "/home/suruibin/.local/share/waydroid/data/icons/com.aiyu.kaipanla.png", "name": "开盘啦"},
-        {"exec": "/home/suruibin/.local/bin/reasonix-desktop", "icon": "reasonix-desktop", "name": "Reasonix Desktop"},
-        {"exec": "/home/suruibin/.local/bin/claude-desktop", "icon": "/home/suruibin/.local/share/icons/hicolor/256x256/apps/claudecode.png", "name": "Claude"},
-        {"exec": "flclash", "icon": "flclash", "name": "FlClash"},
-        {"exec": "apm run bcompare bcompare", "icon": "bcompare", "name": "Beyond Compare"},
-        {"exec": "waydroid", "icon": "waydroid", "name": "Waydroid"},
-        {"exec": "/usr/bin/steam", "icon": "steam", "name": "Steam"},
-        {"exec": "/home/suruibin/splayer-native/launch-splayer.sh", "icon": "SPlayer", "name": "SPlayer (Native)"},
-        {"exec": "piliplus", "icon": "piliplus", "name": "PiliPlus"},
-        {"exec": "peek", "icon": "com.uploadedlobster.peek", "name": "Peek"},
-        {"exec": "apm run netease-cloud-music /opt/apps/com.electron/files/Electron/electron /opt/netease-cloud-music/resources/app", "icon": "/var/lib/apm/apm/files/ace-env/var/lib/apm/netease-cloud-music/files/core/opt/netease-cloud-music/assets/icons/icon.png", "name": "Netease Cloud Music"},
-        {"exec": "kate -b", "icon": "kate", "name": "Kate"},
-        {"exec": "filelight", "icon": "filelight", "name": "Filelight"},
-        {"exec": "kitty", "icon": "kitty", "name": "kitty"}
-    ])
+    property var addedApps: getData("addedApps", [])
 
     readonly property bool hasActivePlayer: MprisController.activePlayer !== null && MprisController.activePlayer !== undefined
     property int musicTick: 0
