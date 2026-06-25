@@ -129,8 +129,8 @@ Item {
                     Text { x: 95; y: host.yBase + 65; text: content._w.available ? content._w.temp + "°C" : "--°C"; font.family: bebasFont.name; font.pixelSize: 22; color: host.fg }
                     Text { x: host.leftX; y: host.yBase + 95; text: content._w.available ? content._w.city : host._i18nOffline; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.accent2Color; width: 155; elide: Text.ElideRight }
                     Text { x: host.leftX; y: host.yBase + 115; text: content._w.available ? WeatherService.getWeatherCondition(content._w.wCode) : ""; font.family: abelFont.name; font.pixelSize: 15; color: host.fg; width: 155; elide: Text.ElideRight }
-                    Text { x: host.leftX; y: host.yBase + 135; text: host._i18nWind + " : " + (content._w.available ? content._w.wind + "km/h" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.fg; width: 155; elide: Text.ElideRight }
-                    Text { x: host.leftX; y: host.yBase + 155; text: host._i18nHumidity + " : " + (content._w.available ? content._w.humidity + "%" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.fg; width: 155; elide: Text.ElideRight }
+                    Text { x: host.leftX; y: host.yBase + 135; text: host._i18nWind + " : " + (content._w.available ? content._w.wind + "km/h" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.weatherWindColor; width: 155; elide: Text.ElideRight }
+                    Text { x: host.leftX; y: host.yBase + 155; text: host._i18nHumidity + " : " + (content._w.available ? content._w.humidity + "%" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.weatherHumidityColor; width: 155; elide: Text.ElideRight }
                 }
 
                 // ============================================
@@ -151,7 +151,7 @@ Item {
                     font.family: abelFont.name
                     font.bold: true
                     font.pixelSize: 15
-                    color: host.fg
+                    color: host.networkSsidColor
                 }
 
                 Text {
@@ -160,7 +160,7 @@ Item {
                     text: host._i18nDown + " : " + host.fmtBytes(DgopService.networkRxRate) + "/s"
                     font.family: abelFont.name
                     font.pixelSize: 15
-                    color: host.fg
+                    color: host.networkDownColor
                 }
 
                 NetworkGraph {
@@ -177,7 +177,7 @@ Item {
                     text: host._i18nUp + " : " + host.fmtBytes(DgopService.networkTxRate) + "/s"
                     font.family: abelFont.name
                     font.pixelSize: 15
-                    color: host.fg
+                    color: host.networkUpColor
                 }
 
                 NetworkGraph {

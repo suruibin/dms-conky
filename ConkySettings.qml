@@ -105,6 +105,10 @@ PluginSettings {
     readonly property string _trHome:         { _settingsI18nToken; return _settingsI18nMap["Home"]          || I18n.tr("Home") }
     readonly property string _trHardWare:     { _settingsI18nToken; return _settingsI18nMap["HardWare"]      || I18n.tr("HardWare") }
     readonly property string _trGPU:          { _settingsI18nToken; return _settingsI18nMap["GPU"]           || I18n.tr("GPU") }
+    readonly property string _trDown:         { _settingsI18nToken; return _settingsI18nMap["Down"]          || I18n.tr("Down") }
+    readonly property string _trUp:           { _settingsI18nToken; return _settingsI18nMap["Up"]            || I18n.tr("Up") }
+    readonly property string _trWind:         { _settingsI18nToken; return _settingsI18nMap["Wind"]          || I18n.tr("Wind") }
+    readonly property string _trHumidity:     { _settingsI18nToken; return _settingsI18nMap["Humidity"]      || I18n.tr("Humidity") }
     readonly property string _trAbout:        { _settingsI18nToken; return _settingsI18nMap["About"]         || I18n.tr("About") }
     readonly property string _trGitHub:       { _settingsI18nToken; return _settingsI18nMap["GitHub"]        || I18n.tr("GitHub") }
     readonly property string _trBugRequest:   { _settingsI18nToken; return _settingsI18nMap["Found a bug or have a feature request? Join us on GitHub."] || I18n.tr("Found a bug or have a feature request? Join us on GitHub.") }
@@ -431,6 +435,59 @@ PluginSettings {
                 ColorRow { label: root._trHardWare; settingKey: "hardwareLabelColor";    defaultColor: "#D946EF" }
                 ColorRow { label: root._trCPU;       settingKey: "hardwareCpuLabelColor"; defaultColor: "#14B8A6" }
                 ColorRow { label: root._trGPU;       settingKey: "hardwareGpuLabelColor"; defaultColor: "#06B6D4" }
+            }
+        }
+
+        // ---- Network Colors ----
+        StyledText {
+            text: root._trNetwork
+            font.pixelSize: Theme.fontSizeMedium
+            font.bold: true
+            color: Theme.surfaceText
+        }
+        Item { width: 1; height: Theme.spacingS }
+
+        StyledRect {
+            width: parent.width
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: netCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: netCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: 2
+
+                ColorRow { label: root._trNetwork; settingKey: "networkSsidColor"; defaultColor: "#f0f0f0" }
+                ColorRow { label: root._trDown;    settingKey: "networkDownColor";  defaultColor: "#f0f0f0" }
+                ColorRow { label: root._trUp;      settingKey: "networkUpColor";    defaultColor: "#f0f0f0" }
+            }
+        }
+
+        // ---- Weather Colors ----
+        StyledText {
+            text: root._trWeather
+            font.pixelSize: Theme.fontSizeMedium
+            font.bold: true
+            color: Theme.surfaceText
+        }
+        Item { width: 1; height: Theme.spacingS }
+
+        StyledRect {
+            width: parent.width
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: weatherCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: weatherCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: 2
+
+                ColorRow { label: root._trWind;     settingKey: "weatherWindColor";     defaultColor: "#f0f0f0" }
+                ColorRow { label: root._trHumidity; settingKey: "weatherHumidityColor"; defaultColor: "#f0f0f0" }
             }
         }
 

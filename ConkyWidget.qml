@@ -95,6 +95,15 @@ DesktopPluginComponent {
     readonly property color hardwareCpuLabelColor: getData("hardwareCpuLabelColor", "#14B8A6")
     readonly property color hardwareGpuLabelColor: getData("hardwareGpuLabelColor", "#06B6D4")
 
+    // Network label colors
+    readonly property color networkSsidColor: getData("networkSsidColor", "#f0f0f0")
+    readonly property color networkDownColor: getData("networkDownColor", "#f0f0f0")
+    readonly property color networkUpColor: getData("networkUpColor", "#f0f0f0")
+
+    // Weather label colors
+    readonly property color weatherWindColor: getData("weatherWindColor", "#f0f0f0")
+    readonly property color weatherHumidityColor: getData("weatherHumidityColor", "#f0f0f0")
+
     // Clock / Date per-part colors
     readonly property color clockHourColor: getData("clockHourColor", "#8B5CF6")
     readonly property color clockMinuteColor: getData("clockMinuteColor", "#F97316")
