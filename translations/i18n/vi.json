@@ -1,4 +1,12 @@
 {
+  "Icon": "Biểu tượng",
+  "Start": "Bắt đầu",
+  "End": "Kết thúc",
+  "City": "Thành phố",
+  "Artist": "Nghệ sĩ",
+  "Title": "Tiêu đề",
+  "Time": "Thời gian",
+  "Border": "Viền",
   "Wind": "Gió",
   "Humidity": "Độ ẩm",
   "Network": "Mạng",
@@ -43,8 +51,6 @@
   "Music": "Nhạc",
   "Rotating Album": "Album xoay",
   "Colors": "Màu sắc",
-  "Primary Color": "Màu chính",
-  "Secondary Color": "Màu phụ",
   "Clock Colors": "Màu đồng hồ",
   "Hour": "Giờ",
   "Minute": "Phút",
@@ -70,5 +76,14 @@
   "About": "Giới thiệu",
   "GitHub": "GitHub",
   "Found a bug or have a feature request? Join us on GitHub.": "Tìm thấy lỗi hoặc có yêu cầu tính năng? Tham gia cùng chúng tôi trên GitHub.",
-  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "Giao diện: /path/to/app | Dòng lệnh: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app"
+  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "Giao diện: /path/to/app | Dòng lệnh: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app",
+  "Color Schemes": "Bảng màu",
+  "Export": "Xuất",
+  "Import": "Nhập",
+  "Safe": "An toàn",
+  "Warn": "Cảnh báo",
+  "Danger": "Nguy hiểm",
+  "Save Current": "Lưu hiện tại",
+  "Scheme saved!": "Đã lưu！",
+  "Delete": "Xóa"
 }

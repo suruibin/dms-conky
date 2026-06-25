@@ -1,4 +1,12 @@
 {
+  "Icon": "아이콘",
+  "Start": "시작",
+  "End": "끝",
+  "City": "도시",
+  "Artist": "아티스트",
+  "Title": "제목",
+  "Time": "시간",
+  "Border": "테두리",
   "Wind": "바람",
   "Humidity": "습도",
   "Network": "네트워크",
@@ -43,8 +51,6 @@
   "Music": "음악",
   "Rotating Album": "회전 앨범",
   "Colors": "색상",
-  "Primary Color": "주 색상",
-  "Secondary Color": "보조 색상",
   "Clock Colors": "시계 색상",
   "Hour": "시",
   "Minute": "분",
@@ -70,5 +76,14 @@
   "About": "정보",
   "GitHub": "GitHub",
   "Found a bug or have a feature request? Join us on GitHub.": "버그를 발견하셨나요? 기능 요청이 있으신가요? GitHub에서 함께해 주세요.",
-  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "GUI: /path/to/app | 터미널: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app"
+  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "GUI: /path/to/app | 터미널: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app",
+  "Color Schemes": "색상 구성표",
+  "Export": "내보내기",
+  "Import": "가져오기",
+  "Safe": "안전",
+  "Warn": "경고",
+  "Danger": "위험",
+  "Save Current": "현재 저장",
+  "Scheme saved!": "저장됨！",
+  "Delete": "삭제"
 }

@@ -1,4 +1,12 @@
 {
+  "Icon": "图标",
+  "Start": "起点",
+  "End": "终点",
+  "City": "城市",
+  "Artist": "艺术家",
+  "Title": "歌曲名",
+  "Time": "时间",
+  "Border": "边框",
   "Wind": "风速",
   "Humidity": "湿度",
   "Network": "网络",
@@ -43,8 +51,6 @@
   "Music": "音乐",
   "Rotating Album": "旋转专辑封面",
   "Colors": "颜色",
-  "Primary Color": "主色",
-  "Secondary Color": "辅色",
   "Clock Colors": "时钟颜色",
   "Hour": "时",
   "Minute": "分",
@@ -70,5 +76,14 @@
   "About": "关于",
   "GitHub": "GitHub",
   "Found a bug or have a feature request? Join us on GitHub.": "发现了 Bug 或有功能建议？来 GitHub 参与我们。",
-  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "GUI: 应用路径 | 终端: alacritty -e 应用路径 | Kitty: kitty 应用路径 | Konsole: konsole -e 应用路径"
+  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "GUI: 应用路径 | 终端: alacritty -e 应用路径 | Kitty: kitty 应用路径 | Konsole: konsole -e 应用路径",
+  "Color Schemes": "配色方案",
+  "Export": "导出",
+  "Import": "导入",
+  "Safe": "安全",
+  "Warn": "警告",
+  "Danger": "危险",
+  "Save Current": "保存当前",
+  "Scheme saved!": "已保存！",
+  "Delete": "删除"
 }

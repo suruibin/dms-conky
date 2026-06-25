@@ -1,4 +1,12 @@
 {
+  "Icon": "Значок",
+  "Start": "Начало",
+  "End": "Конец",
+  "City": "Город",
+  "Artist": "Исполнитель",
+  "Title": "Название",
+  "Time": "Время",
+  "Border": "Граница",
   "Wind": "Ветер",
   "Humidity": "Влажность",
   "Network": "Сеть",
@@ -43,8 +51,6 @@
   "Music": "Музыка",
   "Rotating Album": "Вращающийся альбом",
   "Colors": "Цвета",
-  "Primary Color": "Основной цвет",
-  "Secondary Color": "Дополнительный цвет",
   "Clock Colors": "Цвета часов",
   "Hour": "Час",
   "Minute": "Минута",
@@ -70,5 +76,14 @@
   "About": "О программе",
   "GitHub": "GitHub",
   "Found a bug or have a feature request? Join us on GitHub.": "Нашли ошибку или есть предложение? Присоединяйтесь к нам на GitHub.",
-  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "Графический интерфейс: /path/to/app | Терминал: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app"
+  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "Графический интерфейс: /path/to/app | Терминал: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app",
+  "Color Schemes": "Цветовые схемы",
+  "Export": "Экспорт",
+  "Import": "Импорт",
+  "Safe": "Безопасно",
+  "Warn": "Предупреждение",
+  "Danger": "Опасность",
+  "Save Current": "Сохранить",
+  "Scheme saved!": "Сохранено！",
+  "Delete": "Удалить"
 }

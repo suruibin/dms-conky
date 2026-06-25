@@ -1,4 +1,12 @@
 {
+  "Icon": "アイコン",
+  "Start": "開始",
+  "End": "終了",
+  "City": "都市",
+  "Artist": "アーティスト",
+  "Title": "曲名",
+  "Time": "時間",
+  "Border": "枠線",
   "Wind": "風",
   "Humidity": "湿度",
   "Network": "ネットワーク",
@@ -43,8 +51,6 @@
   "Music": "音楽",
   "Rotating Album": "回転アルバム",
   "Colors": "色",
-  "Primary Color": "プライマリカラー",
-  "Secondary Color": "セカンダリカラー",
   "Clock Colors": "時計の色",
   "Hour": "時",
   "Minute": "分",
@@ -70,5 +76,14 @@
   "About": "概要",
   "GitHub": "GitHub",
   "Found a bug or have a feature request? Join us on GitHub.": "バグを見つけましたか？機能リクエストがありますか？GitHubでご参加ください。",
-  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "GUI: /path/to/app | ターミナル: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app"
+  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "GUI: /path/to/app | ターミナル: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app",
+  "Color Schemes": "配色",
+  "Export": "エクスポート",
+  "Import": "インポート",
+  "Safe": "安全",
+  "Warn": "警告",
+  "Danger": "危険",
+  "Save Current": "現在を保存",
+  "Scheme saved!": "保存完了！",
+  "Delete": "削除"
 }

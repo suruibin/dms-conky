@@ -61,8 +61,7 @@ DesktopPluginComponent {
     widgetWidth: getData("widgetWidth", 298)
     widgetHeight: getData("widgetHeight", 522)
 
-    readonly property color accentColor: getData("accentColor", "#7C3AED")
-    readonly property color accent2Color: getData("accent2Color", "#EC4899")
+    readonly property color accentColor: "#7C3AED"
     readonly property real bgOpacity: getData("bgOpacity", 0.0)
     readonly property bool showClock: getData("showClock", true)
     readonly property bool showNetwork: getData("showNetwork", true)
@@ -89,6 +88,9 @@ DesktopPluginComponent {
     readonly property color storageLabelColor: getData("storageLabelColor", "#3B82F6")
     readonly property color storageRootColor: getData("storageRootColor", "#0EA5E9")
     readonly property color storageHomeColor: getData("storageHomeColor", "#22C55E")
+    readonly property color storageBarSafe: getData("storageBarSafe", "#22C55E")
+    readonly property color storageBarWarn: getData("storageBarWarn", "#F59E0B")
+    readonly property color storageBarDanger: getData("storageBarDanger", "#EF4444")
 
     // HardWare / CPU / GPU label colors
     readonly property color hardwareLabelColor: getData("hardwareLabelColor", "#D946EF")
@@ -96,11 +98,21 @@ DesktopPluginComponent {
     readonly property color hardwareGpuLabelColor: getData("hardwareGpuLabelColor", "#06B6D4")
 
     // Network label colors
+    readonly property color networkIconColor: getData("networkIconColor", "#7C3AED")
     readonly property color networkSsidColor: getData("networkSsidColor", "#f0f0f0")
     readonly property color networkDownColor: getData("networkDownColor", "#f0f0f0")
     readonly property color networkUpColor: getData("networkUpColor", "#f0f0f0")
+    readonly property color networkGraphStartColor: getData("networkGraphStartColor", "#7C3AED")
+    readonly property color networkGraphEndColor: getData("networkGraphEndColor", "#EC4899")
+
+    // Music colors
+    readonly property color musicArtistColor: getData("musicArtistColor", "#EC4899")
+    readonly property color musicTitleColor: getData("musicTitleColor", "#f0f0f0")
+    readonly property color musicTimeColor: getData("musicTimeColor", "#f0f0f0")
+    readonly property color musicBorderColor: getData("musicBorderColor", "#7C3AED")
 
     // Weather label colors
+    readonly property color weatherCityColor: getData("weatherCityColor", "#EC4899")
     readonly property color weatherWindColor: getData("weatherWindColor", "#f0f0f0")
     readonly property color weatherHumidityColor: getData("weatherHumidityColor", "#f0f0f0")
 

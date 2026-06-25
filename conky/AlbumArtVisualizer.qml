@@ -110,7 +110,7 @@ Item {
             return p.metadata["mpris:artUrl"] || ""
         }
         fallbackIcon: "album"
-        border.color: host.accentColor; border.width: 1.5
+        border.color: host.musicBorderColor; border.width: 1.5
         transform: Rotation { origin.x: 24; origin.y: 24; angle: root._rotation }
     }
 }

@@ -1,4 +1,12 @@
 {
+  "Icon": "Symbol",
+  "Start": "Start",
+  "End": "Ende",
+  "City": "Stadt",
+  "Artist": "Künstler",
+  "Title": "Titel",
+  "Time": "Zeit",
+  "Border": "Rahmen",
   "Wind": "Wind",
   "Humidity": "Luftfeuchtigkeit",
   "Network": "Netzwerk",
@@ -43,8 +51,6 @@
   "Music": "Musik",
   "Rotating Album": "Drehendes Album",
   "Colors": "Farben",
-  "Primary Color": "Primärfarbe",
-  "Secondary Color": "Sekundärfarbe",
   "Clock Colors": "Uhrfarben",
   "Hour": "Stunde",
   "Minute": "Minute",
@@ -70,5 +76,14 @@
   "About": "Über",
   "GitHub": "GitHub",
   "Found a bug or have a feature request? Join us on GitHub.": "Fehler gefunden oder einen Funktionswunsch? Besuchen Sie uns auf GitHub.",
-  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app"
+  "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app": "GUI: /path/to/app | Terminal: alacritty -e /path/to/app | Kitty: kitty /path/to/app | Konsole: konsole -e /path/to/app",
+  "Color Schemes": "Farbkonzepte",
+  "Export": "Exportieren",
+  "Import": "Importieren",
+  "Safe": "Sicher",
+  "Warn": "Warnung",
+  "Danger": "Gefahr",
+  "Save Current": "Aktuell speichern",
+  "Scheme saved!": "Gespeichert！",
+  "Delete": "Löschen"
 }

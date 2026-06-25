@@ -127,7 +127,7 @@ Item {
                 Item { visible: host.showWeather
                     Text { x: host.leftX; y: host.yBase + 60; text: host.weatherIcon(content._w.wCode, content._w.isDay); font.pixelSize: 25; color: host.fg }
                     Text { x: 95; y: host.yBase + 65; text: content._w.available ? content._w.temp + "°C" : "--°C"; font.family: bebasFont.name; font.pixelSize: 22; color: host.fg }
-                    Text { x: host.leftX; y: host.yBase + 95; text: content._w.available ? content._w.city : host._i18nOffline; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.accent2Color; width: 155; elide: Text.ElideRight }
+                    Text { x: host.leftX; y: host.yBase + 95; text: content._w.available ? content._w.city : host._i18nOffline; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.weatherCityColor; width: 155; elide: Text.ElideRight }
                     Text { x: host.leftX; y: host.yBase + 115; text: content._w.available ? WeatherService.getWeatherCondition(content._w.wCode) : ""; font.family: abelFont.name; font.pixelSize: 15; color: host.fg; width: 155; elide: Text.ElideRight }
                     Text { x: host.leftX; y: host.yBase + 135; text: host._i18nWind + " : " + (content._w.available ? content._w.wind + "km/h" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.weatherWindColor; width: 155; elide: Text.ElideRight }
                     Text { x: host.leftX; y: host.yBase + 155; text: host._i18nHumidity + " : " + (content._w.available ? content._w.humidity + "%" : "--"); font.family: abelFont.name; font.pixelSize: 15; color: host.weatherHumidityColor; width: 155; elide: Text.ElideRight }
@@ -142,7 +142,7 @@ Item {
                     text: ""
                     font.family: materialFont.name
                     font.pixelSize: 15
-                    color: host.accentColor
+                    color: host.networkIconColor
                 }
                 Text {
                     visible: host.showNetwork
@@ -167,8 +167,8 @@ Item {
                     id: downGraph
                     visible: host.showNetwork
                     x: host.rightX; y: host.yBase + 105
-                    gradientStart: host.accentColor
-                    gradientEnd: host.accent2Color
+                    gradientStart: host.networkGraphStartColor
+                    gradientEnd: host.networkGraphEndColor
                 }
 
                 Text {
@@ -184,8 +184,8 @@ Item {
                     id: upGraph
                     visible: host.showNetwork
                     x: host.rightX; y: host.yBase + 155
-                    gradientStart: host.accentColor
-                    gradientEnd: host.accent2Color
+                    gradientStart: host.networkGraphStartColor
+                    gradientEnd: host.networkGraphEndColor
                 }
 
                 Timer {
@@ -260,7 +260,7 @@ Item {
                         width: 111; height: 15; radius: 2; color: "#18ffffff"
                         Rectangle {
                             width: parent.width * host.sysDiskPct; height: 15; radius: 2
-                            color: host.sysDiskPct > 0.9 ? "#EF4444" : (host.sysDiskPct > 0.5 ? "#F59E0B" : "#22C55E")
+                            color: host.sysDiskPct > 0.9 ? host.storageBarDanger : (host.sysDiskPct > 0.5 ? host.storageBarWarn : host.storageBarSafe)
                             Behavior on color { ColorAnimation { duration: 600 } }
                         }
                     }
@@ -273,7 +273,7 @@ Item {
                         width: 111; height: 15; radius: 2; color: "#18ffffff"
                         Rectangle {
                             width: parent.width * host.homeDiskPct; height: 15; radius: 2
-                            color: host.homeDiskPct > 0.9 ? "#EF4444" : (host.homeDiskPct > 0.5 ? "#F59E0B" : "#22C55E")
+                            color: host.homeDiskPct > 0.9 ? host.storageBarDanger : (host.homeDiskPct > 0.5 ? host.storageBarWarn : host.storageBarSafe)
                             Behavior on color { ColorAnimation { duration: 600 } }
                         }
                     }
@@ -386,6 +386,10 @@ Item {
                     target: host
                     function onBlobColorChanged() { albumViz.blobColor = host.blobColor }
                 }
+                Connections {
+                    target: host
+                    function onShowRotatingAlbumChanged() { albumViz.visible = content._ap && content._ap.isPlaying && host.showRotatingAlbum }
+                }
                 Component.onCompleted: { albumViz.visible = content._ap && content._ap.isPlaying && host.showRotatingAlbum }
 
                 // Music info (when playing)
@@ -424,7 +428,7 @@ Item {
                             text: ""
                             font.family: materialFont.name
                             font.pixelSize: 18
-                            color: host.accent2Color
+                            color: "#EC4899"
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Item { width: 6; height: 1 }
@@ -449,7 +453,7 @@ Item {
                     font.family: abelFont.name
                     font.bold: true
                     font.pixelSize: 15
-                    color: host.accent2Color
+                    color: host.musicArtistColor
                     width: 110
                     elide: Text.ElideRight
                 }
@@ -464,7 +468,7 @@ Item {
                     font.family: abelFont.name
                     font.italic: true
                     font.pixelSize: 12
-                    color: host.fg
+                    color: host.musicTitleColor
                     width: 110
                     elide: Text.ElideRight
                 }
@@ -474,7 +478,7 @@ Item {
                     text: host.musicElapsed
                     font.family: abelFont.name
                     font.pixelSize: 12
-                    color: host.fg
+                    color: host.musicTimeColor
                 }
 
                 // Double-click on music playing area → pause
