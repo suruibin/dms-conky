@@ -101,6 +101,10 @@ PluginSettings {
     readonly property string _trSize:         { _settingsI18nToken; return _settingsI18nMap["Size"]          || I18n.tr("Size") }
     readonly property string _trLanguage:     { _settingsI18nToken; return _settingsI18nMap["Language"]      || I18n.tr("Language") }
     readonly property string _trSystemDefault:{ _settingsI18nToken; return _settingsI18nMap["System Default"]|| I18n.tr("System Default") }
+    readonly property string _trRoot:         { _settingsI18nToken; return _settingsI18nMap["Root"]          || I18n.tr("Root") }
+    readonly property string _trHome:         { _settingsI18nToken; return _settingsI18nMap["Home"]          || I18n.tr("Home") }
+    readonly property string _trHardWare:     { _settingsI18nToken; return _settingsI18nMap["HardWare"]      || I18n.tr("HardWare") }
+    readonly property string _trGPU:          { _settingsI18nToken; return _settingsI18nMap["GPU"]           || I18n.tr("GPU") }
     readonly property string _trAbout:        { _settingsI18nToken; return _settingsI18nMap["About"]         || I18n.tr("About") }
     readonly property string _trGitHub:       { _settingsI18nToken; return _settingsI18nMap["GitHub"]        || I18n.tr("GitHub") }
     readonly property string _trBugRequest:   { _settingsI18nToken; return _settingsI18nMap["Found a bug or have a feature request? Join us on GitHub."] || I18n.tr("Found a bug or have a feature request? Join us on GitHub.") }
@@ -373,6 +377,60 @@ PluginSettings {
                 ColorRow { label: root._trAC;      settingKey: "batteryAcGaugeColor"; defaultColor: "#22C55E" }
                 ColorRow { label: root._trTemp;    settingKey: "tempGaugeColor";    defaultColor: "#EF4444" }
                 ColorRow { label: root._trBg;      settingKey: "ringBgColor";       defaultColor: "#94A3B8" }
+            }
+        }
+
+        // ---- Storage Colors ----
+        StyledText {
+            text: root._trStorage
+            font.pixelSize: Theme.fontSizeMedium
+            font.bold: true
+            color: Theme.surfaceText
+        }
+        Item { width: 1; height: Theme.spacingS }
+
+        StyledRect {
+            width: parent.width
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: storageCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: storageCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: 2
+
+                ColorRow { label: root._trStorage; settingKey: "storageLabelColor"; defaultColor: "#f0f0f0" }
+                ColorRow { label: root._trRoot;    settingKey: "storageRootColor";   defaultColor: "#f0f0f0" }
+                ColorRow { label: root._trHome;    settingKey: "storageHomeColor";   defaultColor: "#f0f0f0" }
+            }
+        }
+
+        // ---- Hardware Colors ----
+        StyledText {
+            text: root._trHardWare
+            font.pixelSize: Theme.fontSizeMedium
+            font.bold: true
+            color: Theme.surfaceText
+        }
+        Item { width: 1; height: Theme.spacingS }
+
+        StyledRect {
+            width: parent.width
+            radius: Theme.cornerRadius
+            color: Theme.surfaceContainer
+            height: hwCol.implicitHeight + Theme.spacingL * 2
+
+            Column {
+                id: hwCol
+                width: parent.width - Theme.spacingL * 2
+                anchors.centerIn: parent
+                spacing: 2
+
+                ColorRow { label: root._trHardWare; settingKey: "hardwareLabelColor";    defaultColor: "#f0f0f0" }
+                ColorRow { label: root._trCPU;       settingKey: "hardwareCpuLabelColor"; defaultColor: "#f0f0f0" }
+                ColorRow { label: root._trGPU;       settingKey: "hardwareGpuLabelColor"; defaultColor: "#f0f0f0" }
             }
         }
 

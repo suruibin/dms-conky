@@ -247,13 +247,13 @@ Item {
                     Item {
                         width: 111; height: 20; x: host.leftX; y: host.yBase + 365
                         Text { anchors.centerIn: parent
-                            text: host._i18nStorage; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.fg }
+                            text: host._i18nStorage; font.family: abelFont.name; font.bold: true; font.pixelSize: 18; color: host.storageLabelColor }
                         MouseArea { anchors.fill: parent; acceptedButtons: Qt.LeftButton
                             onDoubleClicked: host.toggleDmsFileManager() }
                     }
                     Text {
                         x: host.leftX; y: host.yBase + 390
-                        text: host._i18nRoot + ": " + host.sysDiskInfo; font.family: abelFont.name; font.pixelSize: 13; color: host.fg
+                        text: host._i18nRoot + ": " + host.sysDiskInfo; font.family: abelFont.name; font.pixelSize: 13; color: host.storageRootColor
                     }
                     Rectangle {
                         x: host.leftX; y: host.yBase + 410
@@ -266,7 +266,7 @@ Item {
                     }
                     Text {
                         x: host.leftX; y: host.yBase + 436
-                        text: host._i18nHome + ": " + host.homeDiskInfo; font.family: abelFont.name; font.pixelSize: 13; color: host.fg
+                        text: host._i18nHome + ": " + host.homeDiskInfo; font.family: abelFont.name; font.pixelSize: 13; color: host.storageHomeColor
                     }
                     Rectangle {
                         x: host.leftX; y: host.yBase + 456
@@ -322,7 +322,7 @@ Item {
                     font.family: abelFont.name
                     font.bold: true
                     font.pixelSize: 18
-                    color: host.fg
+                    color: host.hardwareLabelColor
                 }
                 Text {
                     visible: host.showMusic && !parent.musicUIVisible
@@ -330,7 +330,7 @@ Item {
                     text: host._i18nCPU + ":"
                     font.family: abelFont.name
                     font.pixelSize: 15
-                    color: host.fg
+                    color: host.hardwareCpuLabelColor
                 }
                 Text {
                     visible: host.showMusic && !parent.musicUIVisible
@@ -348,7 +348,7 @@ Item {
                     text: host._i18nGPU + ":"
                     font.family: abelFont.name
                     font.pixelSize: 15
-                    color: host.fg
+                    color: host.hardwareGpuLabelColor
                 }
                 Text {
                     visible: host.showMusic && !parent.musicUIVisible

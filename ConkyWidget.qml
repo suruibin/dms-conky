@@ -86,6 +86,14 @@ DesktopPluginComponent {
     readonly property color batteryGaugeColor: getData("batteryGaugeColor", "#22C55E")
     readonly property color batteryAcGaugeColor: getData("batteryAcGaugeColor", "#22C55E")
     readonly property color tempGaugeColor: getData("tempGaugeColor", "#EF4444")
+    readonly property color storageLabelColor: getData("storageLabelColor", "#f0f0f0")
+    readonly property color storageRootColor: getData("storageRootColor", "#f0f0f0")
+    readonly property color storageHomeColor: getData("storageHomeColor", "#f0f0f0")
+
+    // HardWare / CPU / GPU label colors
+    readonly property color hardwareLabelColor: getData("hardwareLabelColor", "#f0f0f0")
+    readonly property color hardwareCpuLabelColor: getData("hardwareCpuLabelColor", "#f0f0f0")
+    readonly property color hardwareGpuLabelColor: getData("hardwareGpuLabelColor", "#f0f0f0")
 
     // Clock / Date per-part colors
     readonly property color clockHourColor: getData("clockHourColor", "#8B5CF6")
