@@ -81,19 +81,19 @@ DesktopPluginComponent {
 
     // Ring gauge colors
     readonly property color ringBgColor: getData("ringBgColor", "#94A3B8")
-    readonly property color cpuGaugeColor: getData("cpuGaugeColor", "#EA580C")
+    readonly property color cpuGaugeColor: getData("cpuGaugeColor", "#F97316")
     readonly property color memGaugeColor: getData("memGaugeColor", "#EAB308")
     readonly property color batteryGaugeColor: getData("batteryGaugeColor", "#22C55E")
     readonly property color batteryAcGaugeColor: getData("batteryAcGaugeColor", "#22C55E")
     readonly property color tempGaugeColor: getData("tempGaugeColor", "#EF4444")
-    readonly property color storageLabelColor: getData("storageLabelColor", "#f0f0f0")
-    readonly property color storageRootColor: getData("storageRootColor", "#f0f0f0")
-    readonly property color storageHomeColor: getData("storageHomeColor", "#f0f0f0")
+    readonly property color storageLabelColor: getData("storageLabelColor", "#3B82F6")
+    readonly property color storageRootColor: getData("storageRootColor", "#0EA5E9")
+    readonly property color storageHomeColor: getData("storageHomeColor", "#22C55E")
 
     // HardWare / CPU / GPU label colors
-    readonly property color hardwareLabelColor: getData("hardwareLabelColor", "#f0f0f0")
-    readonly property color hardwareCpuLabelColor: getData("hardwareCpuLabelColor", "#f0f0f0")
-    readonly property color hardwareGpuLabelColor: getData("hardwareGpuLabelColor", "#f0f0f0")
+    readonly property color hardwareLabelColor: getData("hardwareLabelColor", "#D946EF")
+    readonly property color hardwareCpuLabelColor: getData("hardwareCpuLabelColor", "#14B8A6")
+    readonly property color hardwareGpuLabelColor: getData("hardwareGpuLabelColor", "#06B6D4")
 
     // Clock / Date per-part colors
     readonly property color clockHourColor: getData("clockHourColor", "#8B5CF6")

@@ -282,7 +282,7 @@ PluginSettings {
                 spacing: Theme.spacingM
 
                 ColorPicker { compact: true; title: root._trPrimaryColor; settingKey: "accentColor"; defaultColor: "#7C3AED" }
-                ColorPicker { compact: true; title: root._trSecondaryColor; settingKey: "accent2Color"; defaultColor: "#D97706" }
+                ColorPicker { compact: true; title: root._trSecondaryColor; settingKey: "accent2Color"; defaultColor: "#EC4899" }
             }
         }
 
@@ -338,7 +338,7 @@ PluginSettings {
                 anchors.centerIn: parent
                 spacing: 2
 
-                ColorRow { label: root._trHour;    settingKey: "clockHourColor";    defaultColor: "#6366F1" }
+                ColorRow { label: root._trHour;    settingKey: "clockHourColor";    defaultColor: "#8B5CF6" }
                 ColorRow { label: root._trMinute;  settingKey: "clockMinuteColor";  defaultColor: "#F97316" }
                 ColorRow { label: root._trSecond;  settingKey: "clockSecondColor";  defaultColor: "#EC4899" }
                 ColorRow { label: root._trColon;   settingKey: "clockColonColor";   defaultColor: "#3B82F6" }
@@ -371,7 +371,7 @@ PluginSettings {
                 anchors.centerIn: parent
                 spacing: 2
 
-                ColorRow { label: root._trCPU;     settingKey: "cpuGaugeColor";     defaultColor: "#DC2626" }
+                ColorRow { label: root._trCPU;     settingKey: "cpuGaugeColor";     defaultColor: "#F97316" }
                 ColorRow { label: root._trMemory;  settingKey: "memGaugeColor";     defaultColor: "#EAB308" }
                 ColorRow { label: root._trBattery; settingKey: "batteryGaugeColor"; defaultColor: "#22C55E" }
                 ColorRow { label: root._trAC;      settingKey: "batteryAcGaugeColor"; defaultColor: "#22C55E" }
@@ -401,9 +401,9 @@ PluginSettings {
                 anchors.centerIn: parent
                 spacing: 2
 
-                ColorRow { label: root._trStorage; settingKey: "storageLabelColor"; defaultColor: "#f0f0f0" }
-                ColorRow { label: root._trRoot;    settingKey: "storageRootColor";   defaultColor: "#f0f0f0" }
-                ColorRow { label: root._trHome;    settingKey: "storageHomeColor";   defaultColor: "#f0f0f0" }
+                ColorRow { label: root._trStorage; settingKey: "storageLabelColor"; defaultColor: "#3B82F6" }
+                ColorRow { label: root._trRoot;    settingKey: "storageRootColor";   defaultColor: "#0EA5E9" }
+                ColorRow { label: root._trHome;    settingKey: "storageHomeColor";   defaultColor: "#22C55E" }
             }
         }
 
@@ -428,9 +428,9 @@ PluginSettings {
                 anchors.centerIn: parent
                 spacing: 2
 
-                ColorRow { label: root._trHardWare; settingKey: "hardwareLabelColor";    defaultColor: "#f0f0f0" }
-                ColorRow { label: root._trCPU;       settingKey: "hardwareCpuLabelColor"; defaultColor: "#f0f0f0" }
-                ColorRow { label: root._trGPU;       settingKey: "hardwareGpuLabelColor"; defaultColor: "#f0f0f0" }
+                ColorRow { label: root._trHardWare; settingKey: "hardwareLabelColor";    defaultColor: "#D946EF" }
+                ColorRow { label: root._trCPU;       settingKey: "hardwareCpuLabelColor"; defaultColor: "#14B8A6" }
+                ColorRow { label: root._trGPU;       settingKey: "hardwareGpuLabelColor"; defaultColor: "#06B6D4" }
             }
         }
 
