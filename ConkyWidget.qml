@@ -9,6 +9,7 @@ import qs.Widgets
 import qs.Modules.Plugins
 import "conky"
 import "launcher"
+import "ColorSchemes.js" as ColorSchemes
 DesktopPluginComponent {
     id: root
 
@@ -55,6 +56,56 @@ DesktopPluginComponent {
 
     // dmsfilemanager instance ID cache
     property string _dfmId: ""
+
+    // ── Color scheme cycling ──────────────────────────────────────────────────
+    property int _currentColorSchemeIdx: getData("currentColorSchemeIdx", 0)
+    readonly property var _colorSchemes: ColorSchemes.presets
+
+    function _applyColorScheme(colors) {
+        if (!colors) return
+        pluginService.savePluginData(pluginId, "clockHourColor", colors.clockHourColor)
+        pluginService.savePluginData(pluginId, "clockMinuteColor", colors.clockMinuteColor)
+        pluginService.savePluginData(pluginId, "clockSecondColor", colors.clockSecondColor)
+        pluginService.savePluginData(pluginId, "clockColonColor", colors.clockColonColor)
+        pluginService.savePluginData(pluginId, "dateDayColor", colors.dateDayColor)
+        pluginService.savePluginData(pluginId, "dateMonthColor", colors.dateMonthColor)
+        pluginService.savePluginData(pluginId, "dateWeekdayColor", colors.dateWeekdayColor)
+        pluginService.savePluginData(pluginId, "weatherCityColor", colors.weatherCityColor)
+        pluginService.savePluginData(pluginId, "weatherWindColor", colors.weatherWindColor)
+        pluginService.savePluginData(pluginId, "weatherHumidityColor", colors.weatherHumidityColor)
+        pluginService.savePluginData(pluginId, "networkIconColor", colors.networkIconColor)
+        pluginService.savePluginData(pluginId, "networkSsidColor", colors.networkSsidColor)
+        pluginService.savePluginData(pluginId, "networkDownColor", colors.networkDownColor)
+        pluginService.savePluginData(pluginId, "networkUpColor", colors.networkUpColor)
+        pluginService.savePluginData(pluginId, "networkGraphStartColor", colors.networkGraphStartColor)
+        pluginService.savePluginData(pluginId, "networkGraphEndColor", colors.networkGraphEndColor)
+        pluginService.savePluginData(pluginId, "cpuGaugeColor", colors.cpuGaugeColor)
+        pluginService.savePluginData(pluginId, "memGaugeColor", colors.memGaugeColor)
+        pluginService.savePluginData(pluginId, "batteryGaugeColor", colors.batteryGaugeColor)
+        pluginService.savePluginData(pluginId, "batteryAcGaugeColor", colors.batteryAcGaugeColor)
+        pluginService.savePluginData(pluginId, "tempGaugeColor", colors.tempGaugeColor)
+        pluginService.savePluginData(pluginId, "ringBgColor", colors.ringBgColor)
+        pluginService.savePluginData(pluginId, "storageLabelColor", colors.storageLabelColor)
+        pluginService.savePluginData(pluginId, "storageRootColor", colors.storageRootColor)
+        pluginService.savePluginData(pluginId, "storageHomeColor", colors.storageHomeColor)
+        pluginService.savePluginData(pluginId, "storageBarSafe", colors.storageBarSafe)
+        pluginService.savePluginData(pluginId, "storageBarWarn", colors.storageBarWarn)
+        pluginService.savePluginData(pluginId, "storageBarDanger", colors.storageBarDanger)
+        pluginService.savePluginData(pluginId, "hardwareLabelColor", colors.hardwareLabelColor)
+        pluginService.savePluginData(pluginId, "hardwareCpuLabelColor", colors.hardwareCpuLabelColor)
+        pluginService.savePluginData(pluginId, "hardwareGpuLabelColor", colors.hardwareGpuLabelColor)
+        pluginService.savePluginData(pluginId, "musicArtistColor", colors.musicArtistColor)
+        pluginService.savePluginData(pluginId, "musicTitleColor", colors.musicTitleColor)
+        pluginService.savePluginData(pluginId, "musicTimeColor", colors.musicTimeColor)
+        pluginService.savePluginData(pluginId, "musicBorderColor", colors.musicBorderColor)
+    }
+
+    function _cycleColorScheme() {
+        var idx = root.getData("currentColorSchemeIdx", 0)
+        idx = (idx + 1) % root._colorSchemes.length
+        root._applyColorScheme(root._colorSchemes[idx].colors)
+        pluginService.savePluginData(pluginId, "currentColorSchemeIdx", idx)
+    }
 
     minWidth: 280
     minHeight: 500

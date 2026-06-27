@@ -264,9 +264,18 @@ Item {
                             Behavior on color { ColorAnimation { duration: 600 } }
                         }
                     }
-                    Text {
+                    Item {
                         x: host.leftX; y: host.yBase + 436
-                        text: host._i18nHome + ": " + host.homeDiskInfo; font.family: abelFont.name; font.pixelSize: 13; color: host.storageHomeColor
+                        width: 111; height: 20
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: host._i18nHome + ": " + host.homeDiskInfo; font.family: abelFont.name; font.pixelSize: 13; color: host.storageHomeColor
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            acceptedButtons: Qt.LeftButton
+                            onDoubleClicked: host._cycleColorScheme()
+                        }
                     }
                     Rectangle {
                         x: host.leftX; y: host.yBase + 456
