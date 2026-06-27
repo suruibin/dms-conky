@@ -357,6 +357,7 @@ DesktopPluginComponent {
     readonly property real appLauncherBgOpacity: (getData("backgroundOpacity", 0)) / 100
     readonly property real appIconSize: Math.max(28, Math.round(appSize * 0.58))
     property var addedApps: getData("addedApps", [])
+    property string _deleteRevealedApp: ""
 
     readonly property bool hasActivePlayer: MprisController.activePlayer !== null && MprisController.activePlayer !== undefined
     property int musicTick: 0

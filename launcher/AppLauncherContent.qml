@@ -560,14 +560,22 @@ Item {
                         drag.target: (host.appSearchQuery === "" && appName !== "__add__") ? gridDelegateItem : null
                         drag.axis: Drag.XAndYAxis
                         onPressed: _dragIdx = index
+                        onPressAndHold: {
+                            if (appName !== "__add__") {
+                                host._deleteRevealedApp = appName
+                            }
+                        }
                         onClicked: {
-                            if (!drag.active) {
-                                if (appName === "__add__") {
-                                    clearSearch(); addAppDialog.openDialog("add")
-                                } else {
-                                    clickLaunchAnimation.start()
-                                    Quickshell.execDetached(["sh", "-c", host.cleanExec(appExec)])
-                                }
+                            if (drag.active) return
+                            if (host._deleteRevealedApp !== "") {
+                                host._deleteRevealedApp = ""
+                                return
+                            }
+                            if (appName === "__add__") {
+                                clearSearch(); addAppDialog.openDialog("add")
+                            } else {
+                                clickLaunchAnimation.start()
+                                Quickshell.execDetached(["sh", "-c", host.cleanExec(appExec)])
                             }
                         }
                         onReleased: {
@@ -646,6 +654,25 @@ Item {
                                 scale: appCard.containsMouse ? 1.15 : 1.0
                                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
                             }
+                            // Delete overlay on long-press (top-right corner)
+                            Rectangle {
+                                anchors.top: parent.top; anchors.topMargin: -4
+                                anchors.right: parent.right; anchors.rightMargin: -4
+                                width: 26; height: 26; radius: 13
+                                color: Theme.withAlpha(Theme.error, 0.92)
+                                visible: appName !== "__add__" && host._deleteRevealedApp === appName
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        host.removeApp(appName)
+                                        host._deleteRevealedApp = ""
+                                    }
+                                }
+                                DankIcon {
+                                    anchors.centerIn: parent
+                                    name: "delete"; size: 14; color: "#ffffff"
+                                }
+                            }
                         }
                     }
 
@@ -713,6 +740,7 @@ color: Theme.surfaceText
                         iconFactor: 20
                         fontSize: Theme.fontSizeSmall
                         hoveredIdx: hoveredIndex
+                        deleteRevealApp: host._deleteRevealedApp
                     }
 
                     AddOverlay {}
@@ -768,6 +796,7 @@ color: Theme.surfaceText
                         iconFactor: 16
                         fontSize: Theme.fontSizeSmall - 1
                         hoveredIdx: hoveredIndex
+                        deleteRevealApp: host._deleteRevealedApp
                     }
 
                     AddOverlay {}

@@ -9,6 +9,7 @@ Item {
     property real iconFactor: 20
     property int fontSize: Theme.fontSizeSmall
     property int hoveredIdx: -1
+    property string deleteRevealApp: ""
 
     MouseArea {
         id: rowCard
@@ -17,7 +18,16 @@ Item {
         anchors.rightMargin: Theme.spacingXS
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
+        onPressAndHold: {
+            if (appName !== "__add__") {
+                root.widget._deleteRevealedApp = appName
+            }
+        }
         onClicked: {
+            if (root.widget._deleteRevealedApp !== "") {
+                root.widget._deleteRevealedApp = ""
+                return
+            }
             clickAnim.start()
             Quickshell.execDetached(["sh", "-c", widget.cleanExec(appExec)])
         }
@@ -60,6 +70,25 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     elide: Text.ElideRight
                     width: parent.width - parent.spacing - Math.round(root.iconFactor * (root.widget.appSize / 88.0))
+                }
+            }
+            // Delete overlay on long-press (top-right corner)
+            Rectangle {
+                anchors.top: parent.top; anchors.topMargin: -6
+                anchors.right: parent.right; anchors.rightMargin: -6
+                width: 24; height: 24; radius: 12
+                color: Theme.withAlpha(Theme.error, 0.92)
+                visible: appName !== "__add__" && root.widget._deleteRevealedApp === appName
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        root.widget.removeApp(appName)
+                        root.widget._deleteRevealedApp = ""
+                    }
+                }
+                DankIcon {
+                    anchors.centerIn: parent
+                    name: "delete"; size: 14; color: "#ffffff"
                 }
             }
         }
