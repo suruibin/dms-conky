@@ -648,6 +648,35 @@ Item {
                             }
                         }
                     }
+
+                    // App name tooltip - visible on hover (Grid View only)
+                    Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: -10
+                        width: Math.min(tooltipText.implicitWidth + 10, parent.width - 4)
+                        height: tooltipText.implicitHeight + 4
+                        radius: 4
+                        color: "transparent"
+                        border.color: "transparent"
+                        border.width: 0
+                        visible: index === content.hoveredIndex && appName !== "__add__"
+                        opacity: visible ? 1.0 : 0.0
+                        Behavior on opacity { NumberAnimation { duration: 120 } }
+                        z: 10
+
+                        StyledText {
+                            id: tooltipText
+                            anchors.centerIn: parent
+                            text: appName
+                            font.pixelSize: 12
+                            font.bold: true
+color: Theme.surfaceText
+                            elide: Text.ElideRight
+                            width: parent.width - 8
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                    }
                 }
             }
 
