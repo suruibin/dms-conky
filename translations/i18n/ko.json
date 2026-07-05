@@ -85,5 +85,7 @@
   "Danger": "위험",
   "Save Current": "현재 저장",
   "Scheme saved!": "저장됨！",
-  "Delete": "삭제"
+  "Delete": "삭제",
+  "Auto Cycle": "자동 전환",
+  "Interval": "간격"
 }

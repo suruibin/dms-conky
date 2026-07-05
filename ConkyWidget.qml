@@ -125,6 +125,10 @@ DesktopPluginComponent {
     readonly property int particleCount: getData("particleCount", 150)
     readonly property real particleSize: getData("particleSize", 8.0)
 
+    // Auto color cycling
+    readonly property bool autoCycleColors: getData("autoCycleColors", false)
+    readonly property int autoCycleInterval: getData("autoCycleInterval", 60)
+
     readonly property color bg: Theme.withAlpha("#0a0a0f", bgOpacity)
     readonly property color fg: "#f0f0f0"
     readonly property color dim: "#aaaaaa"
@@ -462,6 +466,14 @@ DesktopPluginComponent {
     Timer { id: diskTimer; interval: 60000; running: true; repeat: true; onTriggered: root.refreshDiskCache() }
     Timer { interval: 1500; running: true; repeat: false; onTriggered: root.refreshDiskCache() }
 
+    // Auto color cycle — calls _cycleColorScheme() at the configured interval
+    Timer {
+        id: autoCycleTimer
+        interval: Math.max(5000, root.autoCycleInterval * 1000)
+        running: root.autoCycleColors
+        repeat: true
+        onTriggered: root._cycleColorScheme()
+    }
 
     Component.onCompleted: {
         DgopService.addRef(activeModules)

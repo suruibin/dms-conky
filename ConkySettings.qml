@@ -132,6 +132,8 @@ PluginSettings {
     readonly property string _trSaveCurrent:  { _settingsI18nToken; return _settingsI18nMap["Save Current"]  || I18n.tr("Save Current") }
     readonly property string _trDelete:       { _settingsI18nToken; return _settingsI18nMap["Delete"]        || I18n.tr("Delete") }
     readonly property string _trSchemeSaved:  { _settingsI18nToken; return _settingsI18nMap["Scheme saved!"] || I18n.tr("Scheme saved!") }
+    readonly property string _trAutoCycle:    { _settingsI18nToken; return _settingsI18nMap["Auto Cycle"] || I18n.tr("Auto Cycle") }
+    readonly property string _trInterval:     { _settingsI18nToken; return _settingsI18nMap["Interval"] || I18n.tr("Interval") }
 
     function saveAndPersist(key, value) {
         root.saveValue(key, value)
@@ -243,6 +245,18 @@ PluginSettings {
         Qt.createQmlObject(qml, root)
         root._schemeFeedback = "Exported!"
         feedbackTimer.start()
+    }
+
+    function _intervalLabel(value) {
+        root._settingsI18nToken
+        var lang = root._settingsLang
+        var zh = {60:"1 分钟", 300:"5 分钟", 600:"10 分钟", 1800:"30 分钟", 3600:"1 小时", 7200:"2 小时", 14400:"4 小时", 28800:"8 小时"}
+        var ja = {60:"1 分", 300:"5 分", 600:"10 分", 1800:"30 分", 3600:"1 時間", 7200:"2 時間", 14400:"4 時間", 28800:"8 時間"}
+        var ko = {60:"1 분", 300:"5 분", 600:"10 분", 1800:"30 분", 3600:"1 시간", 7200:"2 시간", 14400:"4 시간", 28800:"8 시간"}
+        var ru = {60:"1 мин", 300:"5 мин", 600:"10 мин", 1800:"30 мин", 3600:"1 ч", 7200:"2 ч", 14400:"4 ч", 28800:"8 ч"}
+        var en = {60:"1 min", 300:"5 min", 600:"10 min", 1800:"30 min", 3600:"1 hr", 7200:"2 hr", 14400:"4 hr", 28800:"8 hr"}
+        var map = lang === "zh_CN" ? zh : lang === "ja" ? ja : lang === "ko" ? ko : lang === "ru" ? ru : en
+        return map[value] || value + "s"
     }
 
     function _importSchemeFromFile(fileUrl) {
@@ -935,6 +949,54 @@ PluginSettings {
                     id: feedbackTimer
                     interval: 3000
                     onTriggered: root._schemeFeedback = ""
+                }
+
+                Item { width: 1; height: 8 }
+
+                // ── Auto color cycle ──
+                DankToggle {
+                    width: parent.width
+                    text: root._trAutoCycle
+                    checked: root.loadValue("autoCycleColors", false)
+                    onToggled: c => root.saveAndPersist("autoCycleColors", c)
+                }
+
+                Row {
+                    width: parent.width
+                    spacing: 6
+                    visible: root.loadValue("autoCycleColors", false)
+
+                    StyledText {
+                        text: root._trInterval
+                        font.pixelSize: 11; color: Theme.surfaceVariantText
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Repeater {
+                        model: [
+                            { label: "1分", value: 60 },
+                            { label: "5分", value: 300 },
+                            { label: "10分", value: 600 },
+                            { label: "30分", value: 1800 },
+                            { label: "1时", value: 3600 },
+                            { label: "2时", value: 7200 },
+                            { label: "4时", value: 14400 },
+                            { label: "8时", value: 28800 }
+                        ]
+                        Rectangle {
+                            required property var modelData
+                            width: 48; height: 24; radius: 6
+                            color: root.loadValue("autoCycleInterval", 60) === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
+                            StyledText {
+                                anchors.centerIn: parent; text: root._intervalLabel(modelData.value); font.pixelSize: 10
+                                color: root.loadValue("autoCycleInterval", 60) === modelData.value ? Theme.onPrimary : Theme.surfaceText
+                            }
+                            MouseArea {
+                                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                onClicked: root.saveAndPersist("autoCycleInterval", modelData.value)
+                            }
+                        }
+                    }
                 }
             }
         }

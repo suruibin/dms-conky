@@ -85,5 +85,7 @@
   "Danger": "Gefahr",
   "Save Current": "Aktuell speichern",
   "Scheme saved!": "Gespeichert！",
-  "Delete": "Löschen"
+  "Delete": "Löschen",
+  "Auto Cycle": "Automatisch wechseln",
+  "Interval": "Intervall"
 }

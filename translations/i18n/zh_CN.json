@@ -85,5 +85,7 @@
   "Danger": "危险",
   "Save Current": "保存当前",
   "Scheme saved!": "已保存！",
-  "Delete": "删除"
+  "Delete": "删除",
+  "Auto Cycle": "自动换色",
+  "Interval": "间隔"
 }

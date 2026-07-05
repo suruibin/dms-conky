@@ -85,5 +85,7 @@
   "Danger": "危険",
   "Save Current": "現在を保存",
   "Scheme saved!": "保存完了！",
-  "Delete": "削除"
+  "Delete": "削除",
+  "Auto Cycle": "自動切替",
+  "Interval": "間隔"
 }
