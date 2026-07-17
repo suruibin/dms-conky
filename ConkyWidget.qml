@@ -194,63 +194,126 @@ DesktopPluginComponent {
             "Down": "下载", "Up": "上传", "Storage": "存储",
             "Root": "系统", "Home": "家目录", "HardWare": "硬件",
             "CPU": "CPU", "GPU": "GPU",
-            "Detecting": "检测中", "Offline": "离线", "Playing": "播放中"
+            "Detecting": "检测中", "Offline": "离线", "Playing": "播放中",
+            "Clear Sky": "晴", "Partly Cloudy": "多云", "Overcast": "阴",
+            "Fog": "雾", "Drizzle": "毛毛雨", "Freezing Drizzle": "冻毛毛雨",
+            "Light Rain": "小雨", "Rain": "雨", "Heavy Rain": "大雨",
+            "Light Snow": "小雪", "Snow": "雪", "Heavy Snow": "大雪",
+            "Light Snow Showers": "小阵雪", "Heavy Snow Showers": "大阵雪",
+            "Thunderstorm": "雷暴", "Thunderstorm with Hail": "雷暴伴冰雹",
+            "Unknown": "未知"
         },
         "en": {
             "Wind": "Wind", "Humidity": "Humidity", "Network": "Network",
             "Down": "Down", "Up": "Up", "Storage": "Storage",
             "Root": "Root", "Home": "Home", "HardWare": "HardWare",
             "CPU": "CPU", "GPU": "GPU",
-            "Detecting": "Detecting", "Offline": "Offline", "Playing": "Playing"
+            "Detecting": "Detecting", "Offline": "Offline", "Playing": "Playing",
+            "Clear Sky": "Clear Sky", "Partly Cloudy": "Partly Cloudy", "Overcast": "Overcast",
+            "Fog": "Fog", "Drizzle": "Drizzle", "Freezing Drizzle": "Freezing Drizzle",
+            "Light Rain": "Light Rain", "Rain": "Rain", "Heavy Rain": "Heavy Rain",
+            "Light Snow": "Light Snow", "Snow": "Snow", "Heavy Snow": "Heavy Snow",
+            "Light Snow Showers": "Light Snow Showers", "Heavy Snow Showers": "Heavy Snow Showers",
+            "Thunderstorm": "Thunderstorm", "Thunderstorm with Hail": "Thunderstorm with Hail",
+            "Unknown": "Unknown"
         },
         "de": {
             "Wind": "Wind", "Humidity": "Luftfeuchtigkeit", "Network": "Netzwerk",
             "Down": "Download", "Up": "Upload", "Storage": "Speicher",
             "Root": "Root", "Home": "Home", "HardWare": "Hardware",
             "CPU": "CPU", "GPU": "GPU",
-            "Detecting": "Erkennung", "Offline": "Offline", "Playing": "Wiedergabe"
+            "Detecting": "Erkennung", "Offline": "Offline", "Playing": "Wiedergabe",
+            "Clear Sky": "Klarer Himmel", "Partly Cloudy": "Teilweise bewölkt", "Overcast": "Bedeckt",
+            "Fog": "Nebel", "Drizzle": "Nieselregen", "Freezing Drizzle": "Gefrierender Nieselregen",
+            "Light Rain": "Leichter Regen", "Rain": "Regen", "Heavy Rain": "Starker Regen",
+            "Light Snow": "Leichter Schneefall", "Snow": "Schnee", "Heavy Snow": "Starker Schneefall",
+            "Light Snow Showers": "Leichte Schneeschauer", "Heavy Snow Showers": "Starke Schneeschauer",
+            "Thunderstorm": "Gewitter", "Thunderstorm with Hail": "Gewitter mit Hagel",
+            "Unknown": "Unbekannt"
         },
         "es": {
             "Wind": "Viento", "Humidity": "Humedad", "Network": "Red",
             "Down": "Descarga", "Up": "Subida", "Storage": "Almacenamiento",
             "Root": "Raíz", "Home": "Inicio", "HardWare": "HardWare",
             "CPU": "CPU", "GPU": "GPU",
-            "Detecting": "Detectando", "Offline": "Desconectado", "Playing": "Reproduciendo"
+            "Detecting": "Detectando", "Offline": "Desconectado", "Playing": "Reproduciendo",
+            "Clear Sky": "Cielo despejado", "Partly Cloudy": "Parcialmente nublado", "Overcast": "Nublado",
+            "Fog": "Niebla", "Drizzle": "Llovizna", "Freezing Drizzle": "Llovizna helada",
+            "Light Rain": "Lluvia ligera", "Rain": "Lluvia", "Heavy Rain": "Lluvia intensa",
+            "Light Snow": "Nieve ligera", "Snow": "Nieve", "Heavy Snow": "Nieve intensa",
+            "Light Snow Showers": "Chubascos de nieve ligera", "Heavy Snow Showers": "Chubascos de nieve intensa",
+            "Thunderstorm": "Tormenta eléctrica", "Thunderstorm with Hail": "Tormenta con granizo",
+            "Unknown": "Desconocido"
         },
         "fr": {
             "Wind": "Vent", "Humidity": "Humidité", "Network": "Réseau",
             "Down": "Réception", "Up": "Envoi", "Storage": "Stockage",
             "Root": "Racine", "Home": "Accueil", "HardWare": "Matériel",
             "CPU": "CPU", "GPU": "GPU",
-            "Detecting": "Détection", "Offline": "Hors ligne", "Playing": "En lecture"
+            "Detecting": "Détection", "Offline": "Hors ligne", "Playing": "En lecture",
+            "Clear Sky": "Ciel dégagé", "Partly Cloudy": "Partiellement nuageux", "Overcast": "Couvert",
+            "Fog": "Brouillard", "Drizzle": "Bruine", "Freezing Drizzle": "Bruine verglaçante",
+            "Light Rain": "Pluie légère", "Rain": "Pluie", "Heavy Rain": "Pluie forte",
+            "Light Snow": "Neige légère", "Snow": "Neige", "Heavy Snow": "Neige forte",
+            "Light Snow Showers": "Averses de neige légère", "Heavy Snow Showers": "Averses de neige forte",
+            "Thunderstorm": "Orage", "Thunderstorm with Hail": "Orage avec grêle",
+            "Unknown": "Inconnu"
         },
         "ja": {
             "Wind": "風", "Humidity": "湿度", "Network": "ネットワーク",
             "Down": "ダウンロード", "Up": "アップロード", "Storage": "ストレージ",
             "Root": "ルート", "Home": "ホーム", "HardWare": "ハードウェア",
             "CPU": "CPU", "GPU": "GPU",
-            "Detecting": "検出中", "Offline": "オフライン", "Playing": "再生中"
+            "Detecting": "検出中", "Offline": "オフライン", "Playing": "再生中",
+            "Clear Sky": "快晴", "Partly Cloudy": "晴れ時々曇り", "Overcast": "曇り",
+            "Fog": "霧", "Drizzle": "霧雨", "Freezing Drizzle": "凍結性霧雨",
+            "Light Rain": "小雨", "Rain": "雨", "Heavy Rain": "大雨",
+            "Light Snow": "小雪", "Snow": "雪", "Heavy Snow": "大雪",
+            "Light Snow Showers": "小吹雪", "Heavy Snow Showers": "大吹雪",
+            "Thunderstorm": "雷雨", "Thunderstorm with Hail": "雷雨伴ひょう",
+            "Unknown": "不明"
         },
         "ko": {
             "Wind": "바람", "Humidity": "습도", "Network": "네트워크",
             "Down": "다운", "Up": "업", "Storage": "저장 공간",
             "Root": "루트", "Home": "홈", "HardWare": "하드웨어",
             "CPU": "CPU", "GPU": "GPU",
-            "Detecting": "감지 중", "Offline": "오프라인", "Playing": "재생 중"
+            "Detecting": "감지 중", "Offline": "오프라인", "Playing": "재생 중",
+            "Clear Sky": "맑음", "Partly Cloudy": "구름 조금", "Overcast": "흐림",
+            "Fog": "안개", "Drizzle": "이슬비", "Freezing Drizzle": "얼음 이슬비",
+            "Light Rain": "약한 비", "Rain": "비", "Heavy Rain": "강한 비",
+            "Light Snow": "약한 눈", "Snow": "눈", "Heavy Snow": "강한 눈",
+            "Light Snow Showers": "약한 눈보라", "Heavy Snow Showers": "강한 눈보라",
+            "Thunderstorm": "뇌우", "Thunderstorm with Hail": "뇌우/우박",
+            "Unknown": "알 수 없음"
         },
         "ru": {
             "Wind": "Ветер", "Humidity": "Влажность", "Network": "Сеть",
             "Down": "Вход", "Up": "Выход", "Storage": "Диски",
             "Root": "Корень", "Home": "Дом", "HardWare": "Оборудование",
             "CPU": "CPU", "GPU": "GPU",
-            "Detecting": "Обнаружение", "Offline": "Офлайн", "Playing": "Играет"
+            "Detecting": "Обнаружение", "Offline": "Офлайн", "Playing": "Играет",
+            "Clear Sky": "Ясно", "Partly Cloudy": "Переменная облачность", "Overcast": "Пасмурно",
+            "Fog": "Туман", "Drizzle": "Морось", "Freezing Drizzle": "Ледяная морось",
+            "Light Rain": "Небольшой дождь", "Rain": "Дождь", "Heavy Rain": "Сильный дождь",
+            "Light Snow": "Небольшой снег", "Snow": "Снег", "Heavy Snow": "Сильный снег",
+            "Light Snow Showers": "Небольшой снегопад", "Heavy Snow Showers": "Сильный снегопад",
+            "Thunderstorm": "Гроза", "Thunderstorm with Hail": "Гроза с градом",
+            "Unknown": "Неизвестно"
         },
         "vi": {
             "Wind": "Gió", "Humidity": "Độ ẩm", "Network": "Mạng",
             "Down": "Tải xuống", "Up": "Tải lên", "Storage": "Lưu trữ",
             "Root": "Gốc", "Home": "Trang chủ", "HardWare": "Phần cứng",
             "CPU": "CPU", "GPU": "GPU",
-            "Detecting": "Đang phát hiện", "Offline": "Ngoại tuyến", "Playing": "Đang phát"
+            "Detecting": "Đang phát hiện", "Offline": "Ngoại tuyến", "Playing": "Đang phát",
+            "Clear Sky": "Trời quang", "Partly Cloudy": "Có mây", "Overcast": "U ám",
+            "Fog": "Sương mù", "Drizzle": "Mưa phùn", "Freezing Drizzle": "Mưa phùn đóng băng",
+            "Light Rain": "Mưa nhẹ", "Rain": "Mưa", "Heavy Rain": "Mưa lớn",
+            "Light Snow": "Tuyết nhẹ", "Snow": "Tuyết", "Heavy Snow": "Tuyết lớn",
+            "Light Snow Showers": "Mưa tuyết nhẹ", "Heavy Snow Showers": "Mưa tuyết lớn",
+            "Thunderstorm": "Giông bão", "Thunderstorm with Hail": "Giông bão kèm mưa đá",
+            "Unknown": "Không xác định"
         }
     })
 
@@ -310,6 +373,26 @@ DesktopPluginComponent {
         if (_pluginI18nReady && _pluginFlatTranslations[term] !== undefined)
             return _pluginFlatTranslations[term]
         return I18n.tr(term, context)
+    }
+
+    // Weather condition (WMO code → condition name, via plugin i18n)
+    readonly property var _weatherCodes: ({
+        0: "Clear Sky", 1: "Clear Sky", 2: "Partly Cloudy", 3: "Overcast",
+        45: "Fog", 48: "Fog",
+        51: "Drizzle", 53: "Drizzle", 55: "Drizzle",
+        56: "Freezing Drizzle", 57: "Freezing Drizzle",
+        61: "Light Rain", 63: "Rain", 65: "Heavy Rain",
+        66: "Light Rain", 67: "Heavy Rain",
+        71: "Light Snow", 73: "Snow", 75: "Heavy Snow", 77: "Snow",
+        80: "Light Rain", 81: "Rain", 82: "Heavy Rain",
+        85: "Light Snow Showers", 86: "Heavy Snow Showers",
+        95: "Thunderstorm", 96: "Thunderstorm with Hail", 99: "Thunderstorm with Hail"
+    })
+    function weatherCondition(code) {
+        var key = _weatherCodes[code]
+        if (!key) key = "Unknown"
+        _i18nToken
+        return _pluginFlatTranslations[key] || I18n.tr(key)
     }
 
     // ── Exposed translated properties (for reliable binding re-evaluation) ──
