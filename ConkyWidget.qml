@@ -129,7 +129,10 @@ DesktopPluginComponent {
     readonly property bool autoCycleColors: getData("autoCycleColors", false)
     readonly property int autoCycleInterval: getData("autoCycleInterval", 60)
 
-    readonly property color bg: Theme.withAlpha("#0a0a0f", bgOpacity)
+    // Background color: "" = default dark; custom color still respects bgOpacity.
+    // Qt.color() converts the stored string to a color type (Theme.withAlpha needs .r/.g/.b)
+    readonly property string bgColor: getData("bgColor", "")
+    readonly property color bg: Theme.withAlpha(Qt.color(bgColor !== "" ? bgColor : "#0a0a0f"), bgOpacity)
     readonly property color fg: "#f0f0f0"
     readonly property color dim: "#aaaaaa"
 
@@ -581,7 +584,7 @@ DesktopPluginComponent {
         root._cpuProc = Qt.createQmlObject(`
             import Quickshell.Io
             Process {
-                command: ["sh", "-c", "/usr/bin/grep -m1 'model name' /proc/cpuinfo | sed 's/.*: //; s/(R)//g; s/(TM)//g; s/ CPU//g; s/[0-9]*th Gen //; s/Core //; s/  */ /g'"]
+                command: ["sh", "-c", "/usr/bin/grep -m1 'model name' /proc/cpuinfo | sed 's/.*: //; s/(R)//g; s/(TM)//g; s/ CPU//g; s/[0-9]*th Gen //; s/Core //; s/ @.*//; s/  */ /g'"]
                 running: true
                 stdout: StdioCollector {
                     onStreamFinished: { root.cpuModel = text.trim(); root._cpuProc.destroy() }
@@ -679,7 +682,12 @@ DesktopPluginComponent {
         acceptedButtons: Qt.NoButton
         onContainsMouseChanged: {
             root._mouseInWidget = containsMouse
-            if (!containsMouse && !launcherContent._keepVisible) root.mouseHovered = false
+            if (!containsMouse) {
+                // Mouse left the widget — dismiss any open dialog so the view returns to normal
+                if (launcherContent._keepVisible)
+                    launcherContent.closeOpenDialogs()
+                root.mouseHovered = false
+            }
         }
         onPositionChanged: function(mouse) {
             root._rawMouseX = mouse.x

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
@@ -207,6 +208,11 @@ Item {
 
     readonly property bool _keepVisible: addAppDialog.opened || appSettingsDialog.opened
 
+    function closeOpenDialogs() {
+        if (appSettingsDialog.opened) appSettingsDialog.close()
+        if (addAppDialog.opened) addAppDialog.close()
+    }
+
     property bool _hw: host.mouseHovered
     on_HwChanged: {
         if (!host.mouseHovered) {
@@ -286,7 +292,7 @@ Item {
         id: launcherContainer
         visible: (host.defaultView === "apps" ? !host.mouseHovered : host.mouseHovered) || content._keepVisible
         anchors.fill: parent
-        color: Theme.withAlpha(Theme.surfaceContainer, host.appLauncherBgOpacity)
+        color: Theme.withAlpha(host.bgColor !== "" ? Qt.color(host.bgColor) : Theme.surfaceContainer, host.appLauncherBgOpacity)
         radius: Theme.cornerRadius
         border.color: host.appEditMode ? Theme.primary : Theme.withAlpha(Theme.outline, 0.15)
         border.width: host.appEditMode ? 2 : 1
@@ -922,10 +928,12 @@ color: Theme.surfaceText
             Rectangle {
                 id: dialogCard
                 z: 10
-                width: Math.min(320, parent.width - 20); height: Math.min(480, parent.height - 5)
-                anchors.centerIn: parent
-                anchors.verticalCenterOffset: 0
-                color: Theme.surfaceContainer; radius: Theme.cornerRadius
+                width: Math.min(320, parent.width - 20); height: Math.min(480, parent.height - 13)
+                // Top aligns with the header settings icon, same as the settings card
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 8
+                color: host.bgColor !== "" ? host.bgColor : Theme.surfaceContainer; radius: Theme.cornerRadius
                 border.color: Qt.rgba(1, 1, 1, 0.06); border.width: 1; clip: true
                 layer.enabled: true
                 layer.effect: MultiEffect {
@@ -1239,16 +1247,18 @@ color: Theme.surfaceText
                 dissolveParticles.burst(pos.x + settingsCard.width / 2, pos.y + settingsCard.height / 2, settingsCard.width, settingsCard.height)
             }
 
-            MouseArea { anchors.fill: parent; onClicked: {} }
+            MouseArea { anchors.fill: parent; onClicked: appSettingsDialog.close() }
 
             Rectangle {
                 id: settingsCard
                 z: 10
                 width: Math.min(300, parent.width - 20)
-                height: Math.min(480, parent.height - 5)
-                anchors.centerIn: parent
-                anchors.verticalCenterOffset: 0
-                color: Theme.surfaceContainer; radius: Theme.cornerRadius
+                height: Math.min(contentCol.implicitHeight + Theme.spacingS * 2, parent.height - 13)
+                // Top aligns with the header settings icon instead of vertical center
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 8
+                color: host.bgColor !== "" ? host.bgColor : Theme.surfaceContainer; radius: Theme.cornerRadius
                 border.color: Qt.rgba(1, 1, 1, 0.06); border.width: 1; clip: true
                 layer.enabled: true
                 layer.effect: MultiEffect {
@@ -1258,19 +1268,43 @@ color: Theme.surfaceText
                 scale: appSettingsDialog.opened ? 1.0 : 0.95
                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
 
+                // Swallow clicks on card padding/gaps so they don't reach the dismiss overlay
+                MouseArea { anchors.fill: parent }
+
                 Column {
-                    anchors.fill: parent; anchors.margins: Theme.spacingS; anchors.topMargin: Theme.spacingS; anchors.bottomMargin: Theme.spacingS; spacing: 20
+                    id: contentCol
+                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
+                    anchors.margins: Theme.spacingS; spacing: 12
 
                     // ── Title ──
                     Item {
-                        width: parent.width; height: 24
+                        width: parent.width; height: 22
+                        // Desktop widgets entry (small icon, top-left)
+                        Item {
+                            width: 18; height: 18
+                            anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                            DankIcon {
+                                anchors.centerIn: parent
+                                name: "widgets"; size: 13; color: Theme.surfaceText
+                                opacity: dmsWidgetsBtn.containsMouse ? 1.0 : 0.6
+                            }
+                            MouseArea {
+                                id: dmsWidgetsBtn
+                                anchors.fill: parent
+                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    PopoutService.openSettingsWithTab("desktop_widgets")
+                                    appSettingsDialog.close()
+                                }
+                            }
+                        }
                         StyledText {
                             text: content._tr("Settings")
                             font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
                             anchors.centerIn: parent
                         }
                         Item {
-                            width: 24; height: 24
+                            width: 22; height: 22
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             DankIcon {
                                 anchors.centerIn: parent
@@ -1287,13 +1321,13 @@ color: Theme.surfaceText
                     }
 
                     // ── Default View ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 24
                         StyledText { text: content._tr("Default View"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 6; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             Repeater {
                                 model: [{ label: content._tr("Conky"), value: "conky" }, { label: content._tr("Apps"), value: "apps" }]
                                 Rectangle {
-                                    required property var modelData; width: 64; height: 28; radius: 6
+                                    required property var modelData; width: 64; height: 24; radius: 6
                                     color: host.defaultView === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
                                     StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.defaultView === modelData.value ? Theme.onPrimary : Theme.surfaceText }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "defaultView", modelData.value) } }
@@ -1302,8 +1336,61 @@ color: Theme.surfaceText
                         }
                     }
 
+                    // ── Background Color ──
+                    Column {
+                        width: parent.width
+                        spacing: 4
+                        StyledText { text: content._tr("Background Color"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
+                        Flow {
+                            width: parent.width
+                            spacing: 4
+                            Repeater {
+                                // Same palette as dmsfilemanager popupColor: "" = follow theme, "custom" = color picker
+                                model: ["", "#455A64", "#5D4037", "#37474F", "#2E3A4D", "#3E2A4D", "#263238", "#1E1E2E", "#14141B", "#000000"]
+                                Rectangle {
+                                    required property var modelData
+                                    width: 18; height: 18
+                                    radius: modelData === "" ? 9 : 4
+                                    color: modelData === "" ? Theme.surfaceContainer : modelData
+                                    border.width: host.bgColor === modelData ? 2 : 1
+                                    border.color: host.bgColor === modelData ? Theme.surfaceText : Theme.withAlpha(Theme.outline, 0.3)
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "bgColor", modelData) }
+                                    }
+                                }
+                            }
+                            // Custom color picker
+                            Rectangle {
+                                width: 18; height: 18; radius: 4
+                                color: "white"
+                                border.width: 1
+                                border.color: Theme.withAlpha(Theme.outline, 0.3)
+                                StyledText {
+                                    anchors.centerIn: parent
+                                    text: "+"
+                                    font.pixelSize: 13
+                                    color: "red"
+                                    font.bold: true
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: bgColorDialog.open()
+                                }
+                            }
+                        }
+                        ColorDialog {
+                            id: bgColorDialog
+                            title: content._tr("Background Color")
+                            selectedColor: host.bgColor !== "" ? host.bgColor : "#0a0a0f"
+                            onAccepted: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "bgColor", selectedColor.toString()) }
+                        }
+                    }
+
                     // ── Transparency ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 24
                         StyledText { text: content._tr("Transparency"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 4; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             Slider { width: 120; from: 0; to: 100; stepSize: 1; anchors.verticalCenter: parent.verticalCenter; value: Math.round(host.appLauncherBgOpacity * 100); onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) } }
@@ -1312,7 +1399,7 @@ color: Theme.surfaceText
                     }
 
                     // ── Icon Size ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 24
                         StyledText { text: content._tr("Icon Size"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 4; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             Slider { width: 120; from: 48; to: 128; stepSize: 4; anchors.verticalCenter: parent.verticalCenter; value: host.appSize; onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "appSize", value) } }
@@ -1326,7 +1413,7 @@ color: Theme.surfaceText
                         Repeater {
                             model: [{ label: content._tr("Grid"), value: "grid" }, { label: content._tr("List"), value: "list" }, { label: content._tr("Compact"), value: "compact" }]
                             Rectangle {
-                                required property var modelData; width: 60; height: 28; radius: 6
+                                required property var modelData; width: 60; height: 24; radius: 6
                                 color: host.appViewMode === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
                                 StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.appViewMode === modelData.value ? Theme.onPrimary : Theme.surfaceText }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "viewMode", modelData.value) } }
@@ -1335,15 +1422,15 @@ color: Theme.surfaceText
                     }
 
                     // ── Show Header ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 24
                         StyledText { text: content._tr("Show Header"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 6; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            Rectangle { width: 28; height: 24; radius: 5
+                            Rectangle { width: 28; height: 22; radius: 5
                                 color: host.appShowHeader ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
                                 StyledText { anchors.centerIn: parent; text: content._tr("On"); font.pixelSize: 10; color: host.appShowHeader ? Theme.onPrimary : Theme.surfaceText }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", true) } }
                             }
-                            Rectangle { width: 28; height: 24; radius: 5
+                            Rectangle { width: 28; height: 22; radius: 5
                                 color: !host.appShowHeader ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
                                 StyledText { anchors.centerIn: parent; text: content._tr("Off"); font.pixelSize: 10; color: !host.appShowHeader ? Theme.onPrimary : Theme.surfaceText }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", false) } }
@@ -1352,15 +1439,15 @@ color: Theme.surfaceText
                     }
 
                     // ── Particles ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 24
                         StyledText { text: content._tr("Particles"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 6; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            Rectangle { width: 28; height: 24; radius: 5
+                            Rectangle { width: 28; height: 22; radius: 5
                                 color: host.showLauncherParticles ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
                                 StyledText { anchors.centerIn: parent; text: content._tr("On"); font.pixelSize: 10; color: host.showLauncherParticles ? Theme.onPrimary : Theme.surfaceText }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", true) } }
                             }
-                            Rectangle { width: 28; height: 24; radius: 5
+                            Rectangle { width: 28; height: 22; radius: 5
                                 color: !host.showLauncherParticles ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
                                 StyledText { anchors.centerIn: parent; text: content._tr("Off"); font.pixelSize: 10; color: !host.showLauncherParticles ? Theme.onPrimary : Theme.surfaceText }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", false) } }
@@ -1389,7 +1476,7 @@ color: Theme.surfaceText
                             anchors.bottom: parent.bottom
                             anchors.left: parent.left
                             anchors.right: parent.right
-                            height: 28; radius: 6
+                            height: 24; radius: 6
                             color: langDropArea.containsMouse ? Theme.withAlpha(Theme.primary, 0.1) : Theme.withAlpha(Theme.outline, 0.08)
                             border.color: Theme.withAlpha(Theme.outline, 0.2); border.width: 1
                             Row {
@@ -1459,20 +1546,6 @@ color: Theme.surfaceText
                         }
                     }
 
-                    // ── Desktop Widgets button ──
-                    DankButton {
-                        width: parent.width; height: 28
-                        text: content._tr("Desktop Widgets")
-                        transform: Translate { y: -3 }
-                        iconName: "widgets"
-                        iconSize: 14
-                        backgroundColor: Theme.withAlpha(Theme.primary, 0.1)
-                        textColor: Theme.primary
-                        onClicked: {
-                            PopoutService.openSettingsWithTab("desktop_widgets")
-                            appSettingsDialog.close()
-                        }
-                    }
                 }
             }
         }

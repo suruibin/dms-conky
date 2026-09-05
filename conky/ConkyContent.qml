@@ -336,7 +336,7 @@ Item {
                 Text {
                     visible: host.showMusic && !parent.musicUIVisible
                     x: host.rightX; y: host.yBase + 392
-                    text: host._i18nCPU + ":"
+                    text: host._i18nCPU + ": " + (DgopService.cpuFrequency > 0 ? (DgopService.cpuFrequency / 1000).toFixed(2) + "GHz" : "")
                     font.family: abelFont.name
                     font.pixelSize: 15
                     color: host.hardwareCpuLabelColor

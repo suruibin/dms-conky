@@ -90,6 +90,7 @@ PluginSettings {
     readonly property string _trAC:      { _settingsI18nToken; return _settingsI18nMap["AC"]      || I18n.tr("AC") }
     readonly property string _trTemp:    { _settingsI18nToken; return _settingsI18nMap["Temp"]    || I18n.tr("Temp") }
     readonly property string _trBg:      { _settingsI18nToken; return _settingsI18nMap["Bg"]      || I18n.tr("Bg") }
+    readonly property string _trBackgroundColor: { _settingsI18nToken; return _settingsI18nMap["Background Color"] || I18n.tr("Background Color") }
     readonly property string _trDisplay: { _settingsI18nToken; return _settingsI18nMap["Display"] || I18n.tr("Display") }
     readonly property string _trTransparency: { _settingsI18nToken; return _settingsI18nMap["Transparency"] || I18n.tr("Transparency") }
     readonly property string _trWidgetSize:   { _settingsI18nToken; return _settingsI18nMap["Widget Size"]   || I18n.tr("Widget Size") }
@@ -437,6 +438,7 @@ PluginSettings {
             property string label: ""
             property string settingKey: ""
             property string defaultColor: "#f0f0f0"
+            property var customSwatches: null
 
             StyledText {
                 text: label
@@ -444,7 +446,7 @@ PluginSettings {
                 font.pixelSize: 11; color: Theme.surfaceVariantText
             }
             Repeater {
-                model: ["#f0f0f0", "#F43F5E", "#EF4444", "#DC2626", "#F97316", "#EA580C", "#EAB308", "#84CC16", "#22C55E", "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9", "#3B82F6", "#6366F1", "#8B5CF6", "#A855F7", "#D946EF", "#EC4899", "#94A3B8"]
+                model: customSwatches || ["#f0f0f0", "#F43F5E", "#EF4444", "#DC2626", "#F97316", "#EA580C", "#EAB308", "#84CC16", "#22C55E", "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9", "#3B82F6", "#6366F1", "#8B5CF6", "#A855F7", "#D946EF", "#EC4899", "#94A3B8"]
                 Rectangle {
                     required property var modelData
                     property string c: modelData
@@ -1034,6 +1036,13 @@ PluginSettings {
                     from: 0.0; to: 1.0; stepSize: 0.01
                     value: root.loadValue("bgOpacity", 0.0)
                     onValueChanged: root.saveAndPersist("bgOpacity", value)
+                }
+
+                ColorRow {
+                    label: root._trBackgroundColor
+                    settingKey: "bgColor"
+                    defaultColor: "#0a0a0f"
+                    customSwatches: ["#0a0a0f", "#455A64", "#5D4037", "#37474F", "#2E3A4D", "#3E2A4D", "#263238", "#1E1E2E", "#14141B", "#000000"]
                 }
 
                 StyledText {
