@@ -79,8 +79,3 @@ Component.onDestruction:
   DgopService.removeRef(activeModules)
   WeatherService.removeRef()
 ```
-
-### 已知问题
-
-- 多处英文硬编码未走 I18n（Storage/HardWare/Playing/Root/Home/CPU/GPU/Down/Up/Wind/Humidity/Offline/Network/Detecting...）
-- `Math.max.apply(null, rx)` → 可用 `Math.max(...rx)`
