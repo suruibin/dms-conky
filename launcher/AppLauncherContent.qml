@@ -1199,7 +1199,9 @@ color: host.fgColor
                     "for icon in $(" + findAny + "); do " +
                     resolve + cpBodyExt + "done; fi; " +
                     "rm -rf '" + tmp + "'; " +
-                    "ls -1 '" + cacheDir + "'/" + name + ".* 2>/dev/null | head -1 || echo failed"
+                    // name must stay inside the quotes: unquoted, a name with
+                    // spaces (e.g. "DSH Desktop-2.0.9") splits into two ls args
+                    "ls -1 '" + cacheDir + "/" + name + "'.* 2>/dev/null | head -1 || echo failed"
                 appIconExtractProc.command = ["sh", "-c", cmd]
                 appIconExtractProc.running = true
             }
