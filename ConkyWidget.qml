@@ -133,6 +133,14 @@ DesktopPluginComponent {
     // Qt.color() converts the stored string to a color type (Theme.withAlpha needs .r/.g/.b)
     readonly property string bgColor: getData("bgColor", "")
     readonly property color bg: Theme.withAlpha(Qt.color(bgColor !== "" ? bgColor : "#0a0a0f"), bgOpacity)
+    // Adaptive foreground: dark text on light backgrounds so labels stay readable
+    readonly property bool bgIsLight: {
+        if (bgColor === "")
+            return false
+        var c = Qt.color(bgColor)
+        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) > 0.6
+    }
+    readonly property color fgColor: bgColor === "" ? Theme.surfaceText : (bgIsLight ? "#1C1B1F" : Theme.surfaceText)
     readonly property color fg: "#f0f0f0"
     readonly property color dim: "#aaaaaa"
 
@@ -653,6 +661,11 @@ DesktopPluginComponent {
         var item = list.splice(from, 1)[0]
         list.splice(to, 0, item)
         saveAddedApps(list)
+    }
+
+    // Forward to launcher content (AppRowDelegate only has host reference)
+    function launchAppChecked(name, exec) {
+        launcherContent.launchAppChecked(name, exec)
     }
 
     // ============================================

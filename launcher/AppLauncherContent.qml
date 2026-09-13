@@ -56,6 +56,107 @@ Item {
 
     Component.onCompleted: {
         _applyLauncherLanguage(_launcherLang);
+        cleanupMissingApps();
+    }
+
+    // ── Stale app detection: AppImage file deleted, or command no longer resolvable ──
+    // Returns a shell check that succeeds when the app exists; "" = unverifiable → treat as existing
+    function buildExistsCheck(exec) {
+        var m = (exec || "").match(/'(.+\.appimage)'/i);
+        if (m && m[1]) return "[ -e '" + m[1].replace(/'/g, "'\\''") + "' ]";
+        var token = (exec || "").trim().split(/\s+/)[0] || "";
+        if (token === "") return "";
+        if (token.charAt(0) === "/") return "[ -e '" + token.replace(/'/g, "'\\''") + "' ]";
+        if (!/^[A-Za-z0-9_.+-]+$/.test(token)) return "";
+        return "command -v '" + token + "' >/dev/null 2>&1";
+    }
+
+    // Batch check all added apps; removes entries whose target no longer exists
+    function cleanupMissingApps() {
+        if (!host || !host.addedApps || host.addedApps.length === 0) return;
+        var cmds = [];
+        for (var i = 0; i < host.addedApps.length; i++) {
+            var chk = buildExistsCheck(host.addedApps[i].exec);
+            if (chk !== "") cmds.push(chk + " || echo " + i);
+        }
+        if (cmds.length === 0) return;
+        appExistsProc.command = ["sh", "-c", cmds.join("; ")];
+        appExistsProc.running = true;
+    }
+
+    function handleMissingApps(outText) {
+        var lines = String(outText).trim().split("\n");
+        var missing = {};
+        for (var i = 0; i < lines.length; i++) {
+            var idx = parseInt(lines[i].trim(), 10);
+            if (!isNaN(idx)) missing[idx] = true;
+        }
+        var count = 0;
+        for (var k in missing) count++;
+        if (count === 0) return;
+        var kept = [];
+        var removed = false;
+        var apps = host.addedApps;
+        for (var j = 0; j < apps.length; j++) {
+            if (missing[j]) { removed = true; continue; }
+            kept.push(apps[j]);
+        }
+        if (removed) {
+            host.saveAddedApps(kept);
+            addAppDialog.rebuildAddedSet();
+        }
+    }
+
+    // Launch with existence check: target gone → auto-remove instead of launching
+    property var _launchQueue: []
+    function launchAppChecked(name, exec) {
+        var chk = buildExistsCheck(exec);
+        if (chk === "") {
+            Quickshell.execDetached(["sh", "-c", host.cleanExec(exec)]);
+            return;
+        }
+        // Single verify process: queue rapid clicks so each check pairs with its own target
+        if (appLaunchVerifyProc.running) { _launchQueue.push({ name: name, exec: exec }); return }
+        _startLaunchVerify(name, exec);
+    }
+
+    function _startLaunchVerify(name, exec) {
+        appLaunchVerifyProc.pendingName = name;
+        appLaunchVerifyProc.pendingExec = exec;
+        appLaunchVerifyProc.command = ["sh", "-c", buildExistsCheck(exec) + " || echo __GONE__"];
+        appLaunchVerifyProc.running = true;
+    }
+
+    function handleLaunchVerify(outText) {
+        if (String(outText).trim() === "__GONE__") {
+            host.removeApp(appLaunchVerifyProc.pendingName);
+            toastRect.msg = "✖ " + appLaunchVerifyProc.pendingName;
+            toastTimer.restart();
+        } else {
+            Quickshell.execDetached(["sh", "-c", host.cleanExec(appLaunchVerifyProc.pendingExec)]);
+        }
+        if (_launchQueue.length > 0) {
+            var nx = _launchQueue.shift()
+            _startLaunchVerify(nx.name, nx.exec)
+        }
+    }
+
+    Process {
+        id: appExistsProc
+        command: []
+        stdout: StdioCollector {
+            onStreamFinished: content.handleMissingApps(text)
+        }
+    }
+
+    Process {
+        id: appLaunchVerifyProc
+        property string pendingName: ""
+        property string pendingExec: ""
+        command: []
+        stdout: StdioCollector {
+            onStreamFinished: content.handleLaunchVerify(text)
+        }
     }
 
     // Async FileView to load JSON translation files from translations/i18n/
@@ -104,11 +205,11 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: Math.round(Theme.cornerRadius / 2)
-            color: btn.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : Theme.withAlpha(Theme.surfaceText, 0.03)
+            color: btn.containsMouse ? Theme.withAlpha(host.fgColor, 0.08) : Theme.withAlpha(host.fgColor, 0.03)
             border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1
             DankIcon {
                 anchors.centerIn: parent
-                name: btn.iconName; size: 14; color: Theme.surfaceText
+                name: btn.iconName; size: 14; color: host.fgColor
                 opacity: btn.containsMouse ? 1.0 : 0.7
             }
         }
@@ -123,7 +224,7 @@ Item {
         visible: host.appSearchQuery === ""
         DankIcon {
             anchors.centerIn: parent
-            name: "drag_indicator"; size: 14; color: Theme.surfaceText
+            name: "drag_indicator"; size: 14; color: host.fgColor
             opacity: gripMA.containsMouse || gripMA.drag.active ? 0.6 : 0.1
         }
         MouseArea {
@@ -207,8 +308,13 @@ Item {
     }
 
     readonly property bool _keepVisible: addAppDialog.opened || appSettingsDialog.opened
+    // True while a native folder/color picker window is open (blocks hover-leave auto close)
+    property bool _fileDialogOpen: false
 
     function closeOpenDialogs() {
+        // Skip while a file/folder picker window is open — interacting with it moves the
+        // mouse out of the widget, which would otherwise close the Manage dialog behind it
+        if (_fileDialogOpen) return
         if (appSettingsDialog.opened) appSettingsDialog.close()
         if (addAppDialog.opened) addAppDialog.close()
     }
@@ -322,7 +428,7 @@ Item {
                     text: content._tr("Applications")
                     font.bold: true
                     font.pixelSize: Theme.fontSizeMedium
-                    color: Theme.surfaceText
+                    color: host.fgColor
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     visible: host.appShowHeader && !searchContainer.expanded
@@ -335,13 +441,13 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
                     visible: !host.appShowHeader
-                    color: Theme.withAlpha(Theme.surfaceText, 0.04)
+                    color: Theme.withAlpha(host.fgColor, 0.04)
                     border.color: searchField.activeFocus ? Theme.primary : Theme.withAlpha(Theme.outline, 0.1)
                     border.width: 1
 
                     DankIcon {
                         id: headerOffSearchIcon
-                        name: "search"; size: 14; color: Theme.surfaceText; opacity: 0.4
+                        name: "search"; size: 14; color: host.fgColor; opacity: 0.4
                         anchors.left: parent.left; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter
                     }
                     TextInput {
@@ -349,11 +455,11 @@ Item {
                         anchors.left: headerOffSearchIcon.right; anchors.leftMargin: 6
                         anchors.right: parent.right; anchors.rightMargin: 10
                         anchors.verticalCenter: parent.verticalCenter
-                        font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; selectByMouse: true
+                        font.pixelSize: Theme.fontSizeSmall - 1; color: host.fgColor; selectByMouse: true
                         onTextChanged: host.appSearchQuery = text
                         Text {
                             text: content._tr("Search...")
-                            font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; opacity: 0.35
+                            font.pixelSize: Theme.fontSizeSmall - 1; color: host.fgColor; opacity: 0.35
                             visible: headerOffSearchField.text === "" && !headerOffSearchField.activeFocus
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -390,7 +496,7 @@ Item {
                         DankIcon {
                             anchors.centerIn: parent
                             name: "add"; size: 14
-                            color: addAppBtn.hovered ? Theme.primary : Theme.surfaceText
+                            color: addAppBtn.hovered ? Theme.primary : host.fgColor
                             opacity: addAppBtn.hovered ? 1.0 : 0.7
                         }
                     }
@@ -413,14 +519,14 @@ Item {
                         id: settingsBg
                         anchors.fill: parent
                         radius: Math.round(Theme.cornerRadius / 2)
-                        color: settingsBtn.hovered ? Theme.withAlpha(Theme.surfaceText, 0.08) : Theme.withAlpha(Theme.surfaceText, 0.03)
+                        color: settingsBtn.hovered ? Theme.withAlpha(host.fgColor, 0.08) : Theme.withAlpha(host.fgColor, 0.03)
                         border.color: Theme.withAlpha(Theme.outline, 0.15); border.width: 1
                         opacity: host.appShowHeader ? 1.0 : (settingsBtn.hovered ? 0.8 : 0.0)
                         Behavior on opacity { NumberAnimation { duration: 200 } }
 
                         DankIcon {
                             anchors.centerIn: parent
-                            name: "settings"; size: 14; color: Theme.surfaceText
+                            name: "settings"; size: 14; color: host.fgColor
                             opacity: settingsBtn.hovered ? 1.0 : 0.7
                         }
                     }
@@ -450,7 +556,7 @@ Item {
                         width: expanded ? Math.min(160, parent.parent.width - 110) : 24
                         height: 24
                         radius: 12
-                        color: expanded ? Theme.withAlpha(Theme.surfaceText, 0.04) : "transparent"
+                        color: expanded ? Theme.withAlpha(host.fgColor, 0.04) : "transparent"
                         border.color: expanded ? Theme.withAlpha(Theme.outline, 0.15) : "transparent"
                         border.width: expanded ? 1 : 0
                         clip: true
@@ -473,7 +579,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.left: parent.left
                             anchors.leftMargin: searchContainer.expanded ? 4 : (searchContainer.width - size) / 2
-                            name: "search"; size: 14; color: Theme.surfaceText
+                            name: "search"; size: 14; color: host.fgColor
                             opacity: searchField.activeFocus ? 1.0 : (searchContainer.expanded ? 0.6 : 0.7)
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
@@ -483,14 +589,14 @@ Item {
                             anchors.left: searchIcon.right; anchors.leftMargin: 4
                             anchors.right: clearBtn.visible ? clearBtn.left : parent.right; anchors.rightMargin: 4
                             anchors.verticalCenter: parent.verticalCenter
-                            font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; selectByMouse: true
+                            font.pixelSize: Theme.fontSizeSmall - 1; color: host.fgColor; selectByMouse: true
                             visible: searchContainer.expanded
                             opacity: searchContainer.expanded ? 1.0 : 0.0
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                             onTextChanged: host.appSearchQuery = text
                             Text {
                                 text: content._tr("Search...")
-                                font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; opacity: 0.35
+                                font.pixelSize: Theme.fontSizeSmall - 1; color: host.fgColor; opacity: 0.35
                                 visible: searchField.text === "" && !searchField.activeFocus
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -509,7 +615,7 @@ Item {
                             }
                             DankIcon {
                                 anchors.centerIn: parent
-                                name: "close"; size: 10; color: Theme.surfaceText
+                                name: "close"; size: 10; color: host.fgColor
                                 opacity: clearBtn.containsMouse ? 0.9 : 0.5
                             }
                         }
@@ -569,6 +675,7 @@ Item {
                         onPressAndHold: {
                             if (appName !== "__add__") {
                                 host._deleteRevealedApp = appName
+                                iconJumpAnim.start()
                             }
                         }
                         onClicked: {
@@ -581,7 +688,7 @@ Item {
                                 clearSearch(); addAppDialog.openDialog("add")
                             } else {
                                 clickLaunchAnimation.start()
-                                Quickshell.execDetached(["sh", "-c", host.cleanExec(appExec)])
+                                content.launchAppChecked(appName, appExec)
                             }
                         }
                         onReleased: {
@@ -653,12 +760,24 @@ Item {
                                 DankIcon { anchors.centerIn: parent; name: "add"; size: host.iconSize * 0.45; color: host.accentColor }
                             }
                             AppIcon {
+                                id: gridAppIcon
                                 iconSize: host.appIconSize
                                 iconSource: appIcon
+                                fallbackColor: host.fgColor
+                                showAppImageBadge: appName !== "__add__" && /\.appimage/i.test(appExec)
                                 anchors.centerIn: parent
                                 visible: appName !== "__add__"
                                 scale: appCard.containsMouse ? 1.15 : 1.0
                                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+                                // Bounce jump when long-press reveals the delete button
+                                transform: Translate { id: gridIconJump; y: 0 }
+                                SequentialAnimation {
+                                    id: iconJumpAnim
+                                    NumberAnimation { target: gridIconJump; property: "y"; to: -8; duration: 110; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: gridIconJump; property: "y"; to: 0; duration: 230; easing.type: Easing.OutBounce }
+                                    NumberAnimation { target: gridIconJump; property: "y"; to: -4; duration: 90; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: gridIconJump; property: "y"; to: 0; duration: 180; easing.type: Easing.OutBounce }
+                                }
                             }
                             // Delete overlay on long-press (top-right corner)
                             Rectangle {
@@ -704,7 +823,7 @@ Item {
                             text: appName
                             font.pixelSize: 12
                             font.bold: true
-color: Theme.surfaceText
+color: host.fgColor
                             elide: Text.ElideRight
                             width: parent.width - 8
                             horizontalAlignment: Text.AlignHCenter
@@ -828,7 +947,7 @@ color: Theme.surfaceText
         // Empty placeholder
         StyledText {
             text: content._tr("Click + to add applications")
-            font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; opacity: 0.4
+            font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; opacity: 0.4
             anchors.centerIn: parent
             visible: filteredModel.count === 0 && host.appSearchQuery === ""
         }
@@ -871,6 +990,13 @@ color: Theme.surfaceText
             property string activeTab: "add"
             property var filteredSystemApps: []
 
+            // AppImage tab state
+            property string appimageDirInput: ""
+            property var appimageList: []
+            property var appimageIconMap: ({})
+            property bool appimageDirError: false
+            readonly property string appIconsDir: (Quickshell.env("HOME") || "") + "/.config/DankMaterialShell/appicons"
+
             // Precomputed hash set for O(1) isAdded lookup (avoids O(N) some() per delegate)
             property var addedAppNameSet: ({})
 
@@ -881,6 +1007,239 @@ color: Theme.surfaceText
                     set[apps[i].name] = true
                 }
                 addedAppNameSet = set  // new reference → triggers delegate rebindings
+            }
+
+            // ── AppImage tab helpers ──
+            function expandPath(p) {
+                if (!p) return ""
+                var home = Quickshell.env("HOME") || ""
+                if (p === "~") return home
+                if (p.indexOf("~/") === 0) return home + p.substring(1)
+                return p
+            }
+            function safeShell(p) { return p.replace(/'/g, "'\\''") }
+
+            function cleanAppImageName(base) {
+                var c = base
+                    .replace(/[-_]\d+([-_.]\d+)*[-_](x86_64|amd64|aarch64|arm64|i686)$/i, "")
+                    .replace(/[-_](x86_64|amd64|aarch64|arm64|i686)$/i, "")
+                    .replace(/[-_]linux[-_](amd64|x86_64)$/i, "")
+                    .replace(/[-_](fixed|stable|beta|alpha|rc|patch|debug|release|final|portable|setup|linux)$/i, "")
+                return c || base
+            }
+
+            function matchAppImageIcon(fileName) {
+                var base = fileName.replace(/\.appimage$/i, "").toLowerCase()
+                for (var stem in appimageIconMap) {
+                    if (base.indexOf(stem) !== -1) return appimageIconMap[stem]
+                }
+                return ""
+            }
+
+            function openAppImageTab() {
+                activeTab = "appimage"
+                if (appImagePathField.text === "") {
+                    var saved = host.getData("appimageDir", "~")
+                    appimageDirInput = saved
+                    appImagePathField.text = saved
+                }
+                scanAppImages()
+            }
+
+            function scanAppImages() {
+                var raw = appImagePathField.text.trim()
+                if (raw === "") return
+                _iconExtracting = false
+                _iconExtractTotal = 0
+                _iconExtractDone = 0
+                appimageDirInput = raw
+                host.setData("appimageDir", raw)
+                var dir = expandPath(raw)
+                appimageDirError = false
+                var safeDir = safeShell(dir)
+                appImageDirProc.command = ["sh", "-c",
+                    "if [ -d '" + safeDir + "' ]; then echo __DIR__ " + safeDir + "; ls -1 '" + safeDir + "' 2>/dev/null | grep -iE '\\.appimage$' | head -100; else echo __DIR_ERR__; fi"]
+                appImageDirProc.running = true
+                var safeIcons = safeShell(appIconsDir)
+                appIconsProc.command = ["sh", "-c", "ls -1 '" + safeIcons + "' 2>/dev/null | head -100"]
+                appIconsProc.running = true
+            }
+
+            function handleDirList(text) {
+                var out = String(text).trim()
+                var lines = out.split("\n")
+                var first = lines.shift() || ""
+                // Directory echoed in the output first line → pairs result with its own run (no race)
+                if (first.indexOf("__DIR__ ") !== 0) { appimageDirError = true; appimageList = []; return }
+                var dir = first.substring(8)
+                var files = lines
+                var seen = {}
+                var list = []
+                for (var i = 0; i < files.length; i++) {
+                    var fn = files[i].trim()
+                    if (!fn) continue
+                    var base = fn.replace(/\.appimage$/i, "")
+                    var nm = cleanAppImageName(base)
+                    if (seen[nm]) nm = base
+                    if (seen[nm]) continue
+                    seen[nm] = true
+                    list.push({ name: nm, exec: "'" + dir + "/" + fn + "'", icon: matchAppImageIcon(fn), fileName: fn })
+                }
+                appimageList = list
+            }
+
+            function handleIconList(text) {
+                var out = String(text).trim()
+                var files = out === "" ? [] : out.split("\n")
+                var map = {}
+                for (var i = 0; i < files.length; i++) {
+                    var f = files[i].trim()
+                    if (!f) continue
+                    var lower = f.toLowerCase()
+                    if (!/\.(png|jpg|jpeg|svg|webp)$/.test(lower)) continue
+                    var dot = f.lastIndexOf(".")
+                    if (dot > 0) map[f.substring(0, dot).toLowerCase()] = encodeURI("file://" + appIconsDir + "/" + f)
+                }
+                appimageIconMap = map
+                // Reapply icons to the already-built list
+                if (appimageList.length > 0) {
+                    var updated = []
+                    for (var j = 0; j < appimageList.length; j++) {
+                        var it = appimageList[j]
+                        updated.push({ name: it.name, exec: it.exec, icon: matchAppImageIcon(it.fileName), fileName: it.fileName })
+                    }
+                    appimageList = updated
+                }
+                extractMissingAppIcons()
+            }
+
+            // ── AppImage embedded icon extraction (same cache dir & naming as DMS DankDash) ──
+            property bool _iconExtractBusy: false
+            property bool _iconExtracting: false
+            property int _iconExtractTotal: 0
+            property int _iconExtractDone: 0
+            property string _iconExtractName: ""
+            property string _iconExtractFileName: ""
+            property var _iconExtractFailed: ({})
+
+            Process {
+                id: appIconExtractProc
+                command: []
+                stdout: StdioCollector {
+                    id: appIconExtractCollector
+                    onStreamFinished: addAppDialog.handleAppIconExtracted(appIconExtractCollector.text)
+                }
+            }
+
+            function extractMissingAppIcons() {
+                if (_iconExtractBusy) return
+                var next = null
+                for (var i = 0; i < appimageList.length; i++) {
+                    var e = appimageList[i]
+                    if (e.icon === "" && e.name !== "" && !_iconExtractFailed[e.fileName]) { next = e; break }
+                }
+                if (!next) { _iconExtracting = false; return }
+                if (!_iconExtracting) {
+                    var total = 0
+                    for (var t = 0; t < appimageList.length; t++) {
+                        var te = appimageList[t]
+                        if (te.icon === "" && te.name !== "" && !_iconExtractFailed[te.fileName]) total++
+                    }
+                    _iconExtractTotal = total
+                    _iconExtractDone = 0
+                }
+                _iconExtracting = true
+                var appPath = next.exec
+                if (appPath.charAt(0) === "'") appPath = appPath.substring(1, appPath.length - 1)
+                _iconExtractBusy = true
+                _iconExtractName = next.name
+                _iconExtractFileName = next.fileName
+                var cacheDir = safeShell(appIconsDir)
+                var tmp = safeShell(appIconsDir + "/tmp-" + next.name)
+                var app = safeShell(appPath)
+                var name = safeShell(next.name)
+                var resolve = "REAL_FILE=$(readlink -f \"$icon\" 2>/dev/null || echo \"$icon\"); if [ -f \"$REAL_FILE\" ]; then "
+                var cpBodyPng = "cp \"$REAL_FILE\" '" + cacheDir + "/" + name + ".png' 2>/dev/null && FOUND_ICON=1 && break; fi; "
+                var cpBodySvg = "cp \"$REAL_FILE\" '" + cacheDir + "/" + name + ".svg' 2>/dev/null && FOUND_ICON=1 && break; fi; "
+                var cpBodyExt = "EXT=\"${REAL_FILE##*.}\"; case \"$EXT\" in png|svg|jpg|jpeg|ico|xpm) ;; *) EXT=png ;; esac; cp \"$REAL_FILE\" \"" + cacheDir + "/" + name + ".$EXT\" 2>/dev/null && FOUND_ICON=1 && break; fi; "
+                // Largest icon first (better than DMS's first-match)
+                // -xtype f: root-level icons are often symlinks; follow them
+                var findPng = "find squashfs-root -xtype f -name '*.png' -printf '%s\\t%p\\n' 2>/dev/null | sort -rn | head -3 | cut -f2-"
+                var findSvg = "find squashfs-root -xtype f -name '*.svg' -printf '%s\\t%p\\n' 2>/dev/null | sort -rn | head -3 | cut -f2-"
+                var findAny = "find squashfs-root -maxdepth 7 -xtype f \\( -name '.DirIcon' -o -name '*.png' -o -name '*.svg' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.ico' -o -name '*.xpm' \\) -printf '%s\\t%p\\n' 2>/dev/null | sort -rn | head -3 | cut -f2-"
+                // Stage 1/2: pattern extract (KBs only) — png, then svg, largest first
+                // Stage 3: .DirIcon (few KB) + standard icon dirs — avoids full unpack
+                // Stage 4: full extract — exotic layouts / broken pattern runtimes (last resort)
+                var cmd =
+                    "mkdir -p '" + cacheDir + "' && rm -rf '" + tmp + "' && mkdir -p '" + tmp + "' && cd '" + tmp + "' && " +
+                    "FOUND_ICON=0; IFS='\n'; " +
+                    "timeout 45 '" + app + "' --appimage-extract '*.png' >/dev/null 2>&1; " +
+                    "for icon in $(" + findPng + "); do " +
+                    resolve + cpBodyPng + "done; " +
+                    "if [ \"$FOUND_ICON\" = 0 ]; then rm -rf squashfs-root; " +
+                    "timeout 45 '" + app + "' --appimage-extract '*.svg' >/dev/null 2>&1; " +
+                    "for icon in $(" + findSvg + "); do " +
+                    resolve + cpBodySvg + "done; fi; " +
+                    "if [ \"$FOUND_ICON\" = 0 ]; then rm -rf squashfs-root; " +
+                    "timeout 45 '" + app + "' --appimage-extract '.DirIcon' >/dev/null 2>&1; " +
+                    "if [ -e squashfs-root/.DirIcon ]; then " +
+                    "REAL_FILE=$(readlink -f squashfs-root/.DirIcon 2>/dev/null || echo squashfs-root/.DirIcon); " +
+                    "if case \"$REAL_FILE\" in squashfs-root/*) [ -f \"$REAL_FILE\" ] ;; *) false ;; esac; then " +
+                    "EXT=\"${REAL_FILE##*.}\"; case \"$EXT\" in png|svg|jpg|jpeg|ico|xpm) ;; *) EXT=png ;; esac; cp \"$REAL_FILE\" \"" + cacheDir + "/" + name + ".$EXT\" 2>/dev/null && FOUND_ICON=1; fi; fi; " +
+                    "if [ \"$FOUND_ICON\" = 0 ]; then " +
+                    "timeout 45 '" + app + "' --appimage-extract 'usr/share/icons/*' >/dev/null 2>&1; " +
+                    "timeout 45 '" + app + "' --appimage-extract 'usr/share/pixmaps/*' >/dev/null 2>&1; " +
+                    // png/svg must be searched here too: newer runtimes' '*.png'
+                    // pattern only matches root-level (symlinked) icons, so
+                    // stage 1/2 yield nothing while usr/share/icons/* extracts fine
+                    "for icon in $(find squashfs-root -xtype f \\( -name '*.png' -o -name '*.svg' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.ico' -o -name '*.xpm' \\) -printf '%s\\t%p\\n' 2>/dev/null | sort -rn | head -3 | cut -f2-); do " +
+                    resolve + cpBodyExt + "done; fi; fi; " +
+                    "if [ \"$FOUND_ICON\" = 0 ]; then rm -rf squashfs-root; " +
+                    "timeout 45 '" + app + "' --appimage-extract >/dev/null 2>&1; " +
+                    "for icon in $(" + findAny + "); do " +
+                    resolve + cpBodyExt + "done; fi; " +
+                    "rm -rf '" + tmp + "'; " +
+                    "ls -1 '" + cacheDir + "'/" + name + ".* 2>/dev/null | head -1 || echo failed"
+                appIconExtractProc.command = ["sh", "-c", cmd]
+                appIconExtractProc.running = true
+            }
+
+            function handleAppIconExtracted(outText) {
+                _iconExtractBusy = false
+                var out = String(outText).trim()
+                var fileName = _iconExtractFileName
+                var name = _iconExtractName
+                var ok = out !== "" && out !== "failed" && out.indexOf(appIconsDir) === 0
+                if (!ok) {
+                    if (fileName !== "") _iconExtractFailed[fileName] = true
+                } else {
+                    var url = encodeURI("file://" + out)
+                    appimageIconMap[name.toLowerCase()] = url
+                    // Refresh the browser-list entry
+                    var rebuilt = []
+                    for (var i = 0; i < appimageList.length; i++) {
+                        var it = appimageList[i]
+                        if (it.fileName === fileName && (it.icon === "" || it.icon.indexOf(".$EXT") !== -1))
+                            rebuilt.push({ name: it.name, exec: it.exec, icon: url, fileName: it.fileName })
+                        else rebuilt.push(it)
+                    }
+                    appimageList = rebuilt
+                    // Refresh persisted launcher entries of the same AppImage
+                    var added = host.addedApps
+                    var marker = "/" + fileName + "'"
+                    var aNew = []
+                    var aChanged = false
+                    for (var j = 0; j < added.length; j++) {
+                        var a = added[j]
+                        if ((a.icon === "" || a.icon.indexOf(".$EXT") !== -1) && a.exec && a.exec.indexOf(marker) !== -1) {
+                            aNew.push({ name: a.name, exec: a.exec, icon: url })
+                            aChanged = true
+                        } else aNew.push(a)
+                    }
+                    if (aChanged) host.saveAddedApps(aNew)
+                }
+                _iconExtractDone++
+                extractMissingAppIcons()
             }
 
             onSystemAppsSearchChanged: {
@@ -896,11 +1255,277 @@ color: Theme.surfaceText
 
             MouseArea { anchors.fill: parent; onClicked: {} }
 
+            Process {
+                id: appImageDirProc
+                command: []
+                stdout: StdioCollector {
+                    id: appImageDirCollector
+                    onStreamFinished: addAppDialog.handleDirList(appImageDirCollector.text)
+                }
+            }
+
+            Process {
+                id: appIconsProc
+                command: []
+                stdout: StdioCollector {
+                    id: appIconsCollector
+                    onStreamFinished: addAppDialog.handleIconList(appIconsCollector.text)
+                }
+            }
+
+            // ── Pure-QML directory browser ──
+            // Replaces the native FolderDialog: the GTK/gvfs backend can abort the
+            // whole shell (g_variant assertion, SIGABRT), so we list dirs ourselves.
+            property bool dirBrowserVisible: false
+            property string dirBrowserDir: ""
+            property var dirBrowserEntries: []
+            property var dirBrowserAllDirs: []
+            property bool dirBrowserShowHidden: false
+            property bool dirBrowserError: false
+
+            Process {
+                id: dirBrowserProc
+                command: []
+                stdout: StdioCollector {
+                    id: dirBrowserCollector
+                    onStreamFinished: addAppDialog.handleDirBrowserList(dirBrowserCollector.text)
+                }
+            }
+
+            function openDirBrowser(startDir) {
+                dirBrowserVisible = true
+                browseTo(startDir && String(startDir).trim() !== "" ? startDir : "~")
+            }
+            function closeDirBrowser() {
+                dirBrowserVisible = false
+                dirBrowserEntries = []
+                dirBrowserDir = ""
+                dirBrowserError = false
+            }
+            function browseTo(p) {
+                var dir = expandPath(String(p).trim())
+                if (dir === "") dir = Quickshell.env("HOME") || "/"
+                while (dir.length > 1 && dir.charAt(dir.length - 1) === "/") dir = dir.substring(0, dir.length - 1)
+                if (dir === "") dir = "/"
+                var safe = safeShell(dir)
+                dirBrowserProc.command = ["sh", "-c", "if [ -d '" + safe + "' ] && [ -x '" + safe + "' ]; then echo __DIR__ " + safe + "; ls -1Ap '" + safe + "' | head -200; else echo __DIR_ERR__; fi"]
+                dirBrowserProc.running = true
+            }
+            function parentDir(p) {
+                var i = p.lastIndexOf("/")
+                return i <= 0 ? "/" : p.substring(0, i)
+            }
+            function handleDirBrowserList(outText) {
+                var out = String(outText).trim()
+                var lines = out.split("\n")
+                var first = lines.shift() || ""
+                // Directory echoed in the output first line → pairs result with its own run (no race)
+                if (first.indexOf("__DIR__ ") !== 0) {
+                    addAppDialog.dirBrowserError = true
+                    addAppDialog.dirBrowserAllDirs = []
+                    applyDirBrowserFilter()
+                    return
+                }
+                addAppDialog.dirBrowserDir = first.substring(8)
+                addAppDialog.dirBrowserError = false
+                var lsLines = lines
+                var dirs = []
+                for (var i = 0; i < lsLines.length; i++) {
+                    var n = lsLines[i].trim()
+                    if (!n) continue
+                    // Folder picker: list directories only (trailing "/" from ls -p)
+                    if (n.charAt(n.length - 1) === "/") dirs.push({ name: n.substring(0, n.length - 1) })
+                }
+                addAppDialog.dirBrowserAllDirs = dirs
+                applyDirBrowserFilter()
+            }
+            function applyDirBrowserFilter() {
+                var dirs = addAppDialog.dirBrowserAllDirs
+                var showHidden = addAppDialog.dirBrowserShowHidden
+                var visible = []
+                for (var i = 0; i < dirs.length; i++) {
+                    if (!showHidden && dirs[i].name.charAt(0) === ".") continue
+                    visible.push(dirs[i])
+                }
+                visible.sort(function(a, b) { return a.name.localeCompare(b.name) })
+                addAppDialog.dirBrowserEntries = visible
+            }
+            function confirmDirBrowser() {
+                if (dirBrowserDir === "" || dirBrowserError) return
+                appImagePathField.text = dirBrowserDir
+                closeDirBrowser()
+                scanAppImages()
+            }
+
+            // Directory browser overlay card
+            Rectangle {
+                id: dirBrowserCard
+                z: 12
+                visible: addAppDialog.dirBrowserVisible
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 8
+                width: Math.min(320, parent.width - 20)
+                height: parent.height - 16
+                color: host.bgColor !== "" ? host.bgColor : Theme.surfaceContainer
+                radius: Theme.cornerRadius
+                border.color: Theme.withAlpha(Theme.outline, 0.2)
+                border.width: 1
+                clip: true
+
+                // Block clicks from falling through to the dialog beneath
+                MouseArea { anchors.fill: parent; onClicked: {} }
+
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: Theme.spacingM
+                    spacing: Theme.spacingS
+
+                    // Title row
+                    Item {
+                        width: parent.width
+                        height: 20
+                        DankIcon { name: "folder_open"; size: 14; color: Theme.primary; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        StyledText { text: content._tr("Select Folder"); font.pixelSize: Theme.fontSizeSmall; font.bold: true; color: host.fgColor; anchors.centerIn: parent }
+                        Rectangle {
+                            width: 20; height: 20; radius: 10
+                            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            color: dirBrowserCloseArea.containsMouse ? Theme.withAlpha(Theme.error, 0.2) : Theme.withAlpha(host.fgColor, 0.06)
+                            DankIcon { anchors.centerIn: parent; name: "close"; size: 12; color: host.fgColor }
+                            MouseArea { id: dirBrowserCloseArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: addAppDialog.closeDirBrowser() }
+                        }
+                    }
+
+                    // Current path + navigation
+                    Rectangle {
+                        width: parent.width
+                        height: 30
+                        radius: Math.round(Theme.cornerRadius / 2)
+                        color: Theme.withAlpha(host.fgColor, 0.04)
+                        border.color: Theme.withAlpha(Theme.outline, 0.1)
+                        border.width: 1
+                        Rectangle {
+                            id: dirUpBtn
+                            width: 24; height: 24; radius: 12
+                            anchors.left: parent.left; anchors.leftMargin: 3; anchors.verticalCenter: parent.verticalCenter
+                            color: dirUpArea.containsMouse ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
+                            DankIcon { anchors.centerIn: parent; name: "arrow_upward"; size: 13; color: host.fgColor }
+                            MouseArea { id: dirUpArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: { if (addAppDialog.dirBrowserDir !== "" && addAppDialog.dirBrowserDir !== "/") addAppDialog.browseTo(addAppDialog.parentDir(addAppDialog.dirBrowserDir)) } }
+                        }
+                        Rectangle {
+                            id: dirHomeBtn
+                            width: 24; height: 24; radius: 12
+                            anchors.left: dirUpBtn.right; anchors.leftMargin: 2; anchors.verticalCenter: parent.verticalCenter
+                            color: dirHomeArea.containsMouse ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
+                            DankIcon { anchors.centerIn: parent; name: "home"; size: 13; color: host.fgColor }
+                            MouseArea { id: dirHomeArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: addAppDialog.browseTo(Quickshell.env("HOME") || "/") }
+                        }
+                        Rectangle {
+                            id: dirHiddenBtn
+                            width: 24; height: 24; radius: 12
+                            anchors.right: parent.right; anchors.rightMargin: 3; anchors.verticalCenter: parent.verticalCenter
+                            color: dirHiddenArea.containsMouse ? Theme.withAlpha(Theme.primary, 0.25) : (addAppDialog.dirBrowserShowHidden ? Theme.withAlpha(Theme.primary, 0.2) : Theme.withAlpha(host.fgColor, 0.08))
+                            border.color: addAppDialog.dirBrowserShowHidden ? Theme.withAlpha(Theme.primary, 0.4) : "transparent"
+                            border.width: 1
+                            StyledText { anchors.centerIn: parent; text: "👁"; font.pixelSize: 12; color: host.fgColor; opacity: addAppDialog.dirBrowserShowHidden ? 1.0 : 0.5 }
+                            MouseArea { id: dirHiddenArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: { addAppDialog.dirBrowserShowHidden = !addAppDialog.dirBrowserShowHidden; addAppDialog.applyDirBrowserFilter() } }
+                        }
+                        StyledText {
+                            text: addAppDialog.dirBrowserDir
+                            anchors.left: dirHomeBtn.right; anchors.leftMargin: Theme.spacingS
+                            anchors.right: dirHiddenBtn.left; anchors.rightMargin: Theme.spacingS
+                            anchors.verticalCenter: parent.verticalCenter
+                            font.pixelSize: 11
+                            color: addAppDialog.dirBrowserError ? Theme.error : host.fgColor
+                            opacity: addAppDialog.dirBrowserError ? 1.0 : 0.8
+                            elide: Text.ElideMiddle
+                        }
+                    }
+
+                    // Directory entries
+                    Item {
+                        width: parent.width
+                        height: parent.height - 20 - 30 - 32 - Theme.spacingS * 3
+
+                        ListView {
+                            id: dirBrowserList
+                            anchors.fill: parent
+                            clip: true; spacing: 2; boundsBehavior: Flickable.StopAtBounds
+                            model: addAppDialog.dirBrowserEntries
+                            delegate: Rectangle {
+                                width: dirBrowserList.width
+                                height: 30
+                                radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
+                                color: dirEntryArea.containsMouse ? Theme.withAlpha(host.fgColor, 0.06) : "transparent"
+                                Row {
+                                    anchors.fill: parent; anchors.leftMargin: Theme.spacingS
+                                    spacing: Theme.spacingS
+                                    Item { width: 15; height: 15; anchors.verticalCenter: parent.verticalCenter
+                                        DankIcon { anchors.fill: parent; name: "folder"; size: 15; color: Theme.primary } }
+                                    StyledText { text: modelData.name; font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; elide: Text.ElideRight; width: parent.width - 15 - Theme.spacingS * 2 - 8; anchors.verticalCenter: parent.verticalCenter }
+                                }
+                                MouseArea {
+                                    id: dirEntryArea
+                                    anchors.fill: parent; hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: { addAppDialog.browseTo(addAppDialog.dirBrowserDir === "/" ? "/" + modelData.name : addAppDialog.dirBrowserDir + "/" + modelData.name) }
+                                }
+                            }
+                        }
+
+                        // Fast scroll overlay (default wheel step is too slow)
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: false
+                            propagateComposedEvents: true
+                            onWheel: function(wheel) {
+                                wheel.accepted = true
+                                if (dirBrowserList.contentHeight > dirBrowserList.height) {
+                                    dirBrowserList.contentY = Math.max(0, Math.min(
+                                        dirBrowserList.contentY - wheel.angleDelta.y * 1.0,
+                                        dirBrowserList.contentHeight - dirBrowserList.height))
+                                }
+                            }
+                            onPressed: function(mouse) { mouse.accepted = false }
+                            onReleased: function(mouse) { mouse.accepted = false }
+                            onClicked: function(mouse) { mouse.accepted = false }
+                        }
+
+                        StyledText {
+                            anchors.centerIn: parent
+                            width: parent.width - 24
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: addAppDialog.dirBrowserEntries.length === 0
+                            text: addAppDialog.dirBrowserError ? content._tr("Folder not found") : content._tr("Empty folder")
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: host.fgColor
+                            opacity: 0.5
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+
+                    // Footer: confirm selection
+                    Rectangle {
+                        width: parent.width
+                        height: 32
+                        radius: Math.round(Theme.cornerRadius / 2)
+                        color: dirUseArea.containsMouse ? Theme.withAlpha(Theme.primary, 0.3) : Theme.withAlpha(Theme.primary, 0.2)
+                        StyledText { text: content._tr("Use This Folder"); font.pixelSize: Theme.fontSizeSmall; font.bold: true; color: Theme.primary; anchors.centerIn: parent }
+                        MouseArea { id: dirUseArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: addAppDialog.confirmDirBrowser() }
+                    }
+                }
+            }
+
             function openDialog(tab) {
                 activeTab = tab !== undefined ? tab : "add"
                 systemAppsSearch = ""; systemSearchField.text = ""; opened = true
                 rebuildAddedSet()
+                content.cleanupMissingApps()
                 if (activeTab === "add") systemSearchField.forceActiveFocus()
+                if (activeTab === "appimage") openAppImageTab()
                 if (systemAppsList.length === 0) {
                     var allEntries = DesktopEntries.applications.values
                     var apps = []
@@ -928,7 +1553,7 @@ color: Theme.surfaceText
             Rectangle {
                 id: dialogCard
                 z: 10
-                width: Math.min(320, parent.width - 20); height: Math.min(480, parent.height - 13)
+                width: Math.min(320, parent.width - 20); height: parent.height - 16
                 // Top aligns with the header settings icon, same as the settings card
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
@@ -950,7 +1575,7 @@ color: Theme.surfaceText
                         width: parent.width; height: 24
                         StyledText {
                             text: content._tr("Manage")
-                            font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
+                            font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: host.fgColor
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         Item {
@@ -959,7 +1584,7 @@ color: Theme.surfaceText
 
                             DankIcon {
                                 anchors.centerIn: parent
-                                name: "close"; size: 16; color: Theme.surfaceText
+                                name: "close"; size: 16; color: host.fgColor
                                 opacity: closeBtn.containsMouse ? 1.0 : 0.6
                             }
                             MouseArea {
@@ -974,34 +1599,48 @@ color: Theme.surfaceText
                     // Tabs
                     Rectangle {
                         width: parent.width; height: 32; radius: 16
-                        color: Theme.withAlpha(Theme.surfaceText, 0.05)
+                        color: Theme.withAlpha(host.fgColor, 0.05)
                         border.color: Theme.withAlpha(Theme.outline, 0.1); border.width: 1
                         Row {
                             anchors.fill: parent; anchors.margins: 2
                             MouseArea {
-                                id: tabAddBtn; width: parent.width / 2; height: parent.height; cursorShape: Qt.PointingHandCursor
+                                id: tabAddBtn; width: parent.width / 3; height: parent.height; cursorShape: Qt.PointingHandCursor
                                 onClicked: addAppDialog.activeTab = "add"
                                 Rectangle {
                                     anchors.fill: parent; radius: 14
-                                    color: addAppDialog.activeTab === "add" ? Theme.primary : "transparent"
+                                    color: addAppDialog.activeTab === "add" ? Theme.withAlpha(Theme.primary, 0.22) : "transparent"
                                     StyledText {
-                                        anchors.centerIn: parent; text: content._tr("Add")
+                                        anchors.centerIn: parent; text: content._tr("Applications")
                                         font.bold: addAppDialog.activeTab === "add"; font.pixelSize: Theme.fontSizeSmall
-                                        color: addAppDialog.activeTab === "add" ? Theme.onPrimary : Theme.surfaceText
+                                        color: addAppDialog.activeTab === "add" ? Theme.primary : host.fgColor
                                         opacity: addAppDialog.activeTab === "add" ? 1.0 : (tabAddBtn.containsMouse ? 0.9 : 0.6)
                                     }
                                 }
                             }
                             MouseArea {
-                                id: tabManageBtn; width: parent.width / 2; height: parent.height; cursorShape: Qt.PointingHandCursor
+                                id: tabAppImageBtn; width: parent.width / 3; height: parent.height; cursorShape: Qt.PointingHandCursor
+                                onClicked: addAppDialog.openAppImageTab()
+                                Rectangle {
+                                    anchors.fill: parent; radius: 14
+                                    color: addAppDialog.activeTab === "appimage" ? Theme.withAlpha(Theme.primary, 0.22) : "transparent"
+                                    StyledText {
+                                        anchors.centerIn: parent; text: content._tr("AppImage")
+                                        font.bold: addAppDialog.activeTab === "appimage"; font.pixelSize: Theme.fontSizeSmall
+                                        color: addAppDialog.activeTab === "appimage" ? Theme.primary : host.fgColor
+                                        opacity: addAppDialog.activeTab === "appimage" ? 1.0 : (tabAppImageBtn.containsMouse ? 0.9 : 0.6)
+                                    }
+                                }
+                            }
+                            MouseArea {
+                                id: tabManageBtn; width: parent.width / 3; height: parent.height; cursorShape: Qt.PointingHandCursor
                                 onClicked: addAppDialog.activeTab = "manage"
                                 Rectangle {
                                     anchors.fill: parent; radius: 14
-                                    color: addAppDialog.activeTab === "manage" ? Theme.primary : "transparent"
+                                    color: addAppDialog.activeTab === "manage" ? Theme.withAlpha(Theme.primary, 0.22) : "transparent"
                                     StyledText {
                                         anchors.centerIn: parent; text: content._tr("Layout")
                                         font.bold: addAppDialog.activeTab === "manage"; font.pixelSize: Theme.fontSizeSmall
-                                        color: addAppDialog.activeTab === "manage" ? Theme.onPrimary : Theme.surfaceText
+                                        color: addAppDialog.activeTab === "manage" ? Theme.primary : host.fgColor
                                         opacity: addAppDialog.activeTab === "manage" ? 1.0 : (tabManageBtn.containsMouse ? 0.9 : 0.6)
                                     }
                                 }
@@ -1013,17 +1652,17 @@ color: Theme.surfaceText
                     Rectangle {
                         visible: addAppDialog.activeTab === "add"
                         width: parent.width; height: 32; radius: Math.round(Theme.cornerRadius / 2)
-                        color: Theme.withAlpha(Theme.surfaceText, 0.04)
+                        color: Theme.withAlpha(host.fgColor, 0.04)
                         border.color: systemSearchField.activeFocus ? Theme.primary : Theme.withAlpha(Theme.outline, 0.1); border.width: 1
-                        DankIcon { id: sysSearchIcon; name: "search"; size: 14; color: Theme.surfaceText; opacity: 0.5; anchors.left: parent.left; anchors.leftMargin: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter }
+                        DankIcon { id: sysSearchIcon; name: "search"; size: 14; color: host.fgColor; opacity: 0.5; anchors.left: parent.left; anchors.leftMargin: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter }
                         TextInput {
                             id: systemSearchField
                             anchors.left: sysSearchIcon.right; anchors.leftMargin: Theme.spacingXS
                             anchors.right: parent.right; anchors.rightMargin: Theme.spacingS
                             anchors.verticalCenter: parent.verticalCenter
-                            font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; selectByMouse: true
+                            font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; selectByMouse: true
                             onTextChanged: addAppDialog.systemAppsSearch = text
-                            Text { text: content._tr("Search system apps..."); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; opacity: 0.35; visible: systemSearchField.text === "" && !systemSearchField.activeFocus; anchors.verticalCenter: parent.verticalCenter }
+                            Text { text: content._tr("Search system apps..."); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; opacity: 0.35; visible: systemSearchField.text === "" && !systemSearchField.activeFocus; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
 
@@ -1042,7 +1681,7 @@ color: Theme.surfaceText
                                                         delegate: Rectangle {
                                 width: parent.width; height: 38
                                 radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
-                                color: listMouseArea.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.04) : "transparent"
+                                color: listMouseArea.containsMouse ? Theme.withAlpha(host.fgColor, 0.04) : "transparent"
                                 property bool isAdded: addAppDialog.addedAppNameSet[modelData.name] === true
                                 Row {
                                     anchors.fill: parent; anchors.leftMargin: Theme.spacingS; anchors.rightMargin: Theme.spacingS
@@ -1050,16 +1689,17 @@ color: Theme.surfaceText
                                     AppIcon {
                                         width: 24; height: 24; iconSize: 24
                                         iconSource: modelData.icon
+                                        fallbackColor: host.fgColor
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
-                                    StyledText { text: modelData.name; font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; elide: Text.ElideRight; width: parent.width - 24 - 32 - Theme.spacingS * 2; anchors.verticalCenter: parent.verticalCenter }
+                                    StyledText { text: modelData.name; font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; elide: Text.ElideRight; width: parent.width - 24 - 32 - Theme.spacingS * 2; anchors.verticalCenter: parent.verticalCenter }
                                 }
                                 Rectangle {
                                     width: 22; height: 22; radius: 11
                                     anchors.right: parent.right; anchors.rightMargin: Theme.spacingS + 8; anchors.verticalCenter: parent.verticalCenter
                                     color: parent.isAdded ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
                                     border.color: parent.isAdded ? Theme.primary : Theme.withAlpha(Theme.outline, 0.3); border.width: 1
-                                    DankIcon { anchors.centerIn: parent; name: parent.parent.isAdded ? "done" : "add"; size: 12; color: parent.parent.isAdded ? Theme.primary : Theme.surfaceText }
+                                    DankIcon { anchors.centerIn: parent; name: parent.parent.isAdded ? "done" : "add"; size: 12; color: parent.parent.isAdded ? Theme.primary : host.fgColor }
                                 }
                                 MouseArea {
                                     id: listMouseArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -1096,6 +1736,122 @@ color: Theme.surfaceText
                         }
                     }
 
+                    // AppImage tab: folder path
+                    Rectangle {
+                        visible: addAppDialog.activeTab === "appimage"
+                        width: parent.width; height: 32; radius: Math.round(Theme.cornerRadius / 2)
+                        color: Theme.withAlpha(host.fgColor, 0.04)
+                        border.color: appImagePathField.activeFocus ? Theme.primary : Theme.withAlpha(Theme.outline, 0.1); border.width: 1
+                        DankIcon { id: appImagePathIcon; name: "folder"; size: 14; color: host.fgColor; opacity: 0.5; anchors.left: parent.left; anchors.leftMargin: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter }
+                        MouseArea {
+                            id: appImageBrowseArea
+                            width: 28; height: parent.height
+                            anchors.left: parent.left; anchors.leftMargin: Theme.spacingS - 7; anchors.verticalCenter: parent.verticalCenter
+                            hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: addAppDialog.openDirBrowser(appImagePathField.text)
+                        }
+                        TextInput {
+                            id: appImagePathField
+                            anchors.left: appImagePathIcon.right; anchors.leftMargin: Theme.spacingXS
+                            anchors.right: appImageRefreshBtn.left; anchors.rightMargin: Theme.spacingXS
+                            anchors.verticalCenter: parent.verticalCenter
+                            font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; selectByMouse: true
+                            onAccepted: addAppDialog.scanAppImages()
+                            Text { text: content._tr("AppImage folder path..."); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; opacity: 0.35; visible: appImagePathField.text === "" && !appImagePathField.activeFocus; anchors.verticalCenter: parent.verticalCenter }
+                        }
+                        Item {
+                            id: appImageRefreshBtn
+                            width: 22; height: 22
+                            anchors.right: parent.right; anchors.rightMargin: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter
+                            DankIcon { anchors.centerIn: parent; name: "refresh"; size: 13; color: host.fgColor; opacity: appImageRefreshArea.containsMouse ? 1.0 : 0.6 }
+                            MouseArea {
+                                id: appImageRefreshArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: addAppDialog.scanAppImages()
+                            }
+                        }
+                    }
+
+                    // AppImage list
+                    Item {
+                        width: parent.width
+                        height: dialogCard.height - Theme.spacingM * 2 - 24 - 32 - 32 - Theme.spacingS * 4
+                        visible: addAppDialog.activeTab === "appimage"
+
+                        ListView {
+                            id: appImageListView
+                            anchors.fill: parent
+                            clip: true; spacing: 2; boundsBehavior: Flickable.StopAtBounds
+                            model: addAppDialog.appimageList
+                            delegate: Rectangle {
+                                width: parent.width; height: 38
+                                radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
+                                color: appImgListMouseArea.containsMouse ? Theme.withAlpha(host.fgColor, 0.04) : "transparent"
+                                property bool isAdded: addAppDialog.addedAppNameSet[modelData.name] === true
+                                Row {
+                                    anchors.fill: parent; anchors.leftMargin: Theme.spacingS; anchors.rightMargin: Theme.spacingS
+                                    spacing: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter
+                                    AppIcon {
+                                        width: 24; height: 24; iconSize: 24
+                                        iconSource: modelData.icon
+                                        fallbackColor: host.fgColor
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                    StyledText { text: modelData.name; font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; elide: Text.ElideRight; width: parent.width - 24 - 32 - Theme.spacingS * 2; anchors.verticalCenter: parent.verticalCenter }
+                                }
+                                Rectangle {
+                                    width: 22; height: 22; radius: 11
+                                    anchors.right: parent.right; anchors.rightMargin: Theme.spacingS + 8; anchors.verticalCenter: parent.verticalCenter
+                                    color: parent.isAdded ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
+                                    border.color: parent.isAdded ? Theme.primary : Theme.withAlpha(Theme.outline, 0.3); border.width: 1
+                                    DankIcon { anchors.centerIn: parent; name: parent.parent.isAdded ? "done" : "add"; size: 12; color: parent.parent.isAdded ? Theme.primary : host.fgColor }
+                                }
+                                MouseArea {
+                                    id: appImgListMouseArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (parent.isAdded) { host.removeApp(modelData.name); toastRect.msg = "✖ " + modelData.name }
+                                        else { host.addApp({ name: modelData.name, exec: modelData.exec, icon: modelData.icon }); toastRect.msg = "✔ " + modelData.name }
+                                        toastTimer.restart()
+                                    }
+                                }
+                            }
+                        }
+
+                        // Empty / error hint
+                        StyledText {
+                            anchors.centerIn: parent
+                            width: parent.width - 32
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: appImageListView.count === 0
+                            text: addAppDialog.appimageDirError ? content._tr("Folder not found") : content._tr("No AppImage files found")
+                            font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; opacity: 0.5
+                            wrapMode: Text.WordWrap
+                        }
+
+                        // Scrollbar
+                        Item { width: 16; anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom; z: 10; visible: appImageListView.contentHeight > appImageListView.height
+                            Rectangle { id: appImgSB; width: 6; radius: 3; anchors.right: parent.right; anchors.rightMargin: 2; height: Math.max(20, parent.height * appImageListView.visibleArea.heightRatio); color: Theme.withAlpha(Theme.primary, 0.2); y: appImageListView.contentY / appImageListView.contentHeight * parent.height }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; property real _py: 0
+                                onPressed: function(mouse) { _py = mouse.y - appImgSB.y }
+                                onPositionChanged: function(mouse) { var lv = appImageListView; if (lv.contentHeight > lv.height) { var ny = Math.max(0, Math.min(parent.height - appImgSB.height, mouse.y - _py)); appImgSB.y = ny; lv.contentY = ny / parent.height * lv.contentHeight } } } }
+                        // Fast scroll overlay
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: false
+                            propagateComposedEvents: true
+                            onWheel: function(wheel) {
+                                wheel.accepted = true
+                                if (appImageListView.contentHeight > appImageListView.height) {
+                                    appImageListView.contentY = Math.max(0, Math.min(
+                                        appImageListView.contentY - wheel.angleDelta.y * 1.0,
+                                        appImageListView.contentHeight - appImageListView.height))
+                                }
+                            }
+                            onPressed: function(mouse) { mouse.accepted = false }
+                            onReleased: function(mouse) { mouse.accepted = false }
+                            onClicked: function(mouse) { mouse.accepted = false }
+                        }
+                    }
+
                     // Manage list wrapper (with drag reorder)
                     Item {
                         width: parent.width
@@ -1120,7 +1876,7 @@ color: Theme.surfaceText
                                 id: delegateContent
                                 width: parent.width; height: 38
                                 radius: Math.max(2, Math.round(Theme.cornerRadius / 2) - 2)
-                                color: manageItemMouseArea.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.04) : "transparent"
+                                color: manageItemMouseArea.containsMouse ? Theme.withAlpha(host.fgColor, 0.04) : "transparent"
 
                                 Drag.active: gripMouse.drag.active
                                 Drag.source: delegateItem
@@ -1144,7 +1900,7 @@ color: Theme.surfaceText
                                     DankIcon {
                                         id: gripIcon
                                         name: "drag_indicator"
-                                        size: 18; color: Theme.surfaceText
+                                        size: 18; color: host.fgColor
                                         opacity: gripMouse.containsMouse || gripMouse.drag.active ? 0.7 : 0.25
                                         anchors.verticalCenter: parent.verticalCenter
 
@@ -1171,13 +1927,14 @@ color: Theme.surfaceText
                                     AppIcon {
                                         width: 24; height: 24; iconSize: 24
                                         iconSource: modelData.icon
+                                        fallbackColor: host.fgColor
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                     // App name
                                     StyledText {
                                         text: modelData.name
-                                        font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
+                                        font.pixelSize: Theme.fontSizeSmall; color: host.fgColor
                                         elide: Text.ElideRight
                                         width: parent.width - 24 - 24 - 32 - 4 * 4
                                         anchors.verticalCenter: parent.verticalCenter
@@ -1192,7 +1949,7 @@ color: Theme.surfaceText
                                         DankIcon {
                                             anchors.centerIn: parent
                                             name: "delete"; size: 14
-                                            color: delBtn.containsMouse ? Theme.error : Theme.surfaceText
+                                            color: delBtn.containsMouse ? Theme.error : host.fgColor
                                             opacity: delBtn.containsMouse ? 1.0 : 0.6
                                         }
                                     }
@@ -1226,6 +1983,43 @@ color: Theme.surfaceText
                     }
 
                 }
+
+                // Icon extraction progress pill (direct child of dialogCard — Column ignores anchors)
+                Rectangle {
+                    visible: addAppDialog._iconExtracting
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: Theme.spacingS
+                    width: progressRow.width + Theme.spacingM * 2
+                    height: 24; radius: 12
+                    color: Theme.withAlpha(Theme.primary, 0.15)
+                    border.color: Theme.withAlpha(Theme.primary, 0.3); border.width: 1
+                    z: 5
+                    Row {
+                        id: progressRow
+                        anchors.centerIn: parent
+                        spacing: 6
+                        DankIcon { anchors.verticalCenter: parent.verticalCenter; name: "refresh"; size: 12; color: Theme.primary }
+                        StyledText {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: content._tr("Extracting icons") + " " + addAppDialog._iconExtractDone + "/" + addAppDialog._iconExtractTotal
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.primary
+                        }
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 48; height: 4; radius: 2
+                            color: Theme.withAlpha(Theme.primary, 0.2)
+                            Rectangle {
+                                anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                                width: Math.max(parent.height, parent.width * (addAppDialog._iconExtractTotal > 0 ? addAppDialog._iconExtractDone / addAppDialog._iconExtractTotal : 0))
+                                height: parent.height; radius: 2
+                                color: Theme.primary
+                                Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutQuad } }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -1253,7 +2047,7 @@ color: Theme.surfaceText
                 id: settingsCard
                 z: 10
                 width: Math.min(300, parent.width - 20)
-                height: Math.min(contentCol.implicitHeight + Theme.spacingS * 2, parent.height - 13)
+                height: parent.height - 16
                 // Top aligns with the header settings icon instead of vertical center
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
@@ -1274,18 +2068,18 @@ color: Theme.surfaceText
                 Column {
                     id: contentCol
                     anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-                    anchors.margins: Theme.spacingS; spacing: 12
+                    anchors.margins: 14; spacing: 16
 
                     // ── Title ──
                     Item {
-                        width: parent.width; height: 22
+                        width: parent.width; height: 26
                         // Desktop widgets entry (small icon, top-left)
                         Item {
                             width: 18; height: 18
                             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
                             DankIcon {
                                 anchors.centerIn: parent
-                                name: "widgets"; size: 13; color: Theme.surfaceText
+                                name: "widgets"; size: 13; color: host.fgColor
                                 opacity: dmsWidgetsBtn.containsMouse ? 1.0 : 0.6
                             }
                             MouseArea {
@@ -1300,7 +2094,7 @@ color: Theme.surfaceText
                         }
                         StyledText {
                             text: content._tr("Settings")
-                            font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: Theme.surfaceText
+                            font.bold: true; font.pixelSize: Theme.fontSizeMedium; color: host.fgColor
                             anchors.centerIn: parent
                         }
                         Item {
@@ -1308,7 +2102,7 @@ color: Theme.surfaceText
                             anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             DankIcon {
                                 anchors.centerIn: parent
-                                name: "close"; size: 16; color: Theme.surfaceText
+                                name: "close"; size: 16; color: host.fgColor
                                 opacity: closeSettingsBtn.containsMouse ? 1.0 : 0.5
                             }
                             MouseArea {
@@ -1321,15 +2115,15 @@ color: Theme.surfaceText
                     }
 
                     // ── Default View ──
-                    Item { width: parent.width; height: 24
-                        StyledText { text: content._tr("Default View"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
-                        Row { spacing: 6; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Default View"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        Row { spacing: 8; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             Repeater {
                                 model: [{ label: content._tr("Conky"), value: "conky" }, { label: content._tr("Apps"), value: "apps" }]
                                 Rectangle {
-                                    required property var modelData; width: 64; height: 24; radius: 6
-                                    color: host.defaultView === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                    StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.defaultView === modelData.value ? Theme.onPrimary : Theme.surfaceText }
+                                    required property var modelData; width: 68; height: 26; radius: 7
+                                    color: host.defaultView === modelData.value ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(host.fgColor, 0.08)
+                                    StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.defaultView === modelData.value ? Theme.primary : host.fgColor }
                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "defaultView", modelData.value) } }
                                 }
                             }
@@ -1339,21 +2133,21 @@ color: Theme.surfaceText
                     // ── Background Color ──
                     Column {
                         width: parent.width
-                        spacing: 4
-                        StyledText { text: content._tr("Background Color"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
+                        spacing: 6
+                        StyledText { text: content._tr("Background Color"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor }
                         Flow {
                             width: parent.width
-                            spacing: 4
+                            spacing: 6
                             Repeater {
                                 // Same palette as dmsfilemanager popupColor: "" = follow theme, "custom" = color picker
                                 model: ["", "#455A64", "#5D4037", "#37474F", "#2E3A4D", "#3E2A4D", "#263238", "#1E1E2E", "#14141B", "#000000"]
                                 Rectangle {
                                     required property var modelData
-                                    width: 18; height: 18
-                                    radius: modelData === "" ? 9 : 4
+                                    width: 22; height: 22
+                                    radius: modelData === "" ? 11 : 5
                                     color: modelData === "" ? Theme.surfaceContainer : modelData
                                     border.width: host.bgColor === modelData ? 2 : 1
-                                    border.color: host.bgColor === modelData ? Theme.surfaceText : Theme.withAlpha(Theme.outline, 0.3)
+                                    border.color: host.bgColor === modelData ? host.fgColor : Theme.withAlpha(Theme.outline, 0.3)
                                     MouseArea {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
@@ -1363,21 +2157,21 @@ color: Theme.surfaceText
                             }
                             // Custom color picker
                             Rectangle {
-                                width: 18; height: 18; radius: 4
+                                width: 22; height: 22; radius: 5
                                 color: "white"
                                 border.width: 1
                                 border.color: Theme.withAlpha(Theme.outline, 0.3)
                                 StyledText {
                                     anchors.centerIn: parent
                                     text: "+"
-                                    font.pixelSize: 13
+                                    font.pixelSize: 15
                                     color: "red"
                                     font.bold: true
                                 }
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: bgColorDialog.open()
+                                    onClicked: { content._fileDialogOpen = true; bgColorDialog.open() }
                                 }
                             }
                         }
@@ -1385,71 +2179,75 @@ color: Theme.surfaceText
                             id: bgColorDialog
                             title: content._tr("Background Color")
                             selectedColor: host.bgColor !== "" ? host.bgColor : "#0a0a0f"
-                            onAccepted: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "bgColor", selectedColor.toString()) }
+                            onAccepted: {
+                                content._fileDialogOpen = false
+                                if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "bgColor", selectedColor.toString())
+                            }
+                            onRejected: content._fileDialogOpen = false
                         }
                     }
 
                     // ── Transparency ──
-                    Item { width: parent.width; height: 24
-                        StyledText { text: content._tr("Transparency"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Transparency"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 4; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            Slider { width: 120; from: 0; to: 100; stepSize: 1; anchors.verticalCenter: parent.verticalCenter; value: Math.round(host.appLauncherBgOpacity * 100); onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) } }
-                            StyledText { text: Math.round(host.appLauncherBgOpacity * 100) + "%"; font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; anchors.verticalCenter: parent.verticalCenter; width: 28; horizontalAlignment: Text.AlignRight }
+                            Slider { width: 150; from: 0; to: 100; stepSize: 1; anchors.verticalCenter: parent.verticalCenter; value: Math.round(host.appLauncherBgOpacity * 100); onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) } }
+                            StyledText { text: Math.round(host.appLauncherBgOpacity * 100) + "%"; font.pixelSize: Theme.fontSizeSmall - 1; color: host.fgColor; anchors.verticalCenter: parent.verticalCenter; width: 34; horizontalAlignment: Text.AlignRight }
                         }
                     }
 
                     // ── Icon Size ──
-                    Item { width: parent.width; height: 24
-                        StyledText { text: content._tr("Icon Size"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Icon Size"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 4; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            Slider { width: 120; from: 48; to: 128; stepSize: 4; anchors.verticalCenter: parent.verticalCenter; value: host.appSize; onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "appSize", value) } }
-                            StyledText { text: host.appSize + "px"; font.pixelSize: Theme.fontSizeSmall - 1; color: Theme.surfaceText; anchors.verticalCenter: parent.verticalCenter; width: 28; horizontalAlignment: Text.AlignRight }
+                            Slider { width: 150; from: 48; to: 128; stepSize: 4; anchors.verticalCenter: parent.verticalCenter; value: host.appSize; onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "appSize", value) } }
+                            StyledText { text: host.appSize + "px"; font.pixelSize: Theme.fontSizeSmall - 1; color: host.fgColor; anchors.verticalCenter: parent.verticalCenter; width: 34; horizontalAlignment: Text.AlignRight }
                         }
                     }
 
                     // ── View Mode ──
-                    StyledText { text: content._tr("View Mode"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText }
-                    Row { spacing: 6
+                    StyledText { text: content._tr("View Mode"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor }
+                    Row { spacing: 8
                         Repeater {
                             model: [{ label: content._tr("Grid"), value: "grid" }, { label: content._tr("List"), value: "list" }, { label: content._tr("Compact"), value: "compact" }]
                             Rectangle {
-                                required property var modelData; width: 60; height: 24; radius: 6
-                                color: host.appViewMode === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.appViewMode === modelData.value ? Theme.onPrimary : Theme.surfaceText }
+                                required property var modelData; width: 64; height: 26; radius: 7
+                                color: host.appViewMode === modelData.value ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(host.fgColor, 0.08)
+                                StyledText { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 11; color: host.appViewMode === modelData.value ? Theme.primary : host.fgColor }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "viewMode", modelData.value) } }
                             }
                         }
                     }
 
                     // ── Show Header ──
-                    Item { width: parent.width; height: 24
-                        StyledText { text: content._tr("Show Header"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
-                        Row { spacing: 6; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            Rectangle { width: 28; height: 22; radius: 5
-                                color: host.appShowHeader ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText { anchors.centerIn: parent; text: content._tr("On"); font.pixelSize: 10; color: host.appShowHeader ? Theme.onPrimary : Theme.surfaceText }
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Show Header"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        Row { spacing: 8; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            Rectangle { width: 34; height: 26; radius: 6
+                                color: host.appShowHeader ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(host.fgColor, 0.08)
+                                StyledText { anchors.centerIn: parent; text: content._tr("On"); font.pixelSize: 11; color: host.appShowHeader ? Theme.primary : host.fgColor }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", true) } }
                             }
-                            Rectangle { width: 28; height: 22; radius: 5
-                                color: !host.appShowHeader ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText { anchors.centerIn: parent; text: content._tr("Off"); font.pixelSize: 10; color: !host.appShowHeader ? Theme.onPrimary : Theme.surfaceText }
+                            Rectangle { width: 34; height: 26; radius: 6
+                                color: !host.appShowHeader ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(host.fgColor, 0.08)
+                                StyledText { anchors.centerIn: parent; text: content._tr("Off"); font.pixelSize: 11; color: !host.appShowHeader ? Theme.primary : host.fgColor }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showHeader", false) } }
                             }
                         }
                     }
 
                     // ── Particles ──
-                    Item { width: parent.width; height: 24
-                        StyledText { text: content._tr("Particles"); font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
-                        Row { spacing: 6; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            Rectangle { width: 28; height: 22; radius: 5
-                                color: host.showLauncherParticles ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText { anchors.centerIn: parent; text: content._tr("On"); font.pixelSize: 10; color: host.showLauncherParticles ? Theme.onPrimary : Theme.surfaceText }
+                    Item { width: parent.width; height: 28
+                        StyledText { text: content._tr("Particles"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                        Row { spacing: 8; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            Rectangle { width: 34; height: 26; radius: 6
+                                color: host.showLauncherParticles ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(host.fgColor, 0.08)
+                                StyledText { anchors.centerIn: parent; text: content._tr("On"); font.pixelSize: 11; color: host.showLauncherParticles ? Theme.primary : host.fgColor }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", true) } }
                             }
-                            Rectangle { width: 28; height: 22; radius: 5
-                                color: !host.showLauncherParticles ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.08)
-                                StyledText { anchors.centerIn: parent; text: content._tr("Off"); font.pixelSize: 10; color: !host.showLauncherParticles ? Theme.onPrimary : Theme.surfaceText }
+                            Rectangle { width: 34; height: 26; radius: 6
+                                color: !host.showLauncherParticles ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(host.fgColor, 0.08)
+                                StyledText { anchors.centerIn: parent; text: content._tr("Off"); font.pixelSize: 11; color: !host.showLauncherParticles ? Theme.primary : host.fgColor }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "showLauncherParticles", false) } }
                             }
                         }
@@ -1476,14 +2274,14 @@ color: Theme.surfaceText
                             anchors.bottom: parent.bottom
                             anchors.left: parent.left
                             anchors.right: parent.right
-                            height: 24; radius: 6
+                            height: 28; radius: 7
                             color: langDropArea.containsMouse ? Theme.withAlpha(Theme.primary, 0.1) : Theme.withAlpha(Theme.outline, 0.08)
                             border.color: Theme.withAlpha(Theme.outline, 0.2); border.width: 1
                             Row {
                                 anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; spacing: 4
                                 StyledText {
                                     text: langSelector._currentLangLabel
-                                    font.pixelSize: Theme.fontSizeSmall; color: Theme.surfaceText
+                                    font.pixelSize: Theme.fontSizeSmall; color: host.fgColor
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: parent.width - 24; elide: Text.ElideRight
                                 }
@@ -1501,7 +2299,7 @@ color: Theme.surfaceText
 
                         Rectangle {
                             visible: langSelector._langListOpen
-                            height: Math.min(148, langListView.implicitHeight + 4)
+                            height: Math.min(176, langListView.implicitHeight + 4)
                             anchors.bottom: langDropBtn.top
                             anchors.left: parent.left
                             anchors.right: parent.right
@@ -1520,7 +2318,7 @@ color: Theme.surfaceText
                                     Repeater {
                                         model: content._launcherLangModel
                                         delegate: Rectangle {
-                                            width: parent.width; height: 24; radius: 3
+                                            width: parent.width; height: 28; radius: 4
                                             color: content._launcherLang === modelData.code ? Theme.withAlpha(Theme.primary, 0.15) : langItemArea.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.06) : "transparent"
                                             StyledText {
                                                 text: modelData.label

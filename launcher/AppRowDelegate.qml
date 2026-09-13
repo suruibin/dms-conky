@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 import qs.Common
 import qs.Widgets
 
@@ -21,6 +20,7 @@ Item {
         onPressAndHold: {
             if (appName !== "__add__") {
                 root.widget._deleteRevealedApp = appName
+                rowJumpAnim.start()
             }
         }
         onClicked: {
@@ -29,7 +29,7 @@ Item {
                 return
             }
             clickAnim.start()
-            Quickshell.execDetached(["sh", "-c", widget.cleanExec(appExec)])
+            widget.launchAppChecked(appName, appExec)
         }
 
         Rectangle {
@@ -56,17 +56,28 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
 
                 AppIcon {
+                    id: rowAppIcon
                     width: Math.round(root.iconFactor * (root.widget.appSize / 88.0))
                     height: width
                     iconSize: width
                     iconSource: appIcon
+                    showAppImageBadge: appName !== "__add__" && /\.appimage/i.test(appExec)
                     anchors.verticalCenter: parent.verticalCenter
+                    // Bounce jump when long-press reveals the delete button
+                    transform: Translate { id: rowIconJump; y: 0 }
+                    SequentialAnimation {
+                        id: rowJumpAnim
+                        NumberAnimation { target: rowIconJump; property: "y"; to: -6; duration: 110; easing.type: Easing.OutQuad }
+                        NumberAnimation { target: rowIconJump; property: "y"; to: 0; duration: 230; easing.type: Easing.OutBounce }
+                        NumberAnimation { target: rowIconJump; property: "y"; to: -3; duration: 90; easing.type: Easing.OutQuad }
+                        NumberAnimation { target: rowIconJump; property: "y"; to: 0; duration: 180; easing.type: Easing.OutBounce }
+                    }
                 }
 
                 StyledText {
                     text: appName
                     font.pixelSize: root.fontSize
-                    color: Theme.surfaceText
+                    color: root.widget ? root.widget.fgColor : Theme.surfaceText
                     anchors.verticalCenter: parent.verticalCenter
                     elide: Text.ElideRight
                     width: parent.width - parent.spacing - Math.round(root.iconFactor * (root.widget.appSize / 88.0))
