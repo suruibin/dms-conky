@@ -38,6 +38,18 @@ Item {
         }
     }
 
+    // Compact interval labels for the Auto Cycle chips in the settings dialog
+    function _cycleLabel(value) {
+        var lang = (_launcherLang === "system" || _launcherLang === "") ? Qt.locale().name : _launcherLang
+        var zh = {60:"1分", 300:"5分", 600:"10分", 1800:"30分", 3600:"1时", 7200:"2时", 14400:"4时", 28800:"8时"}
+        var ja = {60:"1分", 300:"5分", 600:"10分", 1800:"30分", 3600:"1時", 7200:"2時", 14400:"4時", 28800:"8時"}
+        var ko = {60:"1분", 300:"5분", 600:"10분", 1800:"30분", 3600:"1시", 7200:"2시", 14400:"4시", 28800:"8시"}
+        var ru = {60:"1м", 300:"5м", 600:"10м", 1800:"30м", 3600:"1ч", 7200:"2ч", 14400:"4ч", 28800:"8ч"}
+        var en = {60:"1m", 300:"5m", 600:"10m", 1800:"30m", 3600:"1h", 7200:"2h", 14400:"4h", 28800:"8h"}
+        var map = lang.indexOf("zh") === 0 ? zh : lang.indexOf("ja") === 0 ? ja : lang.indexOf("ko") === 0 ? ko : lang.indexOf("ru") === 0 ? ru : en
+        return map[value] || Math.round(value / 60) + "m"
+    }
+
     // Language sync timer — polls pluginLanguage from settings
     Timer {
         id: launcherLangSyncTimer
@@ -2067,10 +2079,19 @@ color: host.fgColor
                 // Swallow clicks on card padding/gaps so they don't reach the dismiss overlay
                 MouseArea { anchors.fill: parent }
 
-                Column {
-                    id: contentCol
-                    anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-                    anchors.margins: 14; spacing: 16
+                // Scrollable content so all sections stay reachable on smaller widget sizes
+                Flickable {
+                    anchors.fill: parent
+                    contentWidth: width
+                    contentHeight: contentCol.height + 28
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    Column {
+                        id: contentCol
+                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
+                        anchors.topMargin: 14; anchors.leftMargin: 14; anchors.rightMargin: 14
+                        spacing: 10
 
                     // ── Title ──
                     Item {
@@ -2117,7 +2138,7 @@ color: host.fgColor
                     }
 
                     // ── Default View ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 26
                         StyledText { text: content._tr("Default View"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 8; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             Repeater {
@@ -2139,14 +2160,14 @@ color: host.fgColor
                         StyledText { text: content._tr("Background Color"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor }
                         Flow {
                             width: parent.width
-                            spacing: 6
+                            spacing: 4
                             Repeater {
                                 // Same palette as dmsfilemanager popupColor: "" = follow theme, "custom" = color picker
-                                model: ["", "#455A64", "#5D4037", "#37474F", "#2E3A4D", "#3E2A4D", "#263238", "#1E1E2E", "#14141B", "#000000"]
+                                model: ["", "#455A64", "#5D4037", "#37474F", "#2E3A4D", "#3E2A4D", "#263238", "#1E1E2E", "#14141B"]
                                 Rectangle {
                                     required property var modelData
-                                    width: 22; height: 22
-                                    radius: modelData === "" ? 11 : 5
+                                    width: 20; height: 20
+                                    radius: modelData === "" ? 10 : 5
                                     color: modelData === "" ? Theme.surfaceContainer : modelData
                                     border.width: host.bgColor === modelData ? 2 : 1
                                     border.color: host.bgColor === modelData ? host.fgColor : Theme.withAlpha(Theme.outline, 0.3)
@@ -2159,14 +2180,14 @@ color: host.fgColor
                             }
                             // Custom color picker
                             Rectangle {
-                                width: 22; height: 22; radius: 5
+                                width: 20; height: 20; radius: 5
                                 color: "white"
                                 border.width: 1
                                 border.color: Theme.withAlpha(Theme.outline, 0.3)
                                 StyledText {
                                     anchors.centerIn: parent
                                     text: "+"
-                                    font.pixelSize: 15
+                                    font.pixelSize: 14
                                     color: "red"
                                     font.bold: true
                                 }
@@ -2189,20 +2210,70 @@ color: host.fgColor
                         }
                     }
 
+                    // ── Auto Cycle (same pluginData keys as ConkySettings) ──
+                    Column {
+                        width: parent.width
+                        spacing: 6
+                        Item { width: parent.width; height: 26
+                            StyledText { text: content._tr("Auto Cycle"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
+                            Row { spacing: 8; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                Rectangle { width: 34; height: 26; radius: 6
+                                    color: host.autoCycleColors ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(host.fgColor, 0.08)
+                                    StyledText { anchors.centerIn: parent; text: content._tr("On"); font.pixelSize: 11; color: host.autoCycleColors ? Theme.primary : host.fgColor }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "autoCycleColors", true) } }
+                                }
+                                Rectangle { width: 34; height: 26; radius: 6
+                                    color: !host.autoCycleColors ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(host.fgColor, 0.08)
+                                    StyledText { anchors.centerIn: parent; text: content._tr("Off"); font.pixelSize: 11; color: !host.autoCycleColors ? Theme.primary : host.fgColor }
+                                    MouseArea {
+                                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (host.pluginService) {
+                                                host.pluginService.savePluginData(host.pluginId, "autoCycleColors", false)
+                                                // Turning the cycle off restores the Default scheme
+                                                host._applyColorScheme(host._colorSchemes[0].colors)
+                                                host.pluginService.savePluginData(host.pluginId, "currentColorSchemeIdx", 0)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Flow {
+                            width: parent.width
+                            spacing: 4
+                            visible: host.autoCycleColors
+                            Repeater {
+                                model: [60, 300, 600, 1800, 3600, 7200, 14400, 28800]
+                                Rectangle {
+                                    required property var modelData
+                                    width: 30; height: 24; radius: 6
+                                    color: host.autoCycleInterval === modelData ? Theme.withAlpha(Theme.primary, 0.22) : Theme.withAlpha(host.fgColor, 0.08)
+                                    StyledText {
+                                        anchors.centerIn: parent
+                                        text: content._cycleLabel(modelData); font.pixelSize: 10
+                                        color: host.autoCycleInterval === modelData ? Theme.primary : host.fgColor
+                                    }
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "autoCycleInterval", modelData) } }
+                                }
+                            }
+                        }
+                    }
+
                     // ── Transparency ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 26
                         StyledText { text: content._tr("Transparency"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 4; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            Slider { width: 150; from: 0; to: 100; stepSize: 1; anchors.verticalCenter: parent.verticalCenter; value: Math.round(host.appLauncherBgOpacity * 100); onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) } }
+                            Slider { width: 100; from: 0; to: 100; stepSize: 1; anchors.verticalCenter: parent.verticalCenter; value: Math.round(host.appLauncherBgOpacity * 100); onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "backgroundOpacity", value) } }
                             StyledText { text: Math.round(host.appLauncherBgOpacity * 100) + "%"; font.pixelSize: Theme.fontSizeSmall - 1; color: host.fgColor; anchors.verticalCenter: parent.verticalCenter; width: 34; horizontalAlignment: Text.AlignRight }
                         }
                     }
 
                     // ── Icon Size ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 26
                         StyledText { text: content._tr("Icon Size"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 4; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                            Slider { width: 150; from: 48; to: 128; stepSize: 4; anchors.verticalCenter: parent.verticalCenter; value: host.appSize; onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "appSize", value) } }
+                            Slider { width: 100; from: 48; to: 128; stepSize: 4; anchors.verticalCenter: parent.verticalCenter; value: host.appSize; onValueChanged: { if (host.pluginService) host.pluginService.savePluginData(host.pluginId, "appSize", value) } }
                             StyledText { text: host.appSize + "px"; font.pixelSize: Theme.fontSizeSmall - 1; color: host.fgColor; anchors.verticalCenter: parent.verticalCenter; width: 34; horizontalAlignment: Text.AlignRight }
                         }
                     }
@@ -2222,7 +2293,7 @@ color: host.fgColor
                     }
 
                     // ── Show Header ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 26
                         StyledText { text: content._tr("Show Header"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 8; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             Rectangle { width: 34; height: 26; radius: 6
@@ -2239,7 +2310,7 @@ color: host.fgColor
                     }
 
                     // ── Particles ──
-                    Item { width: parent.width; height: 28
+                    Item { width: parent.width; height: 26
                         StyledText { text: content._tr("Particles"); font.pixelSize: Theme.fontSizeSmall; color: host.fgColor; anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter }
                         Row { spacing: 8; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                             Rectangle { width: 34; height: 26; radius: 6
@@ -2344,7 +2415,8 @@ color: host.fgColor
                                 }
                             }
                         }
-                    }
+                }
+                }
 
                 }
             }

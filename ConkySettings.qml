@@ -960,7 +960,14 @@ PluginSettings {
                     width: parent.width
                     text: root._trAutoCycle
                     checked: root.loadValue("autoCycleColors", false)
-                    onToggled: c => root.saveAndPersist("autoCycleColors", c)
+                    onToggled: c => {
+                        root.saveAndPersist("autoCycleColors", c)
+                        // Turning the cycle off restores the Default scheme
+                        if (!c) {
+                            root._applyColorScheme(root._colorSchemes[0].colors)
+                            root.saveAndPersist("currentColorSchemeIdx", 0)
+                        }
+                    }
                 }
 
                 Row {
@@ -1042,7 +1049,7 @@ PluginSettings {
                     label: root._trBackgroundColor
                     settingKey: "bgColor"
                     defaultColor: "#0a0a0f"
-                    customSwatches: ["#0a0a0f", "#455A64", "#5D4037", "#37474F", "#2E3A4D", "#3E2A4D", "#263238", "#1E1E2E", "#14141B", "#000000"]
+                    customSwatches: ["#0a0a0f", "#455A64", "#5D4037", "#37474F", "#2E3A4D", "#3E2A4D", "#263238", "#1E1E2E", "#14141B"]
                 }
 
                 StyledText {
